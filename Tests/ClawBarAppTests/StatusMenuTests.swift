@@ -11,7 +11,7 @@ import ClawBarShared
     @Test func englishTitlesInTheOriginalsOrder() {
         let e = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false)
         #expect(titles(e) == [
-            "ClawBar v0.1.0", "---", "Hide widget", "Refresh now", "Larger", "Smaller", "Always on top",
+            "ClawBar v0.1.1", "---", "Hide widget", "Refresh now", "Larger", "Smaller", "Always on top",
             "Launch at login", "Open config.json", "Language", "---", "Quit ClawBar",
         ])
         #expect(titles(e[9].children) == ["English", "Deutsch"])
@@ -28,7 +28,7 @@ import ClawBarShared
         let keys: [L10nKey] = [.menuHide, .menuRefresh, .menuBigger, .menuSmaller, .menuTopmost, .menuLogin, .menuConfig, .menuLanguage]
         #expect(Array(titles(e)[2 ... 9]) == keys.map { L10n.t($0, .de) })
         #expect(e.last?.title == L10n.t(.menuQuit, .de))
-        #expect(e[0].title == "ClawBar v0.1.0")
+        #expect(e[0].title == "ClawBar v0.1.1")
         #expect(titles(e[9].children) == ["English", "Deutsch"])
     }
 
@@ -74,7 +74,7 @@ import ClawBarShared
     @Test func theTextDumpShowsChecksAndDisabledItems() {
         let e = StatusMenu.entries(lang: .en, widgetVisible: false, topmost: true, launchAtLogin: false)
         let dump = MenuEntry.dump(e)
-        #expect(dump.contains("ClawBar v0.1.0  (disabled)"))
+        #expect(dump.contains("ClawBar v0.1.1  (disabled)"))
         #expect(dump.contains("[x] Always on top"))
         #expect(dump.contains("[ ] Launch at login"))
         #expect(dump.contains("    [x] English"))
