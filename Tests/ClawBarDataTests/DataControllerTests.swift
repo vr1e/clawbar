@@ -328,6 +328,9 @@ final class Counter {
         #expect(await eventually { dc.snapshot.version.local == "2.1.303" })
         #expect(h.runner.count(.version) > versions)
 
+        h.http.answer("downloads.claude.ai", Data("2.1.304\n".utf8))
+        dc.tick(now: t0 + 3600)
+        #expect(await eventually { dc.snapshot.version.updateAvailable })
         dc.startClaudeUpdate()
         #expect(await eventually { h.runner.count(.update) == 2 })
         // What the real child would have written there.
@@ -335,7 +338,119 @@ final class Counter {
         try Data("Error: managed by a package manager\n".utf8).write(to: h.paths.updateLog)
         h.runner.release(.update, data: Data(), exit: 1)
         #expect(await eventually { dc.snapshot.version.updateFailure != nil })
-        #expect(dc.snapshot.version.updateFailure == UpdateFailure(exitCode: 1, outputTail: "Error: managed by a package manager"))
+        #expect(dc.snapshot.version.updateFailure == UpdateFailure(
+            exitCode: 1, outputTail: "Error: managed by a package manager", from: "2.1.303", to: "2.1.304"
+        ))
+    }
+
+    /// A harness whose Claude Code is one release behind.
+    func behind() -> Harness {
+        let h = Harness()
+        h.http.answer("downloads.claude.ai", Data("2.1.303\n".utf8))
+        return h
+    }
+
+    /// Ticks one version interval later and waits until that look has finished.
+    func lookAgain(_ h: Harness, _ dc: DataController, at now: Date) async {
+        let versions = h.runner.count(.version)
+        dc.tick(now: now)
+        _ = await eventually { h.runner.count(.version) > versions }
+        await settle()
+    }
+
+    /// Runs an update that exits 1 and waits for the look the controller takes right after it.
+    func failedUpdate(_ h: Harness, _ dc: DataController) async {
+        h.runner.reply(.update, data: Data(), exit: 1)
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.version.updateAvailable })
+        let versions = h.runner.count(.version)
+        dc.startClaudeUpdate()
+        #expect(await eventually { dc.snapshot.version.updateFailure != nil && h.runner.count(.version) > versions })
+        await settle()
+    }
+
+    @Test func aFailedUpdateStaysUntilClaudeCodeHasUpdatedAnyway() async {
+        let h = behind()
+        let dc = h.make()
+        await failedUpdate(h, dc)
+        // The look right after the run, and a look whose claude --version failed, change nothing.
+        let failed = UpdateFailure(exitCode: 1, outputTail: "", from: "2.1.302", to: "2.1.303")
+        #expect(dc.snapshot.version.updateFailure == failed)
+        h.runner.reply(.version, stdout: "", exit: 1)
+        await lookAgain(h, dc, at: t0 + 3600)
+        #expect(dc.snapshot.version.updateFailure == failed)
+        // Claude Code's own updater got there.
+        h.runner.reply(.version, stdout: "2.1.303 (Claude Code)\n")
+        await lookAgain(h, dc, at: t0 + 7200)
+        #expect(dc.snapshot.version.local == "2.1.303")
+        #expect(dc.snapshot.version.updateFailure == nil)
+    }
+
+    @Test func aNewerReleaseClearsAFailedUpdate() async {
+        let h = behind()
+        let dc = h.make()
+        await failedUpdate(h, dc)
+        #expect(dc.snapshot.version.updateFailure != nil)
+        h.http.answer("downloads.claude.ai", Data("2.1.304\n".utf8))
+        await lookAgain(h, dc, at: t0 + 3600)
+        #expect(dc.snapshot.version.latest == "2.1.304")
+        #expect(dc.snapshot.version.updateFailure == nil)
+    }
+
+    @Test func aCleanExitThatLeavesTheVersionIsAFailure() async throws {
+        let h = behind()
+        h.runner.reply(.update, data: Data())
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.version.updateAvailable })
+        try FileManager.default.createDirectory(at: h.paths.root, withIntermediateDirectories: true)
+        try Data("Checking for updates...\nDone\n".utf8).write(to: h.paths.updateLog)
+        dc.startClaudeUpdate()
+        #expect(await eventually { dc.snapshot.version.updateFailure != nil })
+        #expect(dc.snapshot.version.updateFailure == UpdateFailure(
+            exitCode: 0, outputTail: "Checking for updates...\nDone", from: "2.1.302", to: "2.1.303"
+        ))
+        let log = try String(contentsOf: h.paths.errorLog, encoding: .utf8)
+        #expect(log.contains("update: exit 0, but Claude Code is still 2.1.302"))
+    }
+
+    @Test func onlyALookStartedAfterACleanExitJudgesIt() async {
+        let h = behind()
+        h.runner.reply(.update, .hold)
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.version.updateAvailable })
+        dc.startClaudeUpdate()
+        #expect(await eventually { h.runner.count(.update) == 1 })
+        // A look already running when the update ends still sees the old version.
+        h.runner.reply(.version, .hold)
+        dc.tick(now: t0 + 3600)
+        #expect(await eventually { h.runner.count(.version) == 2 })
+        await settle()
+        h.runner.release(.update, data: Data())
+        #expect(await eventually { !dc.snapshot.version.updating })
+        h.runner.release(.version, data: Data("2.1.302 (Claude Code)\n".utf8))
+        #expect(await eventually { h.runner.count(.version) == 3 })
+        await settle()
+        #expect(dc.snapshot.version.updateFailure == nil)
+        // The look after the run is the one that counts.
+        h.runner.release(.version, data: Data("2.1.303 (Claude Code)\n".utf8))
+        #expect(await eventually { dc.snapshot.version.local == "2.1.303" })
+        #expect(dc.snapshot.version.updateFailure == nil)
+    }
+
+    @Test func aFailedLookAfterACleanExitIsNoFailure() async {
+        let h = behind()
+        h.runner.reply(.update, data: Data())
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.version.updateAvailable })
+        h.runner.reply(.version, stdout: "", exit: 1)
+        let versions = h.runner.count(.version)
+        dc.startClaudeUpdate()
+        #expect(await eventually { h.runner.count(.version) > versions })
+        await settle()
+        #expect(dc.snapshot.version.updateFailure == nil)
     }
 
     @Test func theChangelogIsFetchedOnlyWhileAnUpdateIsAvailable() async {

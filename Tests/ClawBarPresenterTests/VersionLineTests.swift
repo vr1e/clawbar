@@ -121,6 +121,16 @@ import ClawBarShared
             == "claude update did not finish in 15 minutes\n\nInstalled with npm: update with npm install -g @anthropic-ai/claude-code")
     }
 
+    @Test func aCleanExitThatLeftTheVersionSaysSo() {
+        var ver = Self.update
+        ver.updateFailure = UpdateFailure(exitCode: 0, outputTail: "Done", from: "2.1.292", to: "2.1.302")
+        let v = version(ver)
+        #expect(v.versionText == "v2.1.292  ·  update failed" && v.versionColor == Palette.crit)
+        #expect(v.versionTooltip == "claude update finished, but Claude Code is still 2.1.292\n\nDone")
+        #expect(v.versionAction == .runUpdate)
+        #expect(version(ver, lang: .de).versionTooltip == "claude update ist fertig, aber Claude Code ist noch 2.1.292\n\nDone")
+    }
+
     @Test func aFailureOutranksAnUpdateAndTheLatestState() {
         var ver = VersionState(local: "2.1.302", latest: "2.1.302")
         ver.updateFailure = UpdateFailure(exitCode: 2, outputTail: "")

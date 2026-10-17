@@ -155,14 +155,19 @@ public struct AccountInfo: Sendable, Hashable {
 }
 
 public struct UpdateFailure: Sendable, Hashable {
-    /// nil when the update timed out.
+    /// nil when the update timed out; 0 when it exited cleanly but left the version where it was.
     public var exitCode: Int32?
     /// The last lines of its output, redacted.
     public var outputTail: String
+    /// The local and latest versions the run started from; the failure lasts only while both still hold.
+    public var from: String?
+    public var to: String?
 
-    public init(exitCode: Int32?, outputTail: String) {
+    public init(exitCode: Int32?, outputTail: String, from: String? = nil, to: String? = nil) {
         self.exitCode = exitCode
         self.outputTail = outputTail
+        self.from = from
+        self.to = to
     }
 }
 

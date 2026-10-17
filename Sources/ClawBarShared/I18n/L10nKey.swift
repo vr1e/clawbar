@@ -57,6 +57,8 @@ public enum L10nKey: String, CaseIterable, Sendable {
     /// First tooltip line of a failed update; {0} is the exit code.
     case verFailExit = "ver.failExit"
     case verFailTimeout = "ver.failTimeout"
+    /// {0} is the version claude update left in place.
+    case verFailUnchanged = "ver.failUnchanged"
     case verHintHomebrew = "ver.hintHomebrew"
     case verHintNpm = "ver.hintNpm"
     case chgHead = "chg.head"

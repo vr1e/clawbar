@@ -54,6 +54,7 @@ public enum StringsDE {
         .verUpdateFailed: .text("Update fehlgeschlagen"),
         .verFailExit: .text("claude update endete mit Code {0}"),
         .verFailTimeout: .text("claude update war nach 15 Minuten nicht fertig"),
+        .verFailUnchanged: .text("claude update ist fertig, aber Claude Code ist noch {0}"),
         .verHintHomebrew: .text("Mit Homebrew installiert: Update mit brew upgrade claude-code"),
         .verHintNpm: .text("Mit npm installiert: Update mit npm install -g @anthropic-ai/claude-code"),
         .chgHead: .text("Neuerungen: {0} → {1}"),

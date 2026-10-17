@@ -298,7 +298,11 @@ private struct Render {
 
     /// Why the headless `claude update` failed, its last output, and how this install updates instead.
     private func failureTooltip(_ failure: UpdateFailure, hint: InstallHint?) -> String {
-        var parts = [failure.exitCode.map { t(.verFailExit, Int($0)) } ?? t(.verFailTimeout)]
+        var parts = switch failure.exitCode {
+        case nil: [t(.verFailTimeout)]
+        case 0?: [t(.verFailUnchanged, failure.from ?? "")]
+        case let code?: [t(.verFailExit, Int(code))]
+        }
         let tail = failure.outputTail.trimmingCharacters(in: .whitespacesAndNewlines)
         if !tail.isEmpty { parts.append(tail) }
         switch hint {
