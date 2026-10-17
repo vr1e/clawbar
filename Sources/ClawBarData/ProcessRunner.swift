@@ -42,9 +42,8 @@ final class ProcessRunner: ProcessRunning {
         while Date() < deadline, registry.withLock({ r in victims.contains { r.children[$0] != nil } }) {
             usleep(10_000)
         }
-        for pid in registry.withLock({ r in victims.filter { r.children[$0] != nil } }) {
-            Self.signal(pid, SIGKILL)
-        }
+        let running = registry.withLock { r in Set(victims.filter { r.children[$0] != nil }) }
+        for pid in victims { Self.killRest(of: pid, reaped: !running.contains(pid)) }
     }
 
     // MARK: - Launch
@@ -140,7 +139,7 @@ final class ProcessRunner: ProcessRunning {
             guard child.markTimedOut() else { return }
             Self.signal(spawned, SIGTERM)
             DispatchQueue.global().asyncAfter(deadline: .now() + killAfter) {
-                if child.isRunning { Self.signal(spawned, SIGKILL) }
+                Self.killRest(of: spawned, reaped: !child.isRunning)
             }
         }
     }
@@ -163,6 +162,12 @@ final class ProcessRunner: ProcessRunning {
     static func signal(_ pid: Int32, _ sig: Int32) {
         _ = kill(-pid, sig)
         _ = kill(pid, sig)
+    }
+
+    /// SIGKILL for the group even once its leader is reaped, as a member may ignore the SIGTERM the leader
+    /// obeyed; the leader's own pid only while unreaped, since after that it is free for reuse.
+    static func killRest(of pid: Int32, reaped: Bool) {
+        if reaped { _ = kill(-pid, SIGKILL) } else { signal(pid, SIGKILL) }
     }
 }
 

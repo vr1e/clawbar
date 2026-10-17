@@ -66,6 +66,44 @@ import ClawBarShared
         #expect(took >= .milliseconds(750) && took < .seconds(5))
     }
 
+    /// Backgrounds a member of the child's group that ignores SIGTERM and writes its pid to `member.pid`.
+    var memberIgnoringSigterm: String {
+        "/bin/sh -c \"trap '' TERM; exec /bin/sleep 30\" >/dev/null 2>&1 & echo $! > member.pid; exec /bin/sleep 30"
+    }
+
+    func member() async throws -> Int32 {
+        let url = dir.file("member.pid")
+        for _ in 0 ..< 200 where !FileManager.default.fileExists(atPath: url.path) { try await Task.sleep(for: .milliseconds(5)) }
+        return try #require(Int32(String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)))
+    }
+
+    /// Whether the pid is gone within the deadline; a killed orphan lingers as a zombie until launchd reaps it.
+    func gone(_ pid: Int32) async throws -> Bool {
+        for _ in 0 ..< 300 {
+            if kill(pid, 0) == -1, errno == ESRCH { return true }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        return false
+    }
+
+    @Test func aTimeoutKillsAGroupMemberIgnoringSigtermThoughTheLeaderObeyed() async throws {
+        let o = try await outcome(sh(memberIgnoringSigterm, timeout: 0.3, killAfter: 0.5))
+        defer { kill(-o.pid, SIGKILL) }
+        #expect(o.timedOut)
+        #expect(o.termination == .signal(SIGTERM))
+        #expect(try await gone(try await member()))
+    }
+
+    @Test func shutdownKillsAGroupMemberIgnoringSigtermThoughTheLeaderObeyed() async throws {
+        let probe = Task { try await outcome(sh(memberIgnoringSigterm)) }
+        let pid = try await member()
+        runner.shutdown()
+        let o = try await probe.value
+        defer { kill(-o.pid, SIGKILL) }
+        #expect(o.termination == .signal(SIGTERM))
+        #expect(try await gone(pid))
+    }
+
     @Test func aGrandchildHoldingThePipeDoesNotBlockTheResult() async throws {
         let start = ContinuousClock.now
         let o = try await outcome(sh("echo started; /bin/sleep 8 & echo done", grace: 0.4))
