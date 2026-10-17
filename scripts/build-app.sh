@@ -34,10 +34,12 @@ echo "built $APP"
 
 if $install; then
     DEST="$HOME/Applications/ClawBar.app"
-    # A running copy keeps the old binary mapped: ask it to quit, then wait for it to go.
-    if "$BIN" --command quit >/dev/null 2>&1; then
-        for _ in $(seq 1 50); do
-            pgrep -qx ClawBar || break
+    # A running copy keeps the old binary mapped: ask it to quit, then wait for that process to go. Only the
+    # default root's copy: an exported CLAWBAR_HOME would aim at a sandbox, and sandbox copies keep running.
+    pid=$(env -u CLAWBAR_HOME "$BIN" --dump-state 2>/dev/null | sed -n 's/^app: .*(pid \([0-9]*\))$/\1/p' || true)
+    if [ -n "$pid" ] && env -u CLAWBAR_HOME "$BIN" --command quit >/dev/null 2>&1; then
+        for _ in $(seq 1 100); do
+            kill -0 "$pid" 2>/dev/null || break
             sleep 0.1
         done
     fi

@@ -39,6 +39,14 @@ enum LaunchAtLogin {
         return allowed.contains(parent)
     }
 
+    /// The login item belongs to the bundle, not the root: a sandbox `CLAWBAR_HOME` run of the installed app
+    /// must not register or remove the user's.
+    static func managesLoginItem(
+        installed: Bool, paths: AppPaths, defaultRoot: URL = AppPaths.live(environment: [:]).root
+    ) -> Bool {
+        installed && paths.isDefault(defaultRoot: defaultRoot)
+    }
+
     static var runsFromInstalledApp: Bool {
         isInstalledApp(
             bundleURL: Bundle.main.bundleURL, bundleID: Bundle.main.bundleIdentifier,

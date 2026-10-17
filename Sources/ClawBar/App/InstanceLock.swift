@@ -9,16 +9,25 @@ nonisolated final class InstanceLock {
 
     deinit { release() }
 
-    /// nil when another process holds the lock.
-    static func acquire(_ url: URL) -> InstanceLock? {
+    enum Attempt {
+        case acquired(InstanceLock)
+        /// Another process holds it.
+        case held
+        /// The folder or the file could not be made or opened; the errno.
+        case failed(Int32)
+    }
+
+    static func acquire(_ url: URL) -> Attempt {
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let fd = open(url.path, O_RDWR | O_CREAT | O_CLOEXEC, 0o644)
-        guard fd >= 0 else { return nil }
+        // Read-only: flock needs no write access, so a read-only or root-owned lock file still locks.
+        let fd = open(url.path, O_RDONLY | O_CREAT | O_CLOEXEC, 0o644)
+        guard fd >= 0 else { return .failed(errno) }
         guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
+            let e = errno
             close(fd)
-            return nil
+            return e == EWOULDBLOCK ? .held : .failed(e)
         }
-        return InstanceLock(fd: fd)
+        return .acquired(InstanceLock(fd: fd))
     }
 
     /// Whether some process runs ClawBar on this root; never creates the file.

@@ -29,6 +29,29 @@ public struct AppPaths: Sendable, Equatable {
             ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
         return AppPaths(root: support.appendingPathComponent("ClawBar", isDirectory: true))
     }
+
+    /// The root with symlinks resolved, so /tmp/x and /private/tmp/x, which share one lock file, are one root.
+    public var canonicalRoot: String { Self.canonical(root) }
+
+    /// Whether this is the root ClawBar uses without `CLAWBAR_HOME`, however it is spelled.
+    public func isDefault(defaultRoot: URL = AppPaths.live(environment: [:]).root) -> Bool {
+        canonicalRoot == Self.canonical(defaultRoot)
+    }
+
+    /// realpath of the deepest folder that exists plus the rest, so a root not created yet compares too.
+    static func canonical(_ url: URL) -> String {
+        var head = url.standardizedFileURL
+        var rest: [String] = []
+        while true {
+            if let real = realpath(head.path, nil) {
+                defer { free(real) }
+                return rest.reversed().reduce(String(cString: real)) { ($0 as NSString).appendingPathComponent($1) }
+            }
+            guard head.path != "/" else { return url.standardizedFileURL.path }
+            rest.append(head.lastPathComponent)
+            head = head.deletingLastPathComponent()
+        }
+    }
 }
 
 public enum AppInfo {

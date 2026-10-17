@@ -50,7 +50,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
         host = CardHostView(root: WidgetRootView(app: app, animation: animation, layout: layout))
         panel = WidgetPanel(content: host)
         tooltips = TooltipRegions(view: host)
-        loginItem = LoginItemController(service: MainAppLoginItem(), installed: LaunchAtLogin.runsFromInstalledApp, log: errorLog)
+        let installed = LaunchAtLogin.managesLoginItem(installed: LaunchAtLogin.runsFromInstalledApp, paths: paths)
+        loginItem = LoginItemController(service: MainAppLoginItem(), installed: installed, log: errorLog)
         super.init()
     }
 
@@ -88,7 +89,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         ipc.onShow = { [unowned self] in showWidget() }
         ipc.onCommand = { [unowned self] in run($0) }
         ipc.onDumpState = { [unowned self] in writeStateDump(nonce: $0) }
-        ipc.start()
+        ipc.start(channel: IPC.channel(paths))
 
         let now = Date()
         data.tick(now: now)

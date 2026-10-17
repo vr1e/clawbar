@@ -10,14 +10,20 @@ enum IPC {
     static let commandKey = "command"
     static let nonceKey = "nonce"
 
-    static func post(_ name: Notification.Name, userInfo: [String: String]? = nil) {
+    /// The object every message carries, so a sandbox and the installed app never hear each other: the bare
+    /// bundle ID for the default root, which builds from before the scoping also use, else the canonical root.
+    static func channel(_ paths: AppPaths, defaultRoot: URL = AppPaths.live(environment: [:]).root) -> String {
+        paths.isDefault(defaultRoot: defaultRoot) ? AppInfo.bundleID : "\(AppInfo.bundleID):\(paths.canonicalRoot)"
+    }
+
+    static func post(_ name: Notification.Name, to paths: AppPaths, userInfo: [String: String]? = nil) {
         DistributedNotificationCenter.default().postNotificationName(
-            name, object: AppInfo.bundleID, userInfo: userInfo, deliverImmediately: true
+            name, object: channel(paths), userInfo: userInfo, deliverImmediately: true
         )
     }
 
-    static func send(_ c: RemoteCommand) {
-        post(command, userInfo: [commandKey: c.wire])
+    static func send(_ c: RemoteCommand, to paths: AppPaths) {
+        post(command, to: paths, userInfo: [commandKey: c.wire])
     }
 
     /// The running instance writes its dump here, never to a path a notification names.
@@ -32,12 +38,12 @@ final class IPCListener: NSObject {
     var onCommand: (RemoteCommand) -> Void = { _ in }
     var onDumpState: (String) -> Void = { _ in }
 
-    func start() {
+    func start(channel: String) {
         let center = DistributedNotificationCenter.default()
         for (name, selector) in [
             (IPC.show, #selector(show(_:))), (IPC.command, #selector(command(_:))), (IPC.dumpState, #selector(dump(_:))),
         ] {
-            center.addObserver(self, selector: selector, name: name, object: AppInfo.bundleID, suspensionBehavior: .deliverImmediately)
+            center.addObserver(self, selector: selector, name: name, object: channel, suspensionBehavior: .deliverImmediately)
         }
     }
 

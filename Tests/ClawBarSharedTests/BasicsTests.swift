@@ -111,6 +111,25 @@ import ClawBarShared
     @Test func theLiveRootIsInApplicationSupport() {
         #expect(AppPaths.live(environment: [:]).root.path.hasSuffix("Library/Application Support/ClawBar"))
     }
+
+    @Test func oneRootHasOneCanonicalSpellingEvenBeforeItExists() {
+        let name = "cb-canon-\(UUID().uuidString)"
+        // /tmp is a symlink to /private/tmp; neither folder below it exists.
+        let short = AppPaths(root: URL(fileURLWithPath: "/tmp/\(name)/root"))
+        let long = AppPaths(root: URL(fileURLWithPath: "/private/tmp/\(name)/x/../root/"))
+        #expect(short.canonicalRoot == "/private/tmp/\(name)/root")
+        #expect(long.canonicalRoot == short.canonicalRoot)
+    }
+
+    @Test func theDefaultRootIsTheOneWithoutClawbarHomeHoweverItIsSpelled() {
+        let base = URL(fileURLWithPath: "/tmp/cb-default-\(UUID().uuidString)")
+        let def = base.appendingPathComponent("ClawBar")
+        #expect(AppPaths(root: def).isDefault(defaultRoot: def))
+        #expect(AppPaths(root: URL(fileURLWithPath: "/private" + def.path)).isDefault(defaultRoot: def))
+        #expect(!AppPaths(root: base.appendingPathComponent("sandbox")).isDefault(defaultRoot: def))
+        #expect(AppPaths.live(environment: [:]).isDefault())
+        #expect(!AppPaths.live(environment: ["CLAWBAR_HOME": "/tmp/cb-test"]).isDefault())
+    }
 }
 
 @Suite struct ErrorLogTests {
