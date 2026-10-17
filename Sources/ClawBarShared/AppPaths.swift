@@ -64,6 +64,6 @@ public enum AppInfo {
     public static let changelogPage = URL(string: "https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md")!
     public static let changelogRaw = URL(string: "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md")!
     public static let releasesBase = URL(string: "https://downloads.claude.ai/claude-code-releases")!
-    /// "ClawBar v0.1.0": the menu header and the details line.
+    /// "ClawBar v<version>": the menu header and the details line.
     public static var title: String { "\(name) v\(version)" }
 }

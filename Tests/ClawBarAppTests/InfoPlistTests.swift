@@ -16,6 +16,7 @@ import ClawBarShared
         let p = Self.plist
         #expect(p["CFBundleIdentifier"] as? String == AppInfo.bundleID)
         #expect(p["CFBundleShortVersionString"] as? String == AppInfo.version)
+        #expect(p["CFBundleVersion"] as? String == AppInfo.version)
         #expect(p["CFBundleExecutable"] as? String == AppInfo.name)
         #expect(p["CFBundleIconFile"] as? String == "AppIcon")
         #expect(p["CFBundlePackageType"] as? String == "APPL")
