@@ -112,6 +112,11 @@ import ClawBarShared
         #expect(AppPaths.live(environment: [:]).root.path.hasSuffix("Library/Application Support/ClawBar"))
     }
 
+    @Test func theUserAgentNamesThisVersionAndNotTheOriginalAsItsContact() {
+        #expect(AppInfo.userAgent == "ClawBar/\(AppInfo.version)")
+        #expect(!AppInfo.userAgent.contains(AppInfo.originalRepo.path))
+    }
+
     @Test func oneRootHasOneCanonicalSpellingEvenBeforeItExists() {
         let name = "cb-canon-\(UUID().uuidString)"
         // /tmp is a symlink to /private/tmp; neither folder below it exists.
