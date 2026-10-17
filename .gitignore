@@ -3,5 +3,4 @@
 build/
 *.app
 .DS_Store
-docs.local/
-handoff.local/
+*.local

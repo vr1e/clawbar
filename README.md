@@ -127,7 +127,7 @@ swift test
 
 The package has one target per concern: `ClawBarShared` (every type the others share, and the English and German
 string tables), `ClawBarData` (probes, sessions, config, weather), `ClawBarPresenter` (every display rule),
-`ClawBarClawd`, `ClawBarSky` and the `ClawBar` app. `CLAUDE.md` lists the toolchain quirks and rules.
+`ClawBarClawd`, `ClawBarSky` and the `ClawBar` app. `AGENTS.md` lists the toolchain quirks and rules.
 
 ## License
 
