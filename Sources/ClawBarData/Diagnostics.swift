@@ -85,7 +85,7 @@ public enum Diagnostics {
         let registry = SessionRegistry(
             directory: SessionRegistry.directory(configDir: configDir, home: deps.home), table: deps.table, readFile: deps.readFile
         )
-        let sessions = registry.read(excluding: deps.runner.childPIDs)
+        let sessions = registry.read(excluding: deps.runner.childPIDs, now: deps.clock())
         let names = sessions.map { s in
             let state = s.state == .waiting && s.waitingFor != nil ? "waiting: \(s.waitingFor!)" : s.state.rawValue
             return "\(s.name) (\(state))"

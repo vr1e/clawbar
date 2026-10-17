@@ -50,6 +50,18 @@ struct FakeTable: ProcessTable {
         FakeTable(starts: Dictionary(uniqueKeysWithValues: pids.map { ($0, ProcessStart.started(started)) }))
     }
 
+    @Test func aPrintModeRunCountsOnlyOnceItHasOutlivedAUsageCheck() {
+        // The fixture's startedAt.
+        let start = Date(timeIntervalSince1970: 1_792_186_204.842)
+        session(4301, ["entrypoint": "sdk-cli"])
+        session(4302, ["entrypoint": "sdk-cli", "startedAt": 1_792_186_184_842])
+        session(4303)
+        session(4304, ["entrypoint": "sdk-cli", "startedAt": NSNull()])
+        let pids = registry(table(4301, 4302, 4303, 4304)).read(excluding: [], now: start + 5).map(\.pid)
+        #expect(pids == [4302, 4303, 4304])
+        #expect(registry(table(4301)).read(excluding: [], now: start + 20).map(\.pid) == [4301])
+    }
+
     @Test func onlyPidJSONFilesAreOpenedAndKeyFilesNever() throws {
         session(4242)
         try Data("secret".utf8).write(to: dir.file("4242.0f3a9c.key"))

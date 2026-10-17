@@ -47,8 +47,9 @@ final class Harness {
 
     func make() -> DataController { DataController(config: config, paths: paths, deps: deps) }
 
-    func session(_ pid: Int32, in configDir: String, status: String = "busy") {
-        let j: [String: Any] = ["pid": pid, "sessionId": "s\(pid)", "cwd": "/Users/example/p\(pid)", "status": status, "kind": "interactive"]
+    func session(_ pid: Int32, in configDir: String, status: String = "busy", _ extra: [String: Any] = [:]) {
+        var j: [String: Any] = ["pid": pid, "sessionId": "s\(pid)", "cwd": "/Users/example/p\(pid)", "status": status, "kind": "interactive"]
+        for (k, v) in extra { j[k] = v }
         let url = URL(fileURLWithPath: configDir).appendingPathComponent("sessions/\(pid).json")
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? JSONSerialization.data(withJSONObject: j).write(to: url)
@@ -263,6 +264,23 @@ final class Counter {
         #expect(dc.snapshot.sessions.map(\.pid) == [4343])
         #expect(dc.snapshot.sessions.first?.state == .waiting)
         #expect(!h.spy.names.contains { $0.hasSuffix(".key") })
+    }
+
+    @Test func anotherToolsFreshUsageCheckIsNoSession() async {
+        let h = Harness()
+        let dir = h.home + "/.claude"
+        h.table = FakeTable(starts: [8001: .unknown, 8002: .unknown])
+        let ms = { (d: Date) in d.timeIntervalSince1970 * 1000 }
+        h.session(8001, in: dir, ["entrypoint": "sdk-cli", "startedAt": ms(t0 - 3)])
+        h.session(8002, in: dir, ["entrypoint": "sdk-cli", "startedAt": ms(t0 - 60)])
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.sessionsRead })
+        // The hand clock, not the wall clock, decides what is fresh.
+        dc.pollSessions(now: t0)
+        #expect(dc.snapshot.sessions.map(\.pid) == [8002])
+        dc.pollSessions(now: t0 + 30)
+        #expect(dc.snapshot.sessions.map(\.pid) == [8001, 8002])
     }
 
     @Test func theAuthProbesConfigDirectoryTakesOver() async {

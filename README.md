@@ -109,7 +109,8 @@ session. German replaces Russian as the second language.
 - The widget shows why numbers are missing: Claude Code not found (with the install command), a login without a
   Claude subscription, or a stopped probe.
 - Stale numbers also turn the menu bar item grey, and its tooltip says when they are from.
-- Sessions refresh every 2 seconds.
+- Sessions refresh every 2 seconds. A `claude -p` run counts only once it is 20 seconds old, so another tool's
+  `/usage` check does not show up as a session or wake Clawd.
 - The sky uses the weather location's time zone, retries Open-Meteo hourly after falling back to met.no, and draws
   polar days and nights as day and night.
 - The widget stays on all Spaces, pauses its animation while hidden or covered, and moves back on screen if its

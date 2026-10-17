@@ -46,8 +46,11 @@ struct SessionRegistry: Sendable {
         return URL(fileURLWithPath: base, isDirectory: true).appendingPathComponent("sessions", isDirectory: true)
     }
 
-    /// The registry's sessions in file-name order, minus ClawBar's own children.
-    func read(excluding own: Set<Int32>) -> [SessionInfo] {
+    /// A `claude -p` run younger than this is someone's usage check, gone in seconds; older, it is real work.
+    static let printModeGrace: TimeInterval = 20
+
+    /// The registry's sessions in file-name order, minus ClawBar's own children and other tools' fresh checks.
+    func read(excluding own: Set<Int32>, now: Date = Date()) -> [SessionInfo] {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
         var out: [SessionInfo] = []
         for name in names.sorted() where Rx.matches(Self.fileName, name) {
@@ -73,10 +76,14 @@ struct SessionRegistry: Sendable {
             var name = Lenient.string(j["name"]) ?? ""
             if name.isEmpty, !cwd.isEmpty { name = (cwd as NSString).lastPathComponent }
             let waitingFor = Lenient.string(j["waitingFor"]).flatMap { $0.isEmpty ? nil : $0 }
+            let startedAt = Lenient.double(j["startedAt"]).map { Date(timeIntervalSince1970: $0 / 1000) }
+            // Another ClawBar's or a feeder's `claude -p /usage` registers like a session and would wake Clawd.
+            if Lenient.string(j["entrypoint"]) == "sdk-cli", let startedAt, now.timeIntervalSince(startedAt) < Self.printModeGrace {
+                continue
+            }
             out.append(SessionInfo(
                 pid: pid, sessionId: Lenient.string(j["sessionId"]) ?? "", name: name, cwd: cwd,
-                state: Self.state(Lenient.string(j["status"])), waitingFor: waitingFor, kind: kind,
-                startedAt: Lenient.double(j["startedAt"]).map { Date(timeIntervalSince1970: $0 / 1000) }
+                state: Self.state(Lenient.string(j["status"])), waitingFor: waitingFor, kind: kind, startedAt: startedAt
             ))
         }
         return out

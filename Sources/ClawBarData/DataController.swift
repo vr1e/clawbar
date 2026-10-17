@@ -116,7 +116,7 @@ public final class DataController {
     /// Re-reads the session registry synchronously.
     public func pollSessions(now: Date) {
         guard !stopped, resolution == .done else { return }
-        readSessions()
+        readSessions(now: now)
     }
 
     /// Refresh now: start the usage probe unless one is running or the probe is latched.
@@ -181,7 +181,7 @@ public final class DataController {
                 me.resolution = .done
                 let now = me.deps.clock()
                 me.locate(now: now)
-                me.readSessions()
+                me.readSessions(now: now)
                 me.startDue(now: now)
             }
         }
@@ -401,11 +401,11 @@ public final class DataController {
         }
     }
 
-    private func readSessions() {
+    private func readSessions(now: Date) {
         guard config.showSessions || config.showMascot else { return }
         let dir = SessionRegistry.directory(configDir: configDirectory, home: deps.home)
         snapshot.sessions = SessionRegistry(directory: dir, table: deps.table, readFile: deps.readFile)
-            .read(excluding: deps.runner.childPIDs)
+            .read(excluding: deps.runner.childPIDs, now: now)
         snapshot.sessionsRead = true
     }
 
