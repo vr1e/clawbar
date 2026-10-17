@@ -96,11 +96,18 @@ import ClawBarShared
         }
     }
 
-    @Test func anEnvelopeWithoutLimitsIsNoLimits() {
+    @Test func theCostSummaryIsNoLimits() {
         let data = todayEnvelope { $0["result"] = Fixture.text("usage/no-limits.txt") }
         let report = UsageProbe.interpret(finished(data), now: now, timeZone: berlin)
         #expect(report.outcome == .issue(.noLimits))
-        #expect(report.stats?.day?.requests == 52)
+        #expect(report.stats == UsageSnapshot())
+    }
+
+    @Test func anyOtherAnswerWithoutLimitsIsAFailedProbeWithAFixedMessage() {
+        for result in ["", Fixture.text("usage/subscription-unavailable.txt")] {
+            let data = todayEnvelope { $0["result"] = result }
+            #expect(outcome(finished(data)) == .issue(.probeFailed("no limit lines in /usage")))
+        }
     }
 }
 

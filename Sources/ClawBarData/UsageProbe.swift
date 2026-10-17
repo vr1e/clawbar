@@ -58,6 +58,8 @@ enum UsageProbe {
         switch UsageParser.parse(text, now: now, timeZone: timeZone) {
         case .usage(let u): return Report(outcome: .usage(u), envelope: env)
         case .noLimits(let stats): return Report(outcome: .issue(.noLimits), envelope: env, stats: stats)
+        // Fixed text: the answer's stats change every minute, and the error log dedups identical messages only.
+        case .unavailable: return Report(outcome: .issue(.probeFailed("no limit lines in /usage")), envelope: env)
         }
     }
 

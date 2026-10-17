@@ -92,6 +92,24 @@ import ClawBarShared
         #expect(tip.count > 63)
         #expect(tip.hasSuffix("Haiku 2%"))
     }
+
+    @Test func staleNumbersGreyThePillAndSayWhenTheyAreFrom() {
+        // The sample's usage is 25 s old; stale past 3 × 60 s + 30 s, as the widget's stamp.
+        let fresh = render(now: Samples.now.plus(seconds: 210 - 25))
+        #expect(fresh.trayColor == Palette.ok && !fresh.trayTooltip.contains("stale"))
+        let stale = render(now: Samples.now.plus(seconds: 211 - 25))
+        #expect(stale.trayText == "34" && stale.trayColor == Palette.dead)
+        #expect(stale.trayTooltip.hasSuffix("\nweek 59% · Fable 8%\nstale · 14:04:35"))
+        #expect(render(lang: .de, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix("\nWoche 59% · Fable 8%\nveraltet · 14:04:35"))
+        // The widget keeps its level colours; its stamp already says stale.
+        #expect(stale.pctColor == Palette.ok)
+    }
+
+    @Test func theStaleLineComesBeforeAnIssueLine() {
+        let d = sample(data: { $0.usageIssue = .flagRejected("--output-format") })
+        let tip = render(d, now: Samples.now.plus(hours: 1)).trayTooltip
+        #expect(tip.contains("\nweek 59% · Fable 8%\nstale · 14:04:35\n"))
+    }
 }
 
 @Suite struct WeekRowTests {

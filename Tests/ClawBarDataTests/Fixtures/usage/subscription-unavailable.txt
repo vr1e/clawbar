@@ -1,0 +1,10 @@
+You are currently using your subscription to power your Claude Code usage
+
+What's contributing to your limits usage?
+Approximate, based on local sessions on this machine — does not include other devices or claude.ai. Behaviors are independent characteristics, not a breakdown.
+
+Last 24h · 52 requests · 3 sessions
+  40% of your usage was at >150k context
+
+Last 7d · 310 requests · 11 sessions
+  35% of your usage was at >150k context

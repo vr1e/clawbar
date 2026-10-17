@@ -6,8 +6,10 @@ import ClawBarShared
 enum UsageParser {
     enum Outcome: Sendable, Hashable {
         case usage(UsageSnapshot)
-        /// Neither the session nor the week line: an API-key login, whose 24 h / 7 d stats still count.
+        /// Neither the session nor the week line in the `/cost` summary a login without a subscription gets.
         case noLimits(stats: UsageSnapshot)
+        /// Neither line in any other answer: a subscription whose limits Claude Code could not fetch, or nothing.
+        case unavailable
     }
 
     static func parse(_ raw: String, now: Date, timeZone: TimeZone) -> Outcome {
@@ -32,6 +34,8 @@ enum UsageParser {
         u.day = period(text, day)
         u.week7 = period(text, week7)
         guard u.sessionPercent != nil || u.weekPercent != nil else {
+            // Only a positive sign clears the numbers; anything else keeps them, as the original does.
+            guard text.contains("Total cost:") else { return .unavailable }
             return .noLimits(stats: UsageSnapshot(day: u.day, week7: u.week7))
         }
         return .usage(u)

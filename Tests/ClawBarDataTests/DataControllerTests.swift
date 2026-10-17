@@ -122,23 +122,40 @@ final class Counter {
         #expect(log.contains("usage: exit 1: boom"))
     }
 
-    @Test func anAPIKeyLoginReplacesTheOldLimitsWithItsOwnStats() async throws {
+    /// today.json with its result replaced by a fixture's text.
+    func envelope(_ fixture: String) throws -> Data {
+        var j = try #require(try JSONSerialization.jsonObject(with: Fixture.data("usage/today.json")) as? [String: Any])
+        j["result"] = Fixture.text("usage/\(fixture)")
+        return try JSONSerialization.data(withJSONObject: j)
+    }
+
+    @Test func aLoginWithoutASubscriptionClearsTheOldLimits() async throws {
         let h = Harness()
         h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
         let dc = h.make()
         dc.tick(now: t0)
         #expect(await eventually { dc.snapshot.usage?.sessionPercent == 50 })
-        var envelope = try #require(try JSONSerialization.jsonObject(with: Fixture.data("usage/today.json")) as? [String: Any])
-        envelope["result"] = Fixture.text("usage/no-limits.txt")
-        h.runner.reply(.usage, data: try JSONSerialization.data(withJSONObject: envelope))
+        h.runner.reply(.usage, data: try envelope("no-limits.txt"))
         h.clock.now = t0 + 60
         dc.tick(now: t0 + 60)
         #expect(await eventually { dc.snapshot.usageIssue == .noLimits })
-        // The subscription's limits no longer apply; the stats are this login's and fresh.
-        #expect(dc.snapshot.usage == UsageSnapshot(day: UsagePeriod(
-            requests: 52, sessions: 3, lines: ["40% of your usage was at >150k context"]
-        )))
+        // The subscription's limits no longer apply; the /cost summary carries no stats.
+        #expect(dc.snapshot.usage == UsageSnapshot())
         #expect(dc.snapshot.usageAt == t0 + 60)
+    }
+
+    @Test func aSubscriptionAnswerWithoutLimitsKeepsTheLastNumbers() async throws {
+        let h = Harness()
+        h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.usage?.sessionPercent == 50 })
+        h.runner.reply(.usage, data: try envelope("subscription-unavailable.txt"))
+        h.clock.now = t0 + 60
+        dc.tick(now: t0 + 60)
+        #expect(await eventually { dc.snapshot.usageIssue == .probeFailed("no limit lines in /usage") })
+        #expect(dc.snapshot.usage?.sessionPercent == 50)
+        #expect(dc.snapshot.usageAt == t0)
     }
 
     @Test func reachingTheModelLatchesPerCLIVersionAndANewVersionReArms() async {

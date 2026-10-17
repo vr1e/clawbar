@@ -57,7 +57,7 @@ import ClawBarShared
             #expect(names.contains("sample-en-k\(k).png"))
             #expect(names.contains("sample-de-k\(k).png"))
         }
-        for text in ["none", "7", "42", "100"] {
+        for text in ["none", "7", "42", "42-stale", "100"] {
             #expect(names.contains("status-item-\(text)-light.png"))
             #expect(names.contains("status-item-\(text)-dark.png"))
         }

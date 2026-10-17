@@ -169,11 +169,15 @@ import ClawBarShared
         #expect(u.day == UsagePeriod(requests: 10, sessions: 2, lines: ["50% of your usage was at max effort"]))
     }
 
-    @Test func noSessionAndNoWeekMeansNoLimitsButKeepsTheStats() {
-        let day = UsagePeriod(requests: 52, sessions: 3, lines: ["40% of your usage was at >150k context"])
+    @Test func theCostSummaryOfALoginWithoutASubscriptionIsNoLimits() {
         #expect(UsageParser.parse(Fixture.text("usage/no-limits.txt"), now: now, timeZone: berlin)
-            == .noLimits(stats: UsageSnapshot(day: day)))
-        #expect(UsageParser.parse("", now: now, timeZone: berlin) == .noLimits(stats: UsageSnapshot()))
+            == .noLimits(stats: UsageSnapshot()))
+    }
+
+    @Test func anEmptyOrSubscriptionAnswerWithoutLimitsIsUnavailable() {
+        #expect(UsageParser.parse("", now: now, timeZone: berlin) == .unavailable)
+        #expect(UsageParser.parse(Fixture.text("usage/subscription-unavailable.txt"), now: now, timeZone: berlin)
+            == .unavailable)
     }
 
     @Test func aWeekAloneIsEnoughToCommit() {

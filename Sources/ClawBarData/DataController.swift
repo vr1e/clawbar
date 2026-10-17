@@ -230,7 +230,7 @@ public final class DataController {
                     me.snapshot.usageIssue = nil
                     me.succeed("usage")
                 case .issue(.noLimits):
-                    // An answer without limits: the old subscription's numbers no longer apply, its stats do.
+                    // A login without a subscription: the old subscription's numbers no longer apply, its stats do.
                     me.snapshot.usage = report.stats ?? UsageSnapshot()
                     me.snapshot.usageAt = clock()
                     me.snapshot.usageIssue = .noLimits

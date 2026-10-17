@@ -198,14 +198,17 @@ enum SnapshotMode {
 
     /// The menu bar item on a light and a dark bar, at 2 pixels per point.
     static func writeStatusItems(to dir: URL) throws -> [URL] {
-        let items: [(String, RGBA)] = [("--", Palette.dead), ("7", Palette.ok), ("42", Palette.ok), ("60", Palette.warn), ("85", Palette.crit), ("100", Palette.crit)]
+        let items: [(name: String, text: String, color: RGBA)] = [
+            ("none", "--", Palette.dead), ("7", "7", Palette.ok), ("42", "42", Palette.ok), ("42-stale", "42", Palette.dead),
+            ("60", "60", Palette.warn), ("85", "85", Palette.crit), ("100", "100", Palette.crit),
+        ]
         let bars: [(String, RGBA)] = [("light", RGBA("#FFF2F2F2")), ("dark", RGBA("#FF262626"))]
         var out: [URL] = []
-        for (text, color) in items {
+        for (name, text, color) in items {
             let image = StatusItemImage.make(text: text, color: color)
             for (bar, background) in bars {
-                guard let cg = Imaging.image(image, pixelScale: 2, background: background, pad: 3) else { throw CLIError(message: "status item \(text)") }
-                let url = dir.appendingPathComponent("status-item-\(text == "--" ? "none" : text)-\(bar).png")
+                guard let cg = Imaging.image(image, pixelScale: 2, background: background, pad: 3) else { throw CLIError(message: "status item \(name)") }
+                let url = dir.appendingPathComponent("status-item-\(name)-\(bar).png")
                 try Imaging.writePNG(cg, to: url)
                 out.append(url)
             }

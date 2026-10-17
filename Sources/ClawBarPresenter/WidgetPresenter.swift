@@ -55,7 +55,7 @@ private struct Render {
     }
 
     private func sessionNumbers(_ v: inout WidgetViewState) {
-        // Without claude, or under an API-key login, no session number applies, not even an old one.
+        // Without claude, or under a login without a subscription, no session number applies, not even an old one.
         let issue = data.usageIssue
         let usage = issue == .claudeNotFound || issue == .noLimits ? nil : data.usage
         v.resetColor = Palette.secondary
@@ -85,6 +85,11 @@ private struct Render {
         v.trayText = String(pct)
         v.trayColor = color
         v.trayTooltip = trayTooltip(pct, span: span, usage)
+        // The widget is often hidden or covered, so the menu bar says stale too; the number tells it from "--".
+        if let at = data.usageAt, DataSnapshot.isStale(at, interval: cfg.usageIntervalSeconds, now: now) {
+            v.trayColor = Palette.dead
+            v.trayTooltip += "\n\(t(.stale)) · \(clockText(at))"
+        }
     }
 
     /// The plan's issue states. Launch failures, time-outs and failed probes show nothing: the stale stamp covers them.

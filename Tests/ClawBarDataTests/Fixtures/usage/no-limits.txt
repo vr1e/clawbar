@@ -1,4 +1,5 @@
-You are currently using an API key to power your Claude Code usage
-
-Last 24h · 52 requests · 3 sessions
-  40% of your usage was at >150k context
+Total cost:            $0.0000
+Total duration (API):  0s
+Total duration (wall): 2s
+Total code changes:    0 lines added, 0 lines removed
+Usage:                 0 input, 0 output, 0 cache read, 0 cache write

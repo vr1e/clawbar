@@ -96,7 +96,7 @@ public enum UsageIssue: Sendable, Hashable {
     case launchFailed(String)
     case timedOut
     case probeFailed(String)
-    /// /usage answered without session or week limits: an API-key login.
+    /// /usage answered with the `/cost` summary: a login without a Claude subscription, e.g. an API key.
     case noLimits
     /// Claude Code refused one of the probe's options. Latched per CLI version.
     case flagRejected(String)
