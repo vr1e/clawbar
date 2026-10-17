@@ -27,6 +27,11 @@ import ClawBarShared
         }
     }
 
+    @Test func theAppLineEndsInThePidThatBuildAppWaitsOn() {
+        // scripts/build-app.sh --install reads the running copy's pid from this line.
+        #expect(dump().render().contains("\napp: \(AppInfo.title) (pid 4242)\n"))
+    }
+
     @Test func aWindowOffEveryScreenIsReported() {
         #expect(dump(panel: CGRect(x: 4000, y: 100, width: 314, height: 340)).render().contains("widget.onScreen: false\n"))
     }

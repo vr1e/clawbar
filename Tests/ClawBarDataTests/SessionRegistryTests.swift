@@ -71,14 +71,14 @@ struct FakeTable: ProcessTable {
         session(4245, file: "4245.json.bak")
         session(4246, file: "4246.JSON")
         let spy = ReadSpy()
-        let found = registry(table(4242, 4243, 4244, 4245, 4246), spy: spy).read(excluding: [])
+        let found = registry(table(4242, 4243, 4244, 4245, 4246), spy: spy).read(excluding: [], now: started)
         #expect(spy.names == ["4242.json"])
         #expect(found.map(\.pid) == [4242])
     }
 
     @Test func aSessionCarriesItsFields() {
         session(4242, ["status": "waiting", "waitingFor": "permission", "name": "clawbar", "cwd": "/Users/example/Dev/clawbar"])
-        let s = registry(table(4242)).read(excluding: [])
+        let s = registry(table(4242)).read(excluding: [], now: started)
         #expect(s == [SessionInfo(
             pid: 4242, sessionId: "00000000-0000-4000-8000-000000000002", name: "clawbar", cwd: "/Users/example/Dev/clawbar",
             state: .waiting, waitingFor: "permission", kind: "interactive", startedAt: Date(timeIntervalSince1970: 1_792_186_204.842)
@@ -91,7 +91,7 @@ struct FakeTable: ProcessTable {
         session(13, ["status": "waiting"])
         session(14, ["status": "idle"])
         session(15, ["status": "compacting"])
-        let states = registry(table(11, 12, 13, 14, 15)).read(excluding: []).map(\.state)
+        let states = registry(table(11, 12, 13, 14, 15)).read(excluding: [], now: started).map(\.state)
         #expect(states == [.busy, .busy, .waiting, .idle, .idle])
     }
 
@@ -107,7 +107,7 @@ struct FakeTable: ProcessTable {
         var noKind: [String: Any] = [:]
         noKind["kind"] = NSNull()
         session(28, noKind)
-        let s = registry(table(1, 21, 22, 23, 24, 25, 27, 28)).read(excluding: [27])
+        let s = registry(table(1, 21, 22, 23, 24, 25, 27, 28)).read(excluding: [27], now: started)
         #expect(s.map(\.pid) == [21, 24, 25, 28])
         #expect(s.map(\.kind) == ["interactive", "bg", "daemon-worker", nil])
     }
@@ -115,7 +115,7 @@ struct FakeTable: ProcessTable {
     @Test func theNameFallsBackToTheCwdLeaf() {
         session(31, ["name": "", "cwd": "/Users/example/Dev/clawbar/"])
         session(32, ["name": NSNull(), "cwd": "/Users/example/notes"])
-        #expect(registry(table(31, 32)).read(excluding: []).map(\.name) == ["clawbar", "notes"])
+        #expect(registry(table(31, 32)).read(excluding: [], now: started).map(\.name) == ["clawbar", "notes"])
     }
 
     @Test func aReusedPidIsDroppedByItsStartTime() {
@@ -123,7 +123,7 @@ struct FakeTable: ProcessTable {
         session(42, ["procStart": "Fri Oct 16 21:30:05 2026"])
         session(43, ["procStart": "Fri Oct 16 21:30:07 2026"])
         session(44, ["procStart": "Thu Oct  1 06:40:22 2026"])
-        let s = registry(table(41, 42, 43, 44)).read(excluding: [])
+        let s = registry(table(41, 42, 43, 44)).read(excluding: [], now: started)
         #expect(s.map(\.pid) == [41, 42])
     }
 
@@ -131,7 +131,7 @@ struct FakeTable: ProcessTable {
         session(51, ["procStart": "yesterday-ish"])
         session(52, ["procStart": NSNull()])
         session(53, ["procStart": true])
-        #expect(registry(table(51, 52, 53)).read(excluding: []).map(\.pid) == [51, 52, 53])
+        #expect(registry(table(51, 52, 53)).read(excluding: [], now: started).map(\.pid) == [51, 52, 53])
     }
 
     @Test func aFiletimeProcStartIsUnderstood() {
@@ -139,7 +139,7 @@ struct FakeTable: ProcessTable {
         let ft: Int64 = (1_792_186_201 * 10_000_000) + 116_444_736_000_000_000
         session(61, ["procStart": NSNumber(value: ft)])
         session(62, ["procStart": String(ft + 60 * 10_000_000)])
-        #expect(registry(table(61, 62)).read(excluding: []).map(\.pid) == [61])
+        #expect(registry(table(61, 62)).read(excluding: [], now: started).map(\.pid) == [61])
     }
 
     @Test func zombiesAndUnreadableFilesAreSkippedAndAnUnknownStartIsKept() throws {
@@ -147,12 +147,12 @@ struct FakeTable: ProcessTable {
         session(72)
         try Data("{broken".utf8).write(to: dir.file("73.json"))
         let t = FakeTable(starts: [71: .gone, 72: .unknown, 73: .started(started)])
-        #expect(registry(t).read(excluding: []).map(\.pid) == [72])
+        #expect(registry(t).read(excluding: [], now: started).map(\.pid) == [72])
     }
 
     @Test func aMissingFolderIsNoSessions() {
         let r = SessionRegistry(directory: dir.url.appendingPathComponent("absent"), table: table(), readFile: ReadSpy().reader)
-        #expect(r.read(excluding: []).isEmpty)
+        #expect(r.read(excluding: [], now: started).isEmpty)
     }
 
     @Test func theConfigDirectoryDecidesTheFolder() {
@@ -182,8 +182,8 @@ struct FakeTable: ProcessTable {
 
         let live = SessionRegistry(directory: dir.url, table: LiveProcessTable(), readFile: ReadSpy().reader)
         session(pid, ["procStart": lstart])
-        #expect(live.read(excluding: []).map(\.pid) == [pid])
-        #expect(live.read(excluding: [pid]).isEmpty)
+        #expect(live.read(excluding: [], now: started).map(\.pid) == [pid])
+        #expect(live.read(excluding: [pid], now: started).isEmpty)
 
         let start = try #require(SessionRegistry.procStart(lstart))
         let shifted = Date(timeInterval: 3600, since: start)
@@ -192,7 +192,7 @@ struct FakeTable: ProcessTable {
         f.timeZone = TimeZone(identifier: "UTC")
         f.dateFormat = "EEE MMM d HH:mm:ss yyyy"
         session(pid, ["procStart": f.string(from: shifted)])
-        #expect(live.read(excluding: []).isEmpty)
+        #expect(live.read(excluding: [], now: started).isEmpty)
 
         runner.shutdown()
         _ = await sleeper.value

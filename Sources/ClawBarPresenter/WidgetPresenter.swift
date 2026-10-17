@@ -82,14 +82,11 @@ private struct Render {
         } else {
             v.resetText = usage.sessionReset == nil ? "" : t(.resetClosed)
         }
-        v.trayText = String(pct)
-        v.trayColor = color
-        v.trayTooltip = trayTooltip(pct, span: span, usage)
         // The widget is often hidden or covered, so the menu bar says stale too; the number tells it from "--".
-        if let at = data.usageAt, DataSnapshot.isStale(at, interval: cfg.usageIntervalSeconds, now: now) {
-            v.trayColor = Palette.dead
-            v.trayTooltip += "\n\(t(.stale)) · \(clockText(at))"
-        }
+        let stale = data.usageAt.flatMap(staleStamp)
+        v.trayText = String(pct)
+        v.trayColor = stale == nil ? color : Palette.dead
+        v.trayTooltip = trayTooltip(pct, span: span, usage) + (stale.map { "\n" + $0 } ?? "")
     }
 
     /// The plan's issue states. Launch failures, time-outs and failed probes show nothing: the stale stamp covers them.
@@ -298,11 +295,12 @@ private struct Render {
 
     /// Why the headless `claude update` failed, its last output, and how this install updates instead.
     private func failureTooltip(_ failure: UpdateFailure, hint: InstallHint?) -> String {
-        var parts = switch failure.exitCode {
-        case nil: [t(.verFailTimeout)]
-        case 0?: [t(.verFailUnchanged, failure.from ?? "")]
-        case let code?: [t(.verFailExit, Int(code))]
+        let head = switch failure.exitCode {
+        case nil: t(.verFailTimeout)
+        case 0?: t(.verFailUnchanged, failure.from ?? "")
+        case let code?: t(.verFailExit, Int(code))
         }
+        var parts = [head]
         let tail = failure.outputTail.trimmingCharacters(in: .whitespacesAndNewlines)
         if !tail.isEmpty { parts.append(tail) }
         switch hint {
@@ -329,10 +327,13 @@ private struct Render {
         if input.tickError {
             v.stampText = t(.error)
         } else if let at = data.usageAt {
-            let clock = clockText(at)
-            let stale = DataSnapshot.isStale(at, interval: cfg.usageIntervalSeconds, now: now)
-            v.stampText = stale ? "\(t(.stale)) · \(clock)" : clock
+            v.stampText = staleStamp(at) ?? clockText(at)
         }
+    }
+
+    /// "stale · time" once the numbers from `at` are stale, else nil; the footer and the menu bar item share it.
+    private func staleStamp(_ at: Date) -> String? {
+        DataSnapshot.isStale(at, interval: cfg.usageIntervalSeconds, now: now) ? "\(t(.stale)) · \(clockText(at))" : nil
     }
 
     // MARK: Helpers

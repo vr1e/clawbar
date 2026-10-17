@@ -58,24 +58,23 @@ enum AppMain {
 
 /// Turns signals into a handler call on the main queue; the default action would end the app on the spot.
 final class TerminationSignals {
-    private let signals: [Int32]
-    private var sources: [DispatchSourceSignal] = []
+    private let sources: [DispatchSourceSignal]
 
     init(_ signals: [Int32], handler: @escaping @MainActor () -> Void) {
-        self.signals = signals
-        for s in signals {
+        sources = signals.map { s in
             signal(s, SIG_IGN)
             let source = DispatchSource.makeSignalSource(signal: s, queue: .main)
             source.setEventHandler { MainActor.assumeIsolated { handler() } }
             source.resume()
-            sources.append(source)
+            return source
         }
     }
 
     func cancel() {
-        sources.forEach { $0.cancel() }
-        sources = []
-        for s in signals { signal(s, SIG_DFL) }
+        for source in sources {
+            source.cancel()
+            signal(Int32(source.handle), SIG_DFL)
+        }
     }
 }
 

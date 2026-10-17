@@ -169,6 +169,11 @@ public struct UpdateFailure: Sendable, Hashable {
         self.from = from
         self.to = to
     }
+
+    /// Whether the versions the run started from still hold; an unrecorded one holds for any.
+    public func holds(local: String?, latest: String?) -> Bool {
+        (from == nil || local == from) && (to == nil || latest == to)
+    }
 }
 
 /// Install methods whose `claude update` may refuse to self-update.

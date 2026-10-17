@@ -13,6 +13,13 @@ enum Fixture {
     static func text(_ name: String) -> String { String(decoding: data(name), as: UTF8.self) }
 }
 
+/// The usage probe's today.json envelope with some fields replaced.
+func todayEnvelope(_ edit: (inout [String: Any]) -> Void) -> Data {
+    var j = (try? JSONSerialization.jsonObject(with: Fixture.data("usage/today.json"))) as? [String: Any] ?? [:]
+    edit(&j)
+    return (try? JSONSerialization.data(withJSONObject: j)) ?? Data()
+}
+
 func utc(_ iso: String) -> Date {
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime]

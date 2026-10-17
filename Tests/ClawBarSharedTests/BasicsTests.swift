@@ -78,6 +78,14 @@ import ClawBarShared
         #expect(!VersionState(local: "2.1.302", latest: "2.1.292").updateAvailable)
         #expect(!VersionState(local: nil, latest: "2.1.302").updateAvailable)
     }
+
+    @Test func aFailedUpdateHoldsWhileBothVersionsItStartedFromDo() {
+        let f = UpdateFailure(exitCode: 1, outputTail: "", from: "2.1.302", to: "2.1.303")
+        #expect(f.holds(local: "2.1.302", latest: "2.1.303"))
+        #expect(!f.holds(local: "2.1.303", latest: "2.1.303"))
+        #expect(!f.holds(local: "2.1.302", latest: "2.1.304"))
+        #expect(UpdateFailure(exitCode: 1, outputTail: "").holds(local: "2.1.303", latest: "2.1.304"))
+    }
 }
 
 @Suite struct StalenessTests {

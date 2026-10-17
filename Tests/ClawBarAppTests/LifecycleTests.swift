@@ -39,11 +39,10 @@ final class TempDir {
     }
 
     @Test func onlyTheDefaultRootManagesTheLoginItem() {
-        let def = URL(fileURLWithPath: "/tmp/cb-login-\(UUID().uuidString)/ClawBar")
-        let sandbox = AppPaths(root: def.deletingLastPathComponent().appendingPathComponent("sandbox"))
-        #expect(LaunchAtLogin.managesLoginItem(installed: true, paths: AppPaths(root: def), defaultRoot: def))
-        #expect(!LaunchAtLogin.managesLoginItem(installed: true, paths: sandbox, defaultRoot: def))
-        #expect(!LaunchAtLogin.managesLoginItem(installed: false, paths: AppPaths(root: def), defaultRoot: def))
+        let sandbox = AppPaths(root: URL(fileURLWithPath: "/tmp/cb-login-\(UUID().uuidString)/sandbox"))
+        #expect(LaunchAtLogin.managesLoginItem(installed: true, paths: .live(environment: [:])))
+        #expect(!LaunchAtLogin.managesLoginItem(installed: true, paths: sandbox))
+        #expect(!LaunchAtLogin.managesLoginItem(installed: false, paths: .live(environment: [:])))
     }
 }
 
@@ -97,22 +96,20 @@ final class FakeLoginItem: LoginItemService {
 }
 
 @Suite struct InstanceLockTests {
-    /// The lock, or nil with the attempt for the failure message.
+    /// The lock, or nil when the attempt failed or found it held.
     func acquired(_ url: URL) -> InstanceLock? {
         if case .acquired(let l) = InstanceLock.acquire(url) { return l }
         return nil
-    }
-
-    func isHeld(_ a: InstanceLock.Attempt) -> Bool {
-        if case .held = a { return true }
-        return false
     }
 
     @Test func theFirstLaunchHoldsTheLockAndASecondCannot() throws {
         let tmp = TempDir()
         let file = tmp.url.appendingPathComponent("nested/clawbar.lock")
         let first = try #require(acquired(file))
-        #expect(isHeld(InstanceLock.acquire(file)))
+        guard case .held = InstanceLock.acquire(file) else {
+            Issue.record("expected the lock to be held")
+            return
+        }
         #expect(InstanceLock.isHeld(file))
         first.release()
         #expect(!InstanceLock.isHeld(file))

@@ -35,7 +35,7 @@ enum UsageParser {
         u.week7 = period(text, week7)
         guard u.sessionPercent != nil || u.weekPercent != nil else {
             // Only a positive sign clears the numbers; anything else keeps them, as the original does.
-            guard text.contains("Total cost:") else { return .unavailable }
+            guard Rx.matches(costSummary, text) else { return .unavailable }
             return .noLimits(stats: UsageSnapshot(day: u.day, week7: u.week7))
         }
         return .usage(u)
@@ -122,6 +122,7 @@ enum UsageParser {
     private static let modelWeekLine = Rx.make(#"Current week \(([^)\n]+)\):\s*(\d+)%(?:[^\n]*?resets\s*([^\n]+))?"#)
     private static let day = periodPattern("Last 24h")
     private static let week7 = periodPattern("Last 7d")
+    private static let costSummary = Rx.make(#"(?m)^\s*Total cost:"#)
     private static let fullStamp = Rx.make(
         #"(?i)([A-Z][a-z]{2})\.?\s+(\d{1,2})(?:,\s*(\d{4}))?(?:,|\s+at)?\s+(\d{1,2})(?::(\d{2}))?\s*([ap]m)(?:\s*\(([^)]+)\))?"#
     )

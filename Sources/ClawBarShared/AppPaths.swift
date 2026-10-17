@@ -40,17 +40,13 @@ public struct AppPaths: Sendable, Equatable {
 
     /// realpath of the deepest folder that exists plus the rest, so a root not created yet compares too.
     static func canonical(_ url: URL) -> String {
-        var head = url.standardizedFileURL
-        var rest: [String] = []
-        while true {
-            if let real = realpath(head.path, nil) {
-                defer { free(real) }
-                return rest.reversed().reduce(String(cString: real)) { ($0 as NSString).appendingPathComponent($1) }
-            }
-            guard head.path != "/" else { return url.standardizedFileURL.path }
-            rest.append(head.lastPathComponent)
-            head = head.deletingLastPathComponent()
+        let url = url.standardizedFileURL
+        if let real = realpath(url.path, nil) {
+            defer { free(real) }
+            return String(cString: real)
         }
+        guard url.path != "/" else { return url.path }
+        return (canonical(url.deletingLastPathComponent()) as NSString).appendingPathComponent(url.lastPathComponent)
     }
 }
 

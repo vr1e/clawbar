@@ -14,13 +14,6 @@ import ClawBarShared
         UsageProbe.interpret(r, now: now, timeZone: berlin).outcome
     }
 
-    /// today.json with one field replaced.
-    func todayEnvelope(_ edit: (inout [String: Any]) -> Void) -> Data {
-        var j = (try? JSONSerialization.jsonObject(with: Fixture.data("usage/today.json"))) as? [String: Any] ?? [:]
-        edit(&j)
-        return (try? JSONSerialization.data(withJSONObject: j)) ?? Data()
-    }
-
     @Test func theProbeAsksForUsageInSafeModeWithoutTouchingSessions() {
         let spec = UsageProbe.spec(claude: "/opt/x/claude", environment: ["PATH": "/usr/bin"], home: "/Users/example")
         #expect(spec.executable == "/opt/x/claude")

@@ -12,8 +12,8 @@ enum IPC {
 
     /// The object every message carries, so a sandbox and the installed app never hear each other: the bare
     /// bundle ID for the default root, which builds from before the scoping also use, else the canonical root.
-    static func channel(_ paths: AppPaths, defaultRoot: URL = AppPaths.live(environment: [:]).root) -> String {
-        paths.isDefault(defaultRoot: defaultRoot) ? AppInfo.bundleID : "\(AppInfo.bundleID):\(paths.canonicalRoot)"
+    static func channel(_ paths: AppPaths) -> String {
+        paths.isDefault() ? AppInfo.bundleID : "\(AppInfo.bundleID):\(paths.canonicalRoot)"
     }
 
     static func post(_ name: Notification.Name, to paths: AppPaths, userInfo: [String: String]? = nil) {

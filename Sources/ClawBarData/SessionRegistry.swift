@@ -50,7 +50,7 @@ struct SessionRegistry: Sendable {
     static let printModeGrace: TimeInterval = 20
 
     /// The registry's sessions in file-name order, minus ClawBar's own children and other tools' fresh checks.
-    func read(excluding own: Set<Int32>, now: Date = Date()) -> [SessionInfo] {
+    func read(excluding own: Set<Int32>, now: Date) -> [SessionInfo] {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
         var out: [SessionInfo] = []
         for name in names.sorted() where Rx.matches(Self.fileName, name) {

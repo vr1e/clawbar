@@ -304,19 +304,17 @@ public final class DataController {
 
     /// A failed update lasts while the versions it started from hold, as upstream's failed=<ver> does; a clean exit
     /// that left the version where it was, with the update still out, is a failure too.
-    private func judgeUpdate(probed local: String?, startedFrom: String?) {
-        var v = snapshot.version
-        if let f = v.updateFailure,
-           !v.updateAvailable || (f.from != nil && v.local != f.from) || (f.to != nil && v.latest != f.to) {
-            v.updateFailure = nil
+    private func judgeUpdate(probed: String?, startedFrom: String?) {
+        let v = snapshot.version
+        if let f = v.updateFailure, !(v.updateAvailable && f.holds(local: v.local, latest: v.latest)) {
+            snapshot.version.updateFailure = nil
         }
-        if let startedFrom, let local, local == startedFrom, v.updateAvailable {
-            v.updateFailure = UpdateFailure(
-                exitCode: 0, outputTail: UpdateRunner.tail(of: paths.updateLog, home: deps.home), from: local, to: v.latest
+        if let startedFrom, probed == startedFrom, v.updateAvailable {
+            snapshot.version.updateFailure = UpdateFailure(
+                exitCode: 0, outputTail: UpdateRunner.tail(of: paths.updateLog, home: deps.home), from: startedFrom, to: v.latest
             )
-            fail("update", "exit 0, but Claude Code is still \(local)")
+            fail("update", "exit 0, but Claude Code is still \(startedFrom)")
         }
-        snapshot.version = v
     }
 
     /// Holds a latch for the version it was seen with; any other version re-arms the usage probe at once.
