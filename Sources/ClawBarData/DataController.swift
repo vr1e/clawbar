@@ -59,6 +59,8 @@ public final class DataController {
 
     private var resolution = Resolution.pending
     private var login: LoginEnvironment?
+    private var loginShell = Slot()
+    private var loginRuns = 0
     private var claude: ClaudeLocator.Found?
     private var lastLocate: Date?
 
@@ -78,6 +80,8 @@ public final class DataController {
     private var failures: [String: String] = [:]
 
     static let changelogRetry: TimeInterval = 600
+    /// Each run sources the user's rc files again, so a shell that never answers is not asked forever.
+    static let loginRunLimit = 4
 
     public convenience init(config: Config, paths: AppPaths) {
         self.init(config: config, paths: paths, deps: .live())
@@ -107,7 +111,10 @@ public final class DataController {
     /// The data tick: collect finished probes, start those whose interval has passed since their last attempt.
     public func tick(now: Date) {
         guard !stopped else { return }
-        if resolution == .pending { resolve() }
+        if resolution == .pending {
+            resolution = .running
+            runLoginShell(now: now)
+        }
         weather.tick(now: now, config: config)
         snapshot.place = weather.place
         startDue(now: now)
@@ -170,14 +177,18 @@ public final class DataController {
 
     // MARK: - Startup
 
-    /// The login shell once, then claude's location; the claude probes wait for both.
-    private func resolve() {
-        resolution = .running
+    /// The login shell, then claude's location again; the claude probes wait for the first answer.
+    private func runLoginShell(now: Date) {
+        loginShell.lastTry = now
+        loginShell.running = true
+        loginRuns += 1
         let capture = deps.loginShell, runner = deps.runner, env = deps.environment, home = deps.home
         spawn { me in
             let login = await capture(runner, env, home)
             me.completing {
+                me.loginShell.running = false
                 me.login = login
+                if login == nil { me.fail("login", "the login shell gave no answer") } else { me.succeed("login") }
                 me.resolution = .done
                 let now = me.deps.clock()
                 me.locate(now: now)
@@ -207,6 +218,10 @@ public final class DataController {
         // Not found: look again every usage interval.
         if claude == nil, Cadence.due(last: lastLocate, interval: TimeInterval(config.usageIntervalSeconds), now: now) {
             locate(now: now)
+        }
+        // A login shell slowed down at login may be the only one that knows where claude is.
+        if claude == nil, login == nil, loginRuns < Self.loginRunLimit, loginShell.due(config.usageIntervalSeconds, now) {
+            runLoginShell(now: now)
         }
         guard claude != nil else { return }
         if version.due(config.versionIntervalSeconds, now) { startVersion(now: now) }

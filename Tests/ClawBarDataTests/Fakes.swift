@@ -88,6 +88,22 @@ final class FakeRunner: ProcessRunning {
     }
 }
 
+/// The login shell's answers in turn, the last one again once they run out.
+final class FakeLoginShell: Sendable {
+    private let state: Mutex<(answers: [LoginEnvironment?], runs: Int)>
+
+    init(_ answers: [LoginEnvironment?]) { state = Mutex((answers, 0)) }
+
+    var runs: Int { state.withLock { $0.runs } }
+
+    func answer() -> LoginEnvironment? {
+        state.withLock { s in
+            s.runs += 1
+            return s.answers.count > 1 ? s.answers.removeFirst() : s.answers.first ?? nil
+        }
+    }
+}
+
 /// A clock the test moves by hand.
 final class TestClock: Sendable {
     private let time: Mutex<Date>

@@ -14,6 +14,8 @@ final class Harness {
     let spy = ReadSpy()
     var table = FakeTable(starts: [:])
     var login: LoginEnvironment?
+    /// Takes over from `login` for tests that need the shell's runs.
+    var shell: FakeLoginShell?
     var candidates: [String] = []
     var config = Config()
     /// Added to the environment the controller inherits.
@@ -37,11 +39,11 @@ final class Harness {
     }
 
     var deps: DataController.Dependencies {
-        let login = login
+        let login = login, shell = shell
         return DataController.Dependencies(
             runner: runner, http: http, clock: clock.read, timeZone: berlin,
             environment: ["HOME": home, "PATH": "/usr/bin:/bin", "CLAUDECODE": "1"].merging(extraEnvironment) { $1 }, home: home,
-            table: table, readFile: spy.reader, loginShell: { _, _, _ in login }, candidates: candidates
+            table: table, readFile: spy.reader, loginShell: { _, _, _ in shell?.answer() ?? login }, candidates: candidates
         )
     }
 
@@ -213,6 +215,56 @@ final class Counter {
         dc.tick(now: t0 + 60)
         #expect(await eventually { h.runner.count(.usage) == 1 })
         #expect(dc.snapshot.usageIssue == nil)
+    }
+
+    @Test func aLoginShellWithoutAnAnswerIsLoggedOnceAndAskedAgainUntilItFindsClaude() async throws {
+        let h = Harness(claude: false)
+        let nvm = h.installClaude(".nvm/versions/node/v22.11.0/bin/claude")
+        h.shell = FakeLoginShell([nil, nil, LoginEnvironment(claudePath: nvm)])
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.usageIssue == .claudeNotFound })
+        dc.tick(now: t0 + 59)
+        await settle()
+        #expect(h.shell?.runs == 1)
+        h.clock.now = t0 + 60
+        dc.tick(now: t0 + 60)
+        #expect(await eventually { h.shell?.runs == 2 })
+        await settle()
+        #expect(dc.snapshot.usageIssue == .claudeNotFound)
+        h.clock.now = t0 + 120
+        dc.tick(now: t0 + 120)
+        #expect(await eventually { h.runner.count(.usage) == 1 })
+        #expect(dc.snapshot.usageIssue == nil)
+        #expect(h.runner.calls.allSatisfy { $0.executable == nvm })
+        let log = try String(contentsOf: h.paths.errorLog, encoding: .utf8)
+        #expect(log.split(separator: "\n").filter { $0.contains("\tlogin: ") }.count == 1)
+    }
+
+    @Test func theLoginShellIsAskedAtMostFourTimes() async {
+        let h = Harness(claude: false)
+        h.shell = FakeLoginShell([nil])
+        let dc = h.make()
+        for i in 0 ..< 6 {
+            dc.tick(now: t0 + TimeInterval(60 * i))
+            await settle()
+        }
+        #expect(h.shell?.runs == 4)
+    }
+
+    @Test func theLoginShellIsAskedAgainOnlyWhileItGaveNoAnswerAndClaudeIsMissing() async {
+        let answered = Harness(claude: false)
+        answered.shell = FakeLoginShell([LoginEnvironment()])
+        let found = Harness()
+        found.shell = FakeLoginShell([nil])
+        for h in [answered, found] {
+            let dc = h.make()
+            for i in 0 ..< 3 {
+                dc.tick(now: t0 + TimeInterval(60 * i))
+                await settle()
+            }
+            #expect(h.shell?.runs == 1)
+        }
     }
 
     @Test func onChangeComesOnlyFromAsyncCompletions() async {
