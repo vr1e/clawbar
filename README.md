@@ -119,21 +119,21 @@ and the widget's last-update stamp says *error*.
 
 <!-- parity-table: begin; built by scripts/parity-table.swift, edit its source, not this table -->
 ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.6.0.
-*Ported differently* means a bullet below says how.
+*Ported differently* has its gist in the notes and its details in the bullets below.
 
 | Feature | In ClawBar | Notes |
 |---|---|---|
-| Usage limits | ✅ Ported differently | |
-| Sessions | ✅ Ported differently | |
+| Usage limits | ✅ Ported differently | A stricter token-free check, more reset-time formats and a row for every model's week. |
+| Sessions | ✅ Ported differently | Refreshed every 2 s, and stricter about what counts as a session. |
 | Clawd and his hearts | ✅ Ported | |
-| Sky and weather | ✅ Ported differently | |
+| Sky and weather | ✅ Ported differently | The sky keeps the weather location's time zone. |
 | Service status | ✅ Ported | |
 | Account and plan | ✅ Ported | |
-| Claude Code version and update | ✅ Ported differently | |
-| Widget window | ✅ Ported differently | |
-| Menu bar item | ✅ Ported differently | Not yet: Reset times as clock times in the tooltip. |
-| Languages | ✅ Ported differently | Not yet: French. Not ported: Russian. |
-| The widget's own version and updates | ✅ Ported differently | Not ported: Self-update from GitHub releases. |
+| Claude Code version and update | ✅ Ported differently | The update runs in the background and explains a failure. |
+| Widget window | ✅ Ported differently | On every Space, and opens at login by itself. |
+| Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit. Not yet: Reset times as clock times in the tooltip. |
+| Languages | ✅ Ported differently | English is worded for macOS and German is added. Not yet: French. Not ported: Russian. |
+| The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
 | 7-day history | ⏳ Not yet | |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
 | PC tips | ➖ Not ported | They look over a Windows PC. |
@@ -142,7 +142,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 <!-- parity-table: end -->
 
 - German replaces Russian as the second language.
-- A menu bar item replaces the tray icon; the default size is 1.2, which suits Retina points.
+- A menu bar item replaces the tray icon; the default size is 1.2, which suits Retina points. Its menu adds always
+  on top and launch at login.
 - The menu bar item's tooltip lists every limit, each model's week included, where the tray's stops at 63
   characters. Stale numbers turn the item grey, and its tooltip says when they are from. Its last line counts the
   sessions, so a waiting one shows with the widget hidden.
@@ -165,6 +166,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   ports and clicking it opens the original project, where the original shows and opens its changelog.
 - The sky uses the weather location's time zone, retries Open-Meteo hourly after falling back to met.no, and draws
   polar days and nights as day and night.
+- ClawBar opens at login as a login item, on by default, where the original's README shows how to set up a
+  scheduled task.
 - The widget stays on all Spaces, pauses its animation while hidden or covered, and moves back on screen if its
   saved position lies on a display that is gone.
 - Clawd's walk target stays inside his play area, and the bars span exactly the widget's width.

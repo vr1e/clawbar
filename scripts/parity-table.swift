@@ -24,6 +24,7 @@ struct Row {
 struct Section {
     let title: String
     var isPublic = true
+    var differs: String?
     var reason: String?
     var rows: [Row] = []
 }
@@ -64,6 +65,8 @@ for line in map.components(separatedBy: "\n") {
         continue
     } else if line == "Public: no" {
         sections[sections.count - 1].isPublic = false
+    } else if line.hasPrefix("Differs: ") {
+        sections[sections.count - 1].differs = String(line.dropFirst("Differs: ".count))
     } else if line.hasPrefix("Not ported because: ") {
         sections[sections.count - 1].reason = String(line.dropFirst("Not ported because: ".count))
     } else if line.hasPrefix("|") {
@@ -91,11 +94,13 @@ guard let ports else { fail("the map has no '- ClawBar ports: vX.Y.Z' line") }
 
 func names(_ rows: [Row]) -> String { rows.map(\.feature).joined(separator: "; ") }
 
+func sentence(_ text: String) -> String { text.prefix(1).uppercased() + text.dropFirst() + "." }
+
 var lines = [
     begin,
     "ClawBar ports clawd-usage-winwidget \(ports.map(String.init).joined(separator: ".")) and has been checked against every "
         + "release up to \(reviewed.map(String.init).joined(separator: ".")).",
-    "*Ported differently* means a bullet below says how.",
+    "*Ported differently* has its gist in the notes and its details in the bullets below.",
     "",
     "| Feature | In ClawBar | Notes |",
     "|---|---|---|",
@@ -109,8 +114,12 @@ for section in sections where section.isPublic {
     let skipped = rows.filter { $0.status == .skipped }
     var notes: [String] = []
     let state: String
+    let differs = done.contains { $0.status == .differs }
+    if differs, section.differs == nil { fail("\(section.title): a row differs, so it needs a 'Differs:' line") }
+    if !differs, section.differs != nil { fail("\(section.title): no row differs any more, so drop its 'Differs:' line") }
     if !done.isEmpty {
-        state = done.contains { $0.status == .differs } ? "✅ Ported differently" : "✅ Ported"
+        state = differs ? "✅ Ported differently" : "✅ Ported"
+        if let gist = section.differs { notes.append(sentence(gist)) }
         if !open.isEmpty { notes.append("Not yet: \(names(open)).") }
         if !skipped.isEmpty { notes.append("Not ported: \(names(skipped)).") }
     } else if !open.isEmpty {
@@ -119,7 +128,7 @@ for section in sections where section.isPublic {
     } else {
         guard let reason = section.reason else { fail("\(section.title): every row is skipped, so it needs a 'Not ported because:' line") }
         state = "➖ Not ported"
-        notes.append(reason.prefix(1).uppercased() + reason.dropFirst() + ".")
+        notes.append(sentence(reason))
     }
     lines.append("| \(section.title) | \(state) |" + (notes.isEmpty ? " |" : " \(notes.joined(separator: " ")) |"))
 }
