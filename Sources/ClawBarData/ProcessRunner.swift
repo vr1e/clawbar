@@ -37,12 +37,12 @@ final class ProcessRunner: ProcessRunning {
             return r.children.filter { !$0.value }.map(\.key)
         }
         guard !victims.isEmpty else { return }
-        for pid in victims { signal(pid, SIGTERM) }
+        for pid in victims { send(SIGTERM, to: pid) }
         let deadline = Date().addingTimeInterval(1)
         while Date() < deadline, registry.withLock({ r in victims.contains { r.children[$0] != nil } }) {
             usleep(10_000)
         }
-        for pid in victims { signal(pid, SIGKILL) }
+        for pid in victims { send(SIGKILL, to: pid) }
     }
 
     // MARK: - Launch
@@ -120,7 +120,7 @@ final class ProcessRunner: ProcessRunning {
             r.children[spawned] = spec.survivesQuit
             return r.closed
         }
-        if closedMeanwhile && !spec.survivesQuit { signal(spawned, SIGKILL) }
+        if closedMeanwhile && !spec.survivesQuit { send(SIGKILL, to: spawned) }
 
         let child = Child(pid: spawned, cap: spec.outputCap, grace: spec.drainGrace, capture: capture, done: done)
         if capture { child.drain(out: outPipe[0], err: errPipe[0]) }
@@ -136,8 +136,8 @@ final class ProcessRunner: ProcessRunning {
         let killAfter = spec.killAfter
         DispatchQueue.global().asyncAfter(deadline: .now() + spec.timeout) { [self] in
             guard child.markTimedOut() else { return }
-            signal(spawned, SIGTERM)
-            DispatchQueue.global().asyncAfter(deadline: .now() + killAfter) { [self] in signal(spawned, SIGKILL) }
+            send(SIGTERM, to: spawned)
+            DispatchQueue.global().asyncAfter(deadline: .now() + killAfter) { [self] in send(SIGKILL, to: spawned) }
         }
     }
 
@@ -157,7 +157,7 @@ final class ProcessRunner: ProcessRunning {
 
     /// The child's whole process group, which may outlive it, then the child in case it left the group, but only
     /// while unreaped, since after that its pid is free for reuse.
-    private func signal(_ pid: Int32, _ sig: Int32) {
+    private func send(_ sig: Int32, to pid: Int32) {
         _ = kill(-pid, sig)
         if registry.withLock({ $0.children[pid] != nil }) { _ = kill(pid, sig) }
     }

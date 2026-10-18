@@ -4,6 +4,10 @@ import ClawBarPresenter
 import ClawBarShared
 
 // Each expectation is an update.ps1 rule applied by hand to the scenario's input.
+
+/// The menu bar's last line for the sample's sessions.
+private let sessionsLine = "\n2 sessions · 1 working · 1 waiting"
+private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
 @Suite struct SessionBlockTests {
     @Test(arguments: [(59, Palette.ok), (60, Palette.warn), (84, Palette.warn), (85, Palette.crit), (100, Palette.crit)])
     func theLevelColoursTheNumberTheBarAndTheMenuBar(pct: Int, color: RGBA) {
@@ -57,7 +61,7 @@ import ClawBarShared
         #expect(v.pctText == "--")
         #expect(v.resetText == "no data")
         #expect(v.week.value == "59%  ·  4d 15h")
-        #expect(v.trayTooltip == "ClawBar: no data\n2 sessions · 1 working · 1 waiting")
+        #expect(v.trayTooltip == "ClawBar: no data" + sessionsLine)
     }
 }
 
@@ -66,8 +70,8 @@ import ClawBarShared
         let d = sample {
             $0.modelWeeks = [ModelWeek(name: "Sonnet", percent: 23), ModelWeek(name: "Fable", percent: 8)]
         }
-        #expect(render(d).trayTooltip == "34% of session · 2h 05m\nweek 59% · Sonnet 23% · Fable 8%\n2 sessions · 1 working · 1 waiting")
-        #expect(render(d, lang: .de).trayTooltip == "Sitzung 34% · 2h 05min\nWoche 59% · Sonnet 23% · Fable 8%\n2 Sitzungen · 1 aktiv · 1 wartend")
+        #expect(render(d).trayTooltip == "34% of session · 2h 05m\nweek 59% · Sonnet 23% · Fable 8%" + sessionsLine)
+        #expect(render(d, lang: .de).trayTooltip == "Sitzung 34% · 2h 05min\nWoche 59% · Sonnet 23% · Fable 8%" + sessionsLineDE)
     }
 
     @Test func partsThatAreMissingAreLeftOut() {
@@ -76,9 +80,9 @@ import ClawBarShared
             $0.weekPercent = nil
             $0.modelWeeks = []
         }
-        #expect(render(d).trayTooltip == "34% of session\n2 sessions · 1 working · 1 waiting")
+        #expect(render(d).trayTooltip == "34% of session" + sessionsLine)
         let closed = sample { $0.sessionReset = Samples.now.plus(minutes: -5) }
-        #expect(render(closed).trayTooltip == "34% of session\nweek 59% · Fable 8%\n2 sessions · 1 working · 1 waiting")
+        #expect(render(closed).trayTooltip == "34% of session\nweek 59% · Fable 8%" + sessionsLine)
     }
 
     @Test func theTooltipIsNotCutAt63Characters() {
@@ -99,8 +103,8 @@ import ClawBarShared
         #expect(fresh.trayColor == Palette.ok && !fresh.trayTooltip.contains("stale"))
         let stale = render(now: Samples.now.plus(seconds: 211 - 25))
         #expect(stale.trayText == "34" && stale.trayColor == Palette.dead)
-        #expect(stale.trayTooltip.hasSuffix("\nweek 59% · Fable 8%\nstale · 14:04:35\n2 sessions · 1 working · 1 waiting"))
-        #expect(render(lang: .de, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix("\nWoche 59% · Fable 8%\nveraltet · 14:04:35\n2 Sitzungen · 1 aktiv · 1 wartend"))
+        #expect(stale.trayTooltip.hasSuffix("\nweek 59% · Fable 8%\nstale · 14:04:35" + sessionsLine))
+        #expect(render(lang: .de, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix("\nWoche 59% · Fable 8%\nveraltet · 14:04:35" + sessionsLineDE))
         // The widget keeps its level colours; its stamp already says stale.
         #expect(stale.pctColor == Palette.ok)
     }
@@ -114,7 +118,7 @@ import ClawBarShared
     @Test func theSessionsLineComesLastAndOnlyWithSessionsShown() {
         let d = sample(data: { $0.usageIssue = .flagRejected("--output-format") })
         #expect(render(d, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix(
-            "\nstale · 14:04:35\nclaude rejects --output-format\nChecks paused until Claude Code updates\n2 sessions · 1 working · 1 waiting"
+            "\nstale · 14:04:35\nclaude rejects --output-format\nChecks paused until Claude Code updates" + sessionsLine
         ))
         let limitsOnly = "34% of session · 2h 05m\nweek 59% · Fable 8%"
         #expect(render(sample(data: { $0.sessions = [] })).trayTooltip == limitsOnly)

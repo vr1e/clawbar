@@ -12,10 +12,6 @@ enum UsageParser {
         case unavailable
     }
 
-    static func parse(_ raw: String, now: Date, timeZone: TimeZone) -> Outcome {
-        read(raw, now: now, timeZone: timeZone).outcome
-    }
-
     /// The outcome, plus every `resets …` text no stamp form reads: a new CLI format would otherwise only blank
     /// the resets.
     static func read(_ raw: String, now: Date, timeZone: TimeZone) -> (outcome: Outcome, unreadStamps: [String]) {

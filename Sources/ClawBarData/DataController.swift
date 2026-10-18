@@ -55,11 +55,10 @@ public final class DataController {
     private var latch: UsageLatch?
     private let weather: WeatherService
 
-    /// The login shell's first answer is in.
-    private var resolved = false
     private var login: LoginEnvironment?
-    private var loginShell = Slot()
+    /// Login shell runs that finished; the claude probes wait for the first.
     private var loginRuns = 0
+    private var loginRunning = false
     private var claude: ClaudeLocator.Found?
     private var lastLocate: Date?
 
@@ -174,17 +173,16 @@ public final class DataController {
 
     /// The login shell, then claude's location again; the claude probes wait for the first answer.
     private func runLoginShell(now: Date) {
-        loginShell.lastTry = now
-        loginShell.running = true
-        loginRuns += 1
+        lastLocate = now
+        loginRunning = true
         let capture = deps.loginShell, runner = deps.runner, env = deps.environment, home = deps.home
         spawn { me in
             let login = await capture(runner, env, home)
             me.completing {
-                me.loginShell.running = false
+                me.loginRunning = false
+                me.loginRuns += 1
                 me.login = login
                 if login == nil { me.fail("login", "the login shell gave no answer") } else { me.succeed("login") }
-                me.resolved = true
                 let now = me.deps.clock()
                 me.locate(now: now)
                 me.readSessions(now: now)
@@ -209,13 +207,10 @@ public final class DataController {
 
     private func startDue(now: Date) {
         if config.showStatus, status.due(config.statusIntervalSeconds, now) { startStatus(now: now) }
-        // Not found: look again every usage interval.
-        if resolved, claude == nil, Cadence.due(last: lastLocate, interval: TimeInterval(config.usageIntervalSeconds), now: now) {
-            locate(now: now)
-        }
-        // At start, then while claude is missing: a login shell slowed down at login may be the only one that knows where.
-        if claude == nil, login == nil, loginRuns < Self.loginRunLimit, loginShell.due(config.usageIntervalSeconds, now) {
-            runLoginShell(now: now)
+        // Not found: look again every usage interval, through a login shell that gave no answer yet, since one slowed
+        // down at login may be the only one that knows where.
+        if claude == nil, !loginRunning, Cadence.due(last: lastLocate, interval: TimeInterval(config.usageIntervalSeconds), now: now) {
+            if login == nil, loginRuns < Self.loginRunLimit { runLoginShell(now: now) } else { locate(now: now) }
         }
         guard resolved, claude != nil else { return }
         if version.due(config.versionIntervalSeconds, now) { startVersion(now: now) }
@@ -437,6 +432,8 @@ public final class DataController {
     }
 
     // MARK: - Plumbing
+
+    private var resolved: Bool { loginRuns > 0 }
 
     private var configDirectory: String {
         ClaudeConfigDir.resolve(account: snapshot.account, login: login, environment: deps.environment, home: deps.home)

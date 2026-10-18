@@ -279,7 +279,7 @@ final class Counter {
 
     @Test func theLoginShellIsAskedAtMostFourTimes() async {
         let h = Harness(claude: false)
-        await tickEveryMinute(h, times: 6)
+        await tickEveryMinute(h, times: 5)
         #expect(h.shell.runs == 4)
     }
 

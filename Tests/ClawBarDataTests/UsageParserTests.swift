@@ -3,6 +3,13 @@ import Testing
 import ClawBarShared
 @testable import ClawBarData
 
+extension UsageParser {
+    /// The outcome alone, which is all most tests look at.
+    static func parse(_ raw: String, now: Date, timeZone: TimeZone) -> Outcome {
+        read(raw, now: now, timeZone: timeZone).outcome
+    }
+}
+
 /// Every fixture is a sanitised `/usage` text; `now` is chosen next to its stamps.
 @Suite struct UsageParserTests {
     /// 00:30 in Berlin on Oct 17, shortly before the fixtures' 3:29am reset.

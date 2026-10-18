@@ -72,8 +72,11 @@ import ClawBarShared
 
     func member() async throws -> Int32 {
         let url = dir.file("member.pid")
-        for _ in 0 ..< 200 where !FileManager.default.fileExists(atPath: url.path) { try await Task.sleep(for: .milliseconds(5)) }
-        return try #require(Int32(String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)))
+        let read = { @Sendable in
+            Int32((try? String(contentsOf: url, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+        }
+        _ = await eventually { read() != nil }
+        return try #require(read())
     }
 
     /// Waits, as a killed orphan lingers as a zombie until launchd reaps it.

@@ -52,6 +52,8 @@ private struct Render {
     private func session(_ v: inout WidgetViewState) {
         sessionNumbers(&v)
         explain(data.usageIssue, &v)
+        // With the widget hidden, the menu bar still tells that a session waits.
+        if cfg.showSessions, let counts = sessionCounts() { v.trayTooltip += "\n" + counts.joined(separator: " · ") }
     }
 
     private func sessionNumbers(_ v: inout WidgetViewState) {
@@ -162,22 +164,21 @@ private struct Render {
     }
 
     private func sessions(_ v: inout WidgetViewState) {
-        let all = data.sessions
         v.sessionsVisible = cfg.showSessions
         v.sessionsLabel = t(.uiSessions)
-        if all.isEmpty {
-            v.sessionsText = t(.sessNone)
-        } else {
-            let busy = data.count(of: .busy), waiting = data.count(of: .waiting)
-            var parts = [L10n.count(all.count, .pluralSession, lang)]
-            // Someone waiting matters more than "0 working", and keeps the line short.
-            if busy > 0 || waiting == 0 { parts.append(t(.sessBusy, busy)) }
-            if waiting > 0 { parts.append(t(.sessWait, waiting)) }
-            v.sessionsText = parts.joined(separator: "  ·  ")
-            // With the widget hidden, the menu bar still tells that a session waits; last, after any issue line.
-            if cfg.showSessions { v.trayTooltip += "\n" + parts.joined(separator: " · ") }
-        }
-        v.sessionsTooltip = all.map(sessionLine).joined(separator: "\n")
+        v.sessionsText = sessionCounts()?.joined(separator: "  ·  ") ?? t(.sessNone)
+        v.sessionsTooltip = data.sessions.map(sessionLine).joined(separator: "\n")
+    }
+
+    /// How many sessions, then how many work and wait; nil without any.
+    private func sessionCounts() -> [String]? {
+        guard !data.sessions.isEmpty else { return nil }
+        let busy = data.count(of: .busy), waiting = data.count(of: .waiting)
+        var parts = [L10n.count(data.sessions.count, .pluralSession, lang)]
+        // Someone waiting matters more than "0 working", and keeps the line short.
+        if busy > 0 || waiting == 0 { parts.append(t(.sessBusy, busy)) }
+        if waiting > 0 { parts.append(t(.sessWait, waiting)) }
+        return parts
     }
 
     /// `▶ name — ~/cwd`, with ` [what]` for a session that waits for something.
