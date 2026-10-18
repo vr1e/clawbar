@@ -123,6 +123,20 @@ final class Counter {
         #expect(log.contains("usage: exit 1: boom"))
     }
 
+    @Test func aTimedOutProbeKeepsTheLastGoodValue() async {
+        let h = Harness()
+        h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.usage?.sessionPercent == 50 })
+        h.runner.reply(.usage, .now(.success(ProcessOutcome(pid: 900, termination: .signal(SIGTERM), timedOut: true))))
+        h.clock.now = t0 + 60
+        dc.tick(now: t0 + 60)
+        #expect(await eventually { dc.snapshot.usageIssue == .timedOut })
+        #expect(dc.snapshot.usage?.sessionPercent == 50)
+        #expect(dc.snapshot.usageAt == t0)
+    }
+
     @Test func aStampWithoutADateIsLoggedOncePerShape() async throws {
         let h = Harness()
         h.runner.reply(.usage, data: todayEnvelope { $0["result"] = "Current session: 5% used · resets in 2 hr\n" })
