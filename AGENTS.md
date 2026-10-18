@@ -24,6 +24,7 @@ wins. Before changing how something behaves or looks, read it in `docs.local/` (
 - Regular expressions are statics built with `Rx.make` (`Sources/ClawBarShared/Rx.swift`).
 - The original rounds half to even (`[int]`, `[byte]`, `[math]::Round`): use `.rounded(.toNearestOrEven)`.
 - Comments say why, in one line where one suffices.
+- PRs leave the version alone; only a release bumps it, through the `release` skill (`.claude/skills/release/`).
 
 ## Safety
 
