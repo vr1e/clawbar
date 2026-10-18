@@ -52,7 +52,7 @@ public struct AppPaths: Sendable, Equatable {
 
 public enum AppInfo {
     public static let name = "ClawBar"
-    public static let version = "0.1.1"
+    public static let version = "0.1.2"
     public static let bundleID = "dev.vr1e.clawbar"
     /// The release of clawd-usage-winwidget this is a port of.
     public static let originalVersion = "1.3.0"
