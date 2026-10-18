@@ -122,7 +122,8 @@ and running as administrator (`runAsAdmin`). German replaces Russian as the seco
 
 - A menu bar item replaces the tray icon; the default size is 1.2, which suits Retina points.
 - The menu bar item's tooltip lists every limit, each model's week included, where the tray's stops at 63
-  characters. Stale numbers turn the item grey, and its tooltip says when they are from.
+  characters. Stale numbers turn the item grey, and its tooltip says when they are from. Its last line counts the
+  sessions, so a waiting one shows with the widget hidden.
 - The usage probe runs Claude Code in safe mode with JSON output, stops for good (until the next Claude Code
   version) if it ever reaches the model or a flag is rejected, and says so on the widget.
 - `/usage` parsing also reads the reset stamps Claude Code 2.1.302 prints (with *at*, a year, or a time only),

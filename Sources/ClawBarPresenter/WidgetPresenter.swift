@@ -169,11 +169,13 @@ private struct Render {
             v.sessionsText = t(.sessNone)
         } else {
             let busy = data.count(of: .busy), waiting = data.count(of: .waiting)
-            var line = L10n.count(all.count, .pluralSession, lang)
+            var parts = [L10n.count(all.count, .pluralSession, lang)]
             // Someone waiting matters more than "0 working", and keeps the line short.
-            if busy > 0 || waiting == 0 { line += "  ·  " + t(.sessBusy, busy) }
-            if waiting > 0 { line += "  ·  " + t(.sessWait, waiting) }
-            v.sessionsText = line
+            if busy > 0 || waiting == 0 { parts.append(t(.sessBusy, busy)) }
+            if waiting > 0 { parts.append(t(.sessWait, waiting)) }
+            v.sessionsText = parts.joined(separator: "  ·  ")
+            // With the widget hidden, the menu bar still tells that a session waits; last, after any issue line.
+            if cfg.showSessions { v.trayTooltip += "\n" + parts.joined(separator: " · ") }
         }
         v.sessionsTooltip = all.map(sessionLine).joined(separator: "\n")
     }

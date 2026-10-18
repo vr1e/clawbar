@@ -35,7 +35,7 @@ import ClawBarShared
             accountText: "Max  ·  user@example.com", accountTooltip: "Max  ·  user@example.com",
             stampText: "14:04:35",
             trayText: "34", trayColor: Palette.ok,
-            trayTooltip: "Sitzung 34% · 2h 05min\nWoche 59% · Fable 8%"
+            trayTooltip: "Sitzung 34% · 2h 05min\nWoche 59% · Fable 8%\n2 Sitzungen · 1 aktiv · 1 wartend"
         )
         #expect(differences(render(lang: .de), expected) == [])
     }

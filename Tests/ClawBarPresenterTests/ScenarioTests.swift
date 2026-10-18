@@ -57,7 +57,7 @@ import ClawBarShared
         #expect(v.pctText == "--")
         #expect(v.resetText == "no data")
         #expect(v.week.value == "59%  ·  4d 15h")
-        #expect(v.trayTooltip == "ClawBar: no data")
+        #expect(v.trayTooltip == "ClawBar: no data\n2 sessions · 1 working · 1 waiting")
     }
 }
 
@@ -66,8 +66,8 @@ import ClawBarShared
         let d = sample {
             $0.modelWeeks = [ModelWeek(name: "Sonnet", percent: 23), ModelWeek(name: "Fable", percent: 8)]
         }
-        #expect(render(d).trayTooltip == "34% of session · 2h 05m\nweek 59% · Sonnet 23% · Fable 8%")
-        #expect(render(d, lang: .de).trayTooltip == "Sitzung 34% · 2h 05min\nWoche 59% · Sonnet 23% · Fable 8%")
+        #expect(render(d).trayTooltip == "34% of session · 2h 05m\nweek 59% · Sonnet 23% · Fable 8%\n2 sessions · 1 working · 1 waiting")
+        #expect(render(d, lang: .de).trayTooltip == "Sitzung 34% · 2h 05min\nWoche 59% · Sonnet 23% · Fable 8%\n2 Sitzungen · 1 aktiv · 1 wartend")
     }
 
     @Test func partsThatAreMissingAreLeftOut() {
@@ -76,9 +76,9 @@ import ClawBarShared
             $0.weekPercent = nil
             $0.modelWeeks = []
         }
-        #expect(render(d).trayTooltip == "34% of session")
+        #expect(render(d).trayTooltip == "34% of session\n2 sessions · 1 working · 1 waiting")
         let closed = sample { $0.sessionReset = Samples.now.plus(minutes: -5) }
-        #expect(render(closed).trayTooltip == "34% of session\nweek 59% · Fable 8%")
+        #expect(render(closed).trayTooltip == "34% of session\nweek 59% · Fable 8%\n2 sessions · 1 working · 1 waiting")
     }
 
     @Test func theTooltipIsNotCutAt63Characters() {
@@ -90,7 +90,7 @@ import ClawBarShared
         }
         let tip = render(d).trayTooltip
         #expect(tip.count > 63)
-        #expect(tip.hasSuffix("Haiku 2%"))
+        #expect(tip.contains("· Haiku 2%\n"))
     }
 
     @Test func staleNumbersGreyThePillAndSayWhenTheyAreFrom() {
@@ -99,8 +99,8 @@ import ClawBarShared
         #expect(fresh.trayColor == Palette.ok && !fresh.trayTooltip.contains("stale"))
         let stale = render(now: Samples.now.plus(seconds: 211 - 25))
         #expect(stale.trayText == "34" && stale.trayColor == Palette.dead)
-        #expect(stale.trayTooltip.hasSuffix("\nweek 59% · Fable 8%\nstale · 14:04:35"))
-        #expect(render(lang: .de, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix("\nWoche 59% · Fable 8%\nveraltet · 14:04:35"))
+        #expect(stale.trayTooltip.hasSuffix("\nweek 59% · Fable 8%\nstale · 14:04:35\n2 sessions · 1 working · 1 waiting"))
+        #expect(render(lang: .de, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix("\nWoche 59% · Fable 8%\nveraltet · 14:04:35\n2 Sitzungen · 1 aktiv · 1 wartend"))
         // The widget keeps its level colours; its stamp already says stale.
         #expect(stale.pctColor == Palette.ok)
     }
@@ -109,6 +109,18 @@ import ClawBarShared
         let d = sample(data: { $0.usageIssue = .flagRejected("--output-format") })
         let tip = render(d, now: Samples.now.plus(hours: 1)).trayTooltip
         #expect(tip.contains("\nweek 59% · Fable 8%\nstale · 14:04:35\n"))
+    }
+
+    @Test func theSessionsLineComesLastAndOnlyWithSessionsShown() {
+        let d = sample(data: { $0.usageIssue = .flagRejected("--output-format") })
+        #expect(render(d, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix(
+            "\nstale · 14:04:35\nclaude rejects --output-format\nChecks paused until Claude Code updates\n2 sessions · 1 working · 1 waiting"
+        ))
+        let limitsOnly = "34% of session · 2h 05m\nweek 59% · Fable 8%"
+        #expect(render(sample(data: { $0.sessions = [] })).trayTooltip == limitsOnly)
+        var hidden = Config()
+        hidden.showSessions = false
+        #expect(render(config: hidden).trayTooltip == limitsOnly)
     }
 }
 
@@ -289,12 +301,13 @@ import ClawBarShared
         let v = render(config: config)
         #expect(v.detailsGlyph == "▴" && v.detailsExpanded)
         #expect(!v.statsVisible && !v.sessionsVisible)
-        // Hiding a block changes nothing else.
+        // Hiding a block changes nothing else, but hidden sessions leave the menu bar too.
         var expected = WidgetViewState.sample
         expected.detailsGlyph = "▴"
         expected.detailsExpanded = true
         expected.statsVisible = false
         expected.sessionsVisible = false
+        expected.trayTooltip = "34% of session · 2h 05m\nweek 59% · Fable 8%"
         #expect(differences(v, expected) == [])
     }
 
