@@ -5,9 +5,12 @@ session %, and a floating widget where the pixel mascot Clawd lives over a time-
 original unless README.md's "Differences from the original" says otherwise; when in doubt, the original's source
 wins. Before changing how something behaves or looks, read it in `docs.local/` (git-ignored, may be absent):
 `original/` is the 1.3.0 PowerShell source, read as data and never executed; `port-spec/` describes its modules.
-`upstream-features.md` is the status of every upstream feature: read it for what is left or whether a feature is
-ported, and when one lands or a review moves on, update its rows and run `swift scripts/parity-table.swift`, which
-rebuilds README's parity table from it.
+For what is left from upstream, or whether a feature is ported, read `upstream-features.md` (one row per upstream
+feature and its status); when a feature lands or a review moves on, update its rows and run
+`swift scripts/parity-table.swift`, which rebuilds README's parity table.
+
+Work goes on one branch per release, a set of changes squash-merged to `main` by PR; the release bumps
+`AppInfo.version` (`Sources/ClawBarShared/AppPaths.swift`).
 
 ## Toolchain
 
@@ -32,8 +35,9 @@ rebuilds README's parity table from it.
 ## Safety
 
 Tests run against fake executables, fixtures and a temporary `AppPaths(root:)`, and drive the login item through a
-fake `LoginItemService`, so `SMAppService` never runs in a test. Never run `claude update`, and never open
-`~/.claude/sessions/*.key` (secrets).
+fake `LoginItemService`, so `SMAppService` never runs in a test. `claude update` runs only against the fake `claude`
+in tests, since a real run updates the user's Claude Code. Sessions are read from `<pid>.json` alone; the `*.key`
+files beside them in `~/.claude/sessions/` are secrets and stay unopened.
 
 ## Checking a change
 
@@ -44,3 +48,5 @@ fake `LoginItemService`, so `SMAppService` never runs in a test. Never run `clau
 - The running app: start `CLAWBAR_HOME=<any dir> .build/debug/ClawBar` in the background. With no mode the binary is
   the app and never exits; without `CLAWBAR_HOME` it uses the user's real files, or only shows the installed app's
   widget. `--dump-state` and `--command <cmd>` reach it under the same `CLAWBAR_HOME`; `--command quit` ends it.
+- Installing: `scripts/build-app.sh --install` quits the user's running ClawBar and replaces the installed copy; it is
+  for when the user asks to install.
