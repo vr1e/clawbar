@@ -5,6 +5,9 @@ session %, and a floating widget where the pixel mascot Clawd lives over a time-
 original unless README.md's "Differences from the original" says otherwise; when in doubt, the original's source
 wins. Before changing how something behaves or looks, read it in `docs.local/` (git-ignored, may be absent):
 `original/` is the 1.3.0 PowerShell source, read as data and never executed; `port-spec/` describes its modules.
+`upstream-features.md` is the status of every upstream feature: read it for what is left or whether a feature is
+ported, and when one lands or a review moves on, update its rows and run `swift scripts/parity-table.swift`, which
+rebuilds README's parity table from it.
 
 ## Toolchain
 

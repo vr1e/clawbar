@@ -117,9 +117,31 @@ and the widget's last-update stamp says *error*.
 
 ## Differences from the original
 
-Not ported: Clawd's panel (chat, reminders, lists, recurring tasks), the PC tips, Clawd's Remote Control session,
-and running as administrator (`runAsAdmin`). German replaces Russian as the second language.
+<!-- parity-table: begin; built by scripts/parity-table.swift, edit its source, not this table -->
+ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.6.0.
+*Ported differently* means a bullet below says how.
 
+| Feature | In ClawBar | Notes |
+|---|---|---|
+| Usage limits | ✅ Ported differently | |
+| Sessions | ✅ Ported differently | |
+| Clawd and his hearts | ✅ Ported | |
+| Sky and weather | ✅ Ported differently | |
+| Service status | ✅ Ported | |
+| Account and plan | ✅ Ported | |
+| Claude Code version and update | ✅ Ported differently | |
+| Widget window | ✅ Ported differently | |
+| Menu bar item | ✅ Ported differently | Not yet: Reset times as clock times in the tooltip. |
+| Languages | ✅ Ported differently | Not yet: French. Not ported: Russian. |
+| The widget's own version and updates | ✅ Ported differently | Not ported: Self-update from GitHub releases. |
+| 7-day history | ⏳ Not yet | |
+| Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
+| PC tips | ➖ Not ported | They look over a Windows PC. |
+| Clawd's Remote Control session | ➖ Not ported | It belongs with the chat. |
+| Run as administrator | ➖ Not ported | Windows-only. |
+<!-- parity-table: end -->
+
+- German replaces Russian as the second language.
 - A menu bar item replaces the tray icon; the default size is 1.2, which suits Retina points.
 - The menu bar item's tooltip lists every limit, each model's week included, where the tray's stops at 63
   characters. Stale numbers turn the item grey, and its tooltip says when they are from. Its last line counts the
