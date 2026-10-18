@@ -68,6 +68,8 @@ struct StateDump {
         add("weather", snapshot.weather.map { "code \($0.code), \(Self.num($0.tempC)) °C, wind \(Self.num($0.windKmh)) km/h" } ?? "none")
         add("view.pct", view.pctText)
         add("view.tray", view.trayText)
+        // One key: value line, so the tooltip's line breaks are written as \n.
+        add("view.trayTooltip", view.trayTooltip.replacingOccurrences(of: "\n", with: "\\n"))
         add("view.reset", view.resetText)
         add("view.week", view.week.value)
         add("view.sessions", view.sessionsText)

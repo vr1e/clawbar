@@ -66,6 +66,14 @@ enum SnapshotCases {
                 updateFailure: UpdateFailure(exitCode: 1, outputTail: "Error: permission denied"), installHint: .homebrew
             )
         }
+        add("update-unchanged") {
+            $0.config.expanded = true
+            $0.data.version = VersionState(
+                local: "2.1.300", latest: "2.1.302",
+                updateFailure: UpdateFailure(exitCode: 0, outputTail: "Checking for updates...\nDone", from: "2.1.300", to: "2.1.302"),
+                installHint: .homebrew
+            )
+        }
         add("status-issues") {
             $0.data.status = ServiceStatus(
                 indicator: "major", incidents: ["Elevated errors on Claude Opus"],
@@ -107,7 +115,8 @@ enum SnapshotCases {
     }
 }
 
-/// `--snapshot <dir>`: the card in every state, EN and DE, at k 1.0, 1.2 and 2.0; the menu bar item; both menus.
+/// `--snapshot <dir>`: the card in every state, EN and DE, at k 1.0, 1.2 and 2.0; the menu bar item, and its text and
+/// tooltip in every state; both menus.
 enum SnapshotMode {
     static let scales = [1.0, 1.2, 2.0]
     static let backdrop = RGBA(r: 13, g: 17, b: 23)
@@ -143,6 +152,9 @@ enum SnapshotMode {
             let url = dir.appendingPathComponent("menus-\(lang.rawValue).txt")
             try menuDump(lang: lang).write(to: url, atomically: true, encoding: .utf8)
             out.append(url)
+            let bar = dir.appendingPathComponent("menu-bar-\(lang.rawValue).txt")
+            try menuBarDump(lang: lang).write(to: bar, atomically: true, encoding: .utf8)
+            out.append(bar)
         }
         return out
     }
@@ -214,6 +226,18 @@ enum SnapshotMode {
             }
         }
         return out
+    }
+
+    /// The menu bar item's text, colour and tooltip in every state, since no PNG shows the tooltip.
+    static func menuBarDump(lang: Lang) -> String {
+        let colors = [(Palette.ok, "ok"), (Palette.warn, "warn"), (Palette.crit, "crit"), (Palette.dead, "grey")]
+        let states = SnapshotCases.all().map { c in
+            let v = view(for: c, lang: lang)
+            let color = colors.first { $0.0 == v.trayColor }?.1 ?? v.trayColor.hex
+            let tooltip = v.trayTooltip.split(separator: "\n", omittingEmptySubsequences: false).map { "  " + $0 }
+            return (["\(c.name): \(v.trayText) (\(color))"] + tooltip).joined(separator: "\n")
+        }
+        return "ClawBar menu bar item (\(lang.rawValue))\n\n" + states.joined(separator: "\n\n") + "\n"
     }
 
     static func menuDump(lang: Lang) -> String {

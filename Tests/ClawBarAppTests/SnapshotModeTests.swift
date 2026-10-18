@@ -10,8 +10,9 @@ import ClawBarShared
         #expect(names.count == SnapshotCases.all().count, "state names are unique")
         for required in [
             "sample", "expanded", "loading", "no-data", "warn", "crit", "limit", "claude-not-found", "no-limits",
-            "flag-rejected", "model-reached", "update-available", "updating", "update-failed", "status-issues",
-            "maintenance", "status-offline", "logged-out", "stale", "tick-error", "model-weeks", "rows-hidden", "no-mascot",
+            "flag-rejected", "model-reached", "update-available", "updating", "update-failed", "update-unchanged",
+            "status-issues", "maintenance", "status-offline", "logged-out", "stale", "tick-error", "model-weeks", "rows-hidden",
+            "no-mascot",
         ] {
             #expect(names.contains(required), "\(required)")
         }
@@ -25,6 +26,7 @@ import ClawBarShared
         #expect(try data("no-limits").usageIssue == .noLimits)
         #expect(try data("loading").usageProbeCompleted == false)
         #expect(try data("update-failed").version.updateFailure != nil)
+        #expect(try data("update-unchanged").version.updateFailure?.exitCode == 0)
         #expect(try data("logged-out").account?.loggedIn == false)
     }
 
@@ -65,6 +67,12 @@ import ClawBarShared
         let menus = try String(contentsOf: tmp.url.appendingPathComponent("menus-en.txt"), encoding: .utf8)
         #expect(menus.contains("Quit ClawBar"))
         #expect(menus.contains("Developer menu"))
+        #expect(names.contains("menu-bar-en.txt") && names.contains("menu-bar-de.txt"))
+        let bar = try String(contentsOf: tmp.url.appendingPathComponent("menu-bar-en.txt"), encoding: .utf8)
+        #expect(bar.contains("\nsample: 34 (ok)\n  34% of session · 2h 05m\n  week 59% · Fable 8%\n  2 sessions · 1 working · 1 waiting\n"))
+        #expect(bar.contains("\nstale: 34 (grey)\n"))
+        let barDE = try String(contentsOf: tmp.url.appendingPathComponent("menu-bar-de.txt"), encoding: .utf8)
+        #expect(barDE.contains("\nsample: 34 (ok)\n  Sitzung 34% · 2h 05min\n"))
         #expect(files.allSatisfy { FileManager.default.fileExists(atPath: $0.path) })
     }
 }

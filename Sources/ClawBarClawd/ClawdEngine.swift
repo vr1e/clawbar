@@ -271,6 +271,8 @@ public final class ClawdEngine {
         }
 
         var f = TickFrame(pose: ClawdPose(look: look))
+        // 1.10.1: once the work is over, the edge he was running to is no reason to walk on.
+        if cur == .work, mood != .work { target = nil }
         cur = mood
         var bubble = ""
         var zzz = false

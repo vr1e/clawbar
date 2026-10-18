@@ -120,8 +120,8 @@ import ClawBarShared
         #expect(AppPaths.live(environment: [:]).root.path.hasSuffix("Library/Application Support/ClawBar"))
     }
 
-    @Test func theUserAgentNamesThisVersionAndNotTheOriginalAsItsContact() {
-        #expect(AppInfo.userAgent == "ClawBar/\(AppInfo.version)")
+    @Test func theUserAgentNamesThisVersionAndClawBarsOwnHomeAsItsContact() {
+        #expect(AppInfo.userAgent == "ClawBar/\(AppInfo.version) (+https://github.com/vr1e/clawbar)")
         #expect(!AppInfo.userAgent.contains(AppInfo.originalRepo.path))
     }
 

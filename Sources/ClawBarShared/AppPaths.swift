@@ -57,8 +57,9 @@ public enum AppInfo {
     /// The release of clawd-usage-winwidget this is a port of.
     public static let originalVersion = "1.3.0"
     public static let originalRepo = URL(string: "https://github.com/Enhed/clawd-usage-winwidget")!
-    /// No contact URL until ClawBar has a public home: the original's would send complaints about ClawBar to Enhed.
-    public static let userAgent = "\(name)/\(version)"
+    public static let repo = URL(string: "https://github.com/vr1e/clawbar")!
+    /// Names ClawBar's own home as the contact, so complaints about ClawBar never reach Enhed.
+    public static let userAgent = "\(name)/\(version) (+\(repo.absoluteString))"
     public static let statusPage = URL(string: "https://status.claude.com")!
     public static let statusSummary = URL(string: "https://status.claude.com/api/v2/summary.json")!
     public static let changelogPage = URL(string: "https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md")!

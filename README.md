@@ -84,7 +84,8 @@ and the widget's last-update stamp says *error*.
   every usage interval, at most three more times.
 - **Network:** status.claude.com (status), downloads.claude.ai (latest version), raw.githubusercontent.com (the
   changelog, only while an update is out), ipwho.is (your approximate location, unless coordinates are set),
-  api.open-meteo.com (weather) and api.met.no (weather fallback).
+  api.open-meteo.com (weather) and api.met.no (weather fallback). Each request names ClawBar, its version and its
+  GitHub page in the User-Agent.
 - **Its own files** live in `~/Library/Application Support/ClawBar/`: `config.json`, `state.json`, `error.log`,
   `update.log`, `clawbar.lock` (keeps a second copy from starting) and `state-dump.txt` (written for
   `--dump-state`).
@@ -96,7 +97,7 @@ and the widget's last-update stamp says *error*.
 | Mode | Does |
 |---|---|
 | `--diagnose` | runs every probe once and prints what it found |
-| `--snapshot <dir>` | renders every widget state in both languages at three sizes, the menu bar item and the menus |
+| `--snapshot <dir>` | renders every widget state in both languages at three sizes and the menu bar item; writes the menu bar text and tooltip in every state, and the menus, as text |
 | `--record <scenario> <gif>` | records an animated scenario: `tour`, `sleep`, `limit`, `reset`, `hearts`, `weather`, `clicks` |
 | `--dump-state` | prints the running app's state |
 | `--command <cmd>` | sends `toggle`, `show`, `larger`, `smaller`, `refresh`, `quit` or `lang <en\|de>` to the running app |

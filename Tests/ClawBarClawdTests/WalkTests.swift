@@ -4,7 +4,8 @@ import Testing
 @testable import ClawBarClawd
 import ClawBarShared
 
-/// Walking: the span, the edge-to-edge run, idle targets, and the clamped target when the area narrows (deviation 11a).
+/// Walking: the span, the edge-to-edge run and its end with the work, idle targets, and the clamped target when the area
+/// narrows (deviation 11a).
 @Suite struct WalkTests {
     @Test func workRunsEdgeToEdge() throws {
         let engine = ClawdEngine.settled()
@@ -15,6 +16,17 @@ import ClawBarShared
         #expect(edge == 44)
         #expect(xs[edge + 2] < 144 && xs[99] < 100)
         #expect(xs.allSatisfy { (0 ... 144).contains($0) })
+    }
+
+    @Test func theEdgeIsForgottenWhenTheWorkEnds() {
+        let engine = ClawdEngine.settled()
+        engine.apply(input(busy: 1), now: t0)
+        // Ten ticks into the run from the centre (72) to the right edge.
+        let stop = Double(engine.run(10).last!.spriteRect.minX)
+        engine.apply(input(sessions: 1), now: t0)
+        let xs = engine.run(20).map { Double($0.spriteRect.minX) }
+        #expect(stop < 144)
+        #expect(xs.allSatisfy { $0 == stop })
     }
 
     @Test func aNarrowedAreaClampsTheTargetToo() {
