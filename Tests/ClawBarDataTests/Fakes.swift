@@ -90,17 +90,19 @@ final class FakeRunner: ProcessRunning {
 
 /// The login shell's answers in turn, the last one again once they run out.
 final class FakeLoginShell: Sendable {
-    private let state: Mutex<(answers: [LoginEnvironment?], runs: Int)>
+    private let answers: [LoginEnvironment?]
+    private let count = Mutex(0)
 
-    init(_ answers: [LoginEnvironment?]) { state = Mutex((answers, 0)) }
+    init(_ answers: [LoginEnvironment?]) { self.answers = answers }
 
-    var runs: Int { state.withLock { $0.runs } }
+    var runs: Int { count.withLock { $0 } }
 
     func answer() -> LoginEnvironment? {
-        state.withLock { s in
-            s.runs += 1
-            return s.answers.count > 1 ? s.answers.removeFirst() : s.answers.first ?? nil
+        let n = count.withLock { n in
+            n += 1
+            return n
         }
+        return answers[min(n, answers.count) - 1]
     }
 }
 

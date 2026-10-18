@@ -37,8 +37,6 @@ public final class DataController {
         }
     }
 
-    private enum Resolution { case pending, running, done }
-
     /// One probe's bookkeeping: cadence counts from the last attempt.
     private struct Slot {
         var lastTry: Date?
@@ -57,7 +55,8 @@ public final class DataController {
     private var latch: UsageLatch?
     private let weather: WeatherService
 
-    private var resolution = Resolution.pending
+    /// The login shell's first answer is in.
+    private var resolved = false
     private var login: LoginEnvironment?
     private var loginShell = Slot()
     private var loginRuns = 0
@@ -105,16 +104,12 @@ public final class DataController {
     public func apply(config new: Config) {
         let old = config
         config = new.clamped()
-        if config.claudePath != old.claudePath, resolution == .done { locate(now: deps.clock()) }
+        if config.claudePath != old.claudePath, resolved { locate(now: deps.clock()) }
     }
 
     /// The data tick: collect finished probes, start those whose interval has passed since their last attempt.
     public func tick(now: Date) {
         guard !stopped else { return }
-        if resolution == .pending {
-            resolution = .running
-            runLoginShell(now: now)
-        }
         weather.tick(now: now, config: config)
         snapshot.place = weather.place
         startDue(now: now)
@@ -122,13 +117,13 @@ public final class DataController {
 
     /// Re-reads the session registry synchronously.
     public func pollSessions(now: Date) {
-        guard !stopped, resolution == .done else { return }
+        guard !stopped, resolved else { return }
         readSessions(now: now)
     }
 
     /// Refresh now: start the usage probe unless one is running or the probe is latched.
     public func refreshNow() {
-        guard !stopped, resolution == .done else { return }
+        guard !stopped, resolved else { return }
         let now = deps.clock()
         if claude == nil { locate(now: now) }
         guard latch == nil, !usage.running, claude != nil else { return }
@@ -189,7 +184,7 @@ public final class DataController {
                 me.loginShell.running = false
                 me.login = login
                 if login == nil { me.fail("login", "the login shell gave no answer") } else { me.succeed("login") }
-                me.resolution = .done
+                me.resolved = true
                 let now = me.deps.clock()
                 me.locate(now: now)
                 me.readSessions(now: now)
@@ -214,16 +209,15 @@ public final class DataController {
 
     private func startDue(now: Date) {
         if config.showStatus, status.due(config.statusIntervalSeconds, now) { startStatus(now: now) }
-        guard resolution == .done else { return }
         // Not found: look again every usage interval.
-        if claude == nil, Cadence.due(last: lastLocate, interval: TimeInterval(config.usageIntervalSeconds), now: now) {
+        if resolved, claude == nil, Cadence.due(last: lastLocate, interval: TimeInterval(config.usageIntervalSeconds), now: now) {
             locate(now: now)
         }
-        // A login shell slowed down at login may be the only one that knows where claude is.
+        // At start, then while claude is missing: a login shell slowed down at login may be the only one that knows where.
         if claude == nil, login == nil, loginRuns < Self.loginRunLimit, loginShell.due(config.usageIntervalSeconds, now) {
             runLoginShell(now: now)
         }
-        guard claude != nil else { return }
+        guard resolved, claude != nil else { return }
         if version.due(config.versionIntervalSeconds, now) { startVersion(now: now) }
         if latch == nil, usage.due(config.usageIntervalSeconds, now) { startUsage(now: now) }
         if config.showAccount, account.due(config.accountIntervalSeconds, now) { startAccount(now: now) }

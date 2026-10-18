@@ -67,9 +67,8 @@ import ClawBarShared
     }
 
     /// Backgrounds a member of the child's group that ignores SIGTERM and writes its pid to `member.pid`.
-    var memberIgnoringSigterm: String {
+    let memberIgnoringSigterm =
         "/bin/sh -c \"trap '' TERM; exec /bin/sleep 30\" >/dev/null 2>&1 & echo $! > member.pid; exec /bin/sleep 30"
-    }
 
     func member() async throws -> Int32 {
         let url = dir.file("member.pid")
@@ -77,13 +76,9 @@ import ClawBarShared
         return try #require(Int32(String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)))
     }
 
-    /// Whether the pid is gone within the deadline; a killed orphan lingers as a zombie until launchd reaps it.
-    func gone(_ pid: Int32) async throws -> Bool {
-        for _ in 0 ..< 300 {
-            if kill(pid, 0) == -1, errno == ESRCH { return true }
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        return false
+    /// Waits, as a killed orphan lingers as a zombie until launchd reaps it.
+    func gone(_ pid: Int32) async -> Bool {
+        await eventually { !LiveProcessTable().isAlive(pid) }
     }
 
     @Test func aTimeoutKillsAGroupMemberIgnoringSigtermThoughTheLeaderObeyed() async throws {
@@ -91,7 +86,7 @@ import ClawBarShared
         defer { kill(-o.pid, SIGKILL) }
         #expect(o.timedOut)
         #expect(o.termination == .signal(SIGTERM))
-        #expect(try await gone(try await member()))
+        #expect(try await gone(member()))
     }
 
     @Test func shutdownKillsAGroupMemberIgnoringSigtermThoughTheLeaderObeyed() async throws {
@@ -101,7 +96,7 @@ import ClawBarShared
         let o = try await probe.value
         defer { kill(-o.pid, SIGKILL) }
         #expect(o.termination == .signal(SIGTERM))
-        #expect(try await gone(pid))
+        #expect(await gone(pid))
     }
 
     @Test func aGrandchildHoldingThePipeDoesNotBlockTheResult() async throws {

@@ -34,8 +34,7 @@ The script builds a release binary, assembles an ad-hoc-signed `ClawBar.app` and
 quitting a running copy first. ClawBar registers itself to open at login; untick **Launch at login** in its menu
 to stop that.
 
-To update, run `scripts/build-app.sh --install` again, then open the app: the script quits the running copy but
-does not start the new one. `config.json` and ClawBar's other files stay where they are.
+To update, run both commands again. `config.json` and ClawBar's other files stay where they are.
 
 ## Use
 
@@ -80,7 +79,7 @@ and the widget's last-update stamp says *error*.
 - **Claude Code:** `claude -p /usage` (with safe mode and no session persistence), `claude auth status`,
   `claude --version`, and `claude update` when you click it. It reads `~/.claude/sessions/<pid>.json` to list
   sessions (never the `.key` files next to them) and `settings.json` for the update channel.
-- **Your login shell:** run once at start (`$SHELL -ilc`) for claude's path, `PATH` and `CLAUDE_CONFIG_DIR`, which
+- **Your login shell:** run at start (`$SHELL -ilc`) for claude's path, `PATH` and `CLAUDE_CONFIG_DIR`, which
   a GUI app does not inherit. If it gives no answer within 5 seconds and claude is not found, ClawBar asks it again
   every usage interval, at most three more times.
 - **Network:** status.claude.com (status), downloads.claude.ai (latest version), raw.githubusercontent.com (the
