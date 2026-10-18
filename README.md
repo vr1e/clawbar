@@ -110,8 +110,9 @@ and the widget's last-update stamp says *error*.
 - **Nothing appears at all:** ClawBar exits when it cannot lock `clawbar.lock`, and says why on stderr, in
   `error.log` when it can write there, and in the unified log:
   `log show --last 1h --predicate 'subsystem == "dev.vr1e.clawbar"'`.
-- **No numbers:** the widget says why. `ClawBar --diagnose` runs every probe once and prints what it found, and
-  `error.log` gets a line whenever a probe starts failing.
+- **No numbers or reset times:** the widget says why numbers are missing. `ClawBar --diagnose` runs every probe
+  once and prints what it found, and `error.log` gets a line whenever a probe starts failing or Claude Code prints a
+  reset time ClawBar cannot read.
 - **A crash:** macOS keeps the report in Console under Crash Reports.
 
 ## Differences from the original

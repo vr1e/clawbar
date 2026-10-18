@@ -123,6 +123,20 @@ final class Counter {
         #expect(log.contains("usage: exit 1: boom"))
     }
 
+    @Test func aStampWithoutADateIsLoggedOncePerShape() async throws {
+        let h = Harness()
+        h.runner.reply(.usage, data: todayEnvelope { $0["result"] = "Current session: 5% used · resets in 2 hr\n" })
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.usage?.sessionPercent == 5 })
+        h.runner.reply(.usage, data: todayEnvelope { $0["result"] = "Current session: 6% used · resets in 1 hr\n" })
+        h.clock.now = t0 + 60
+        dc.tick(now: t0 + 60)
+        #expect(await eventually { dc.snapshot.usage?.sessionPercent == 6 })
+        let log = try String(contentsOf: h.paths.errorLog, encoding: .utf8)
+        #expect(log.split(separator: "\n").filter { $0.hasSuffix("\tusage-stamp: no date in \"in # hr\"") }.count == 1)
+    }
+
     @Test func aLoginWithoutASubscriptionClearsTheOldLimits() async {
         let h = Harness()
         h.runner.reply(.usage, data: Fixture.data("usage/today.json"))

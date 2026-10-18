@@ -193,4 +193,26 @@ import ClawBarShared
         }
         #expect(u.day == UsagePeriod(requests: 1298, sessions: 12, lines: ["x"]))
     }
+
+    @Test func aStampNoFormReadsIsReported() {
+        let text = """
+        Current session: 5% used · resets in 2 hr
+        Current week (all models): 6% used · resets Oct 17 at 3am (Europe/Berlin)
+        Current week (Sonnet only): 7% used · resets next Thursday
+        """
+        let (outcome, unread) = UsageParser.read(text, now: now, timeZone: berlin)
+        guard case .usage(let u) = outcome else {
+            Issue.record("no usage")
+            return
+        }
+        #expect(u.sessionPercent == 5 && u.sessionReset == nil)
+        #expect(u.weekReset == utc("2026-10-17T01:00:00Z"))
+        #expect(unread == ["in 2 hr", "next Thursday"])
+        #expect(UsageParser.read(Fixture.text("usage/today.txt"), now: now, timeZone: berlin).unreadStamps == [])
+        #expect(UsageParser.read(Fixture.text("usage/no-reset.txt"), now: now, timeZone: berlin).unreadStamps == [])
+    }
+
+    @Test func aStampsShapeMasksItsDigits() {
+        #expect(UsageParser.shape("Oct 17 at 3:30am (Europe/Berlin)") == "Oct ## at #:##am (Europe/Berlin)")
+    }
 }

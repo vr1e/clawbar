@@ -245,6 +245,7 @@ public final class DataController {
                     me.snapshot.usageAt = clock()
                     me.snapshot.usageIssue = nil
                     me.succeed("usage")
+                    me.logUnread(report.unreadStamps)
                 case .issue(.noLimits):
                     // A login without a subscription: the old subscription's numbers no longer apply, its stats do.
                     me.snapshot.usage = report.stats ?? UsageSnapshot()
@@ -265,6 +266,17 @@ public final class DataController {
                     me.fail("usage", Self.describe(issue))
                 }
             }
+        }
+    }
+
+    /// Reset stamps in a format the parser does not know, by shape; the next CLI change shows up here.
+    private func logUnread(_ stamps: [String]) {
+        var shapes: [String] = []
+        for s in stamps.map(UsageParser.shape) where !shapes.contains(s) { shapes.append(s) }
+        if shapes.isEmpty {
+            succeed("usage-stamp")
+        } else {
+            fail("usage-stamp", "no date in " + shapes.map { "\"\($0)\"" }.joined(separator: ", "))
         }
     }
 

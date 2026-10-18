@@ -16,6 +16,8 @@ enum UsageProbe {
         var envelope: UsageEnvelope?
         /// With `.noLimits`: the stats the answer still carried.
         var stats: UsageSnapshot?
+        /// The `resets …` texts the parser gave no date.
+        var unreadStamps: [String] = []
     }
 
     static func spec(claude: String, environment: [String: String], home: String) -> ProcessSpec {
@@ -55,8 +57,9 @@ enum UsageProbe {
         guard !env.isError, let text = env.result else {
             return Report(outcome: .issue(.probeFailed("error result: \(tail(env.result ?? ""))")), envelope: env)
         }
-        switch UsageParser.parse(text, now: now, timeZone: timeZone) {
-        case .usage(let u): return Report(outcome: .usage(u), envelope: env)
+        let (parsed, unread) = UsageParser.read(text, now: now, timeZone: timeZone)
+        switch parsed {
+        case .usage(let u): return Report(outcome: .usage(u), envelope: env, unreadStamps: unread)
         case .noLimits(let stats): return Report(outcome: .issue(.noLimits), envelope: env, stats: stats)
         // Fixed text: the answer's stats change every minute, and the error log dedups identical messages only.
         case .unavailable: return Report(outcome: .issue(.probeFailed("no limit lines in /usage")), envelope: env)

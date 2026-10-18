@@ -53,6 +53,9 @@ public enum Diagnostics {
             switch report.outcome {
             case .usage(let u):
                 say("usage: " + usageLine(u, zone: deps.timeZone))
+                if !report.unreadStamps.isEmpty {
+                    say("usage stamps without a date: " + report.unreadStamps.map { "\"\($0)\"" }.joined(separator: ", "))
+                }
                 if let d = u.day { say("usage 24h: \(d.requests) requests · \(d.sessions) sessions · \(d.lines.count) lines") }
                 if let w = u.week7 { say("usage 7d: \(w.requests) requests · \(w.sessions) sessions · \(w.lines.count) lines") }
             case .issue(let issue):

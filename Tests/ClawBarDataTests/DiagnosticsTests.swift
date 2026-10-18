@@ -45,6 +45,13 @@ import ClawBarShared
         #expect(text.contains("sessions: 1 · p4242 (busy)"))
     }
 
+    @Test func aStampWithoutADateIsNamed() async {
+        let h = Harness()
+        h.runner.reply(.usage, data: todayEnvelope { $0["result"] = "Current session: 5% used · resets in 2 hr\n" })
+        let text = await Diagnostics.run(config: h.config, paths: h.paths, deps: h.deps).text
+        #expect(text.contains("usage: session 5%\nusage stamps without a date: \"in 2 hr\"\n"))
+    }
+
     @Test func aMissingClaudeIsSaidPlainly() async {
         let h = Harness(claude: false)
         let text = await Diagnostics.run(config: h.config, paths: h.paths, deps: h.deps).text

@@ -13,32 +13,48 @@ enum UsageParser {
     }
 
     static func parse(_ raw: String, now: Date, timeZone: TimeZone) -> Outcome {
+        read(raw, now: now, timeZone: timeZone).outcome
+    }
+
+    /// The outcome, plus every `resets …` text no stamp form reads: a new CLI format would otherwise only blank
+    /// the resets.
+    static func read(_ raw: String, now: Date, timeZone: TimeZone) -> (outcome: Outcome, unreadStamps: [String]) {
         let text = clean(raw)
+        var unread: [String] = []
+        func reset(_ stamp: String?) -> Date? {
+            guard let stamp else { return nil }
+            let at = resetDate(stamp, now: now, timeZone: timeZone)
+            if at == nil { unread.append(stamp.trimmingCharacters(in: .whitespaces)) }
+            return at
+        }
         var u = UsageSnapshot()
         if let m = Rx.first(sessionLine, in: text) {
             u.sessionPercent = Int(m[1] ?? "")
-            u.sessionReset = m[2].flatMap { resetDate($0, now: now, timeZone: timeZone) }
+            u.sessionReset = reset(m[2])
         }
         if let m = Rx.first(weekLine, in: text) {
             u.weekPercent = Int(m[1] ?? "")
-            u.weekReset = m[2].flatMap { resetDate($0, now: now, timeZone: timeZone) }
+            u.weekReset = reset(m[2])
         }
         for m in Rx.all(modelWeekLine, in: text) {
             guard let name = m[1]?.trimmingCharacters(in: .whitespaces), let pct = Int(m[2] ?? ""),
                   name.lowercased() != "all models"
             else { continue }
-            u.modelWeeks.append(ModelWeek(
-                name: modelName(name), percent: pct, reset: m[3].flatMap { resetDate($0, now: now, timeZone: timeZone) }
-            ))
+            u.modelWeeks.append(ModelWeek(name: modelName(name), percent: pct, reset: reset(m[3])))
         }
         u.day = period(text, day)
         u.week7 = period(text, week7)
         guard u.sessionPercent != nil || u.weekPercent != nil else {
             // Only a positive sign clears the numbers; anything else keeps them, as the original does.
-            guard Rx.matches(costSummary, text) else { return .unavailable }
-            return .noLimits(stats: UsageSnapshot(day: u.day, week7: u.week7))
+            guard Rx.matches(costSummary, text) else { return (.unavailable, unread) }
+            return (.noLimits(stats: UsageSnapshot(day: u.day, week7: u.week7)), unread)
         }
-        return .usage(u)
+        return (.usage(u), unread)
+    }
+
+    /// A stamp with its digits masked, so the log gets one line per format, not one per window.
+    static func shape(_ stamp: String) -> String {
+        Rx.replace(digit, in: stamp, with: "#")
     }
 
     /// Without ANSI codes and carriage returns.
@@ -127,6 +143,7 @@ enum UsageParser {
         #"(?i)([A-Z][a-z]{2})\.?\s+(\d{1,2})(?:,\s*(\d{4}))?(?:,|\s+at)?\s+(\d{1,2})(?::(\d{2}))?\s*([ap]m)(?:\s*\(([^)]+)\))?"#
     )
     private static let timeOnlyStamp = Rx.make(#"(?i)^\s*(\d{1,2})(?::(\d{2}))?\s*([ap]m)(?:\s*\(([^)]+)\))?"#)
+    private static let digit = Rx.make(#"\d"#)
 
     /// The header and its indented lines, up to the first blank or unindented line.
     private static func periodPattern(_ label: String) -> NSRegularExpression {
