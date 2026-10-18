@@ -142,6 +142,16 @@ struct FakeTable: ProcessTable {
         #expect(registry(table(61, 62)).read(excluding: [], now: started).map(\.pid) == [61])
     }
 
+    @Test func aNumberThatIsNoFiletimeKeepsTheSession() {
+        // The sample's start an hour off, in epoch milliseconds and seconds, as a number and as text, then zero.
+        session(63, ["procStart": NSNumber(value: 1_792_189_801_000)])
+        session(64, ["procStart": "1792189801000"])
+        session(65, ["procStart": NSNumber(value: 1_792_189_801)])
+        session(66, ["procStart": 0])
+        session(67, ["procStart": NSNumber(value: Int64.min)])
+        #expect(registry(table(63, 64, 65, 66, 67)).read(excluding: [], now: started).map(\.pid) == [63, 64, 65, 66, 67])
+    }
+
     @Test func zombiesAndUnreadableFilesAreSkippedAndAnUnknownStartIsKept() throws {
         session(71)
         session(72)

@@ -113,9 +113,11 @@ struct SessionRegistry: Sendable {
         return cal.date(from: DateComponents(year: year, month: month, day: day, hour: clock[0], minute: clock[1], second: clock[2]))
     }
 
-    /// 100 ns ticks since 1601-01-01.
-    private static func filetime(_ ft: Int64) -> Date {
-        Date(timeIntervalSince1970: Double(ft - 116_444_736_000_000_000) / 10_000_000)
+    /// 100 ns ticks since 1601-01-01; nil outside 1990–2100, where a number in another unit (epoch milliseconds,
+    /// say) would land, so the session is kept on its liveness instead of dropped as a reused pid.
+    private static func filetime(_ ft: Int64) -> Date? {
+        let seconds = (Double(ft) - 116_444_736_000_000_000) / 10_000_000
+        return (631_152_000 ... 4_102_444_800).contains(seconds) ? Date(timeIntervalSince1970: seconds) : nil
     }
 
     private static let fileName = Rx.make(#"^[1-9][0-9]*\.json$"#)

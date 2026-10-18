@@ -135,7 +135,8 @@ and running as administrator (`runAsAdmin`). German replaces Russian as the seco
 - Sessions refresh every 2 seconds. A `claude -p` run counts only once it is 20 seconds old, so another tool's
   `/usage` check does not show up as a session or wake Clawd.
 - A session in the `shell` state counts as working, spare sessions and the daemon are not counted, and the hover
-  list shows folders relative to `~`.
+  list shows folders relative to `~`. A `procStart` number that is no Windows time from 1990–2100 keeps its session
+  instead of dropping it.
 - The ClawBar line and the menu header carry ClawBar's own version. Hovering the line names the original release it
   ports and clicking it opens the original project, where the original shows and opens its changelog.
 - The sky uses the weather location's time zone, retries Open-Meteo hourly after falling back to met.no, and draws
