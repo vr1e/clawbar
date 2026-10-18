@@ -7,7 +7,7 @@ wins. Before changing how something behaves or looks, read it in `docs.local/` (
 `original/` is the 1.3.0 PowerShell source, read as data and never executed; `port-spec/` describes its modules.
 For what is left from upstream, or whether a feature is ported, read `upstream-features.md` (one row per upstream
 feature and its status); when a feature lands or a review moves on, update its rows and run
-`swift scripts/parity-table.swift`, which rebuilds README's parity table.
+`swift docs.local/parity-table.swift`, which rebuilds README's parity table.
 
 Work goes on one branch per release, a set of changes squash-merged to `main` by PR; the release bumps
 `AppInfo.version` (`Sources/ClawBarShared/AppPaths.swift`).

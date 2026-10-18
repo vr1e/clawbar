@@ -117,7 +117,7 @@ and the widget's last-update stamp says *error*.
 
 ## Differences from the original
 
-<!-- parity-table: begin; built by scripts/parity-table.swift, edit its source, not this table -->
+<!-- parity-table: begin; generated from a private feature map, so edits here are overwritten -->
 ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.6.0.
 *Ported differently* has its gist in the notes and its details in the bullets below.
 
