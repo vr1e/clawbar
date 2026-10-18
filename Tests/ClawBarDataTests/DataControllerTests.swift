@@ -561,7 +561,7 @@ final class Counter {
         let dc = h.make()
         dc.tick(now: t0)
         // every probe of the first tick, since one still on its way to the runner would pass for a start after shutdown
-        #expect(await eventually { h.runner.count(.version) == 1 && h.runner.count(.usage) == 1 && h.runner.count(.account) == 1 })
+        #expect(await eventually { [.version, .usage, .account].allSatisfy { h.runner.count($0) == 1 } })
         dc.shutdown()
         #expect(h.runner.shutdowns == 1)
         let calls = h.runner.calls.count

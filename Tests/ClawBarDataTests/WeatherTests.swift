@@ -201,7 +201,7 @@ final class FakeHTTP: HTTPFetching {
     }
 
     @Test func nothingIsFetchedUnlessTheMascotAndTheSkyShow() async {
-        let http = lateHTTP(["api.open-meteo.com": Fixture.data("weather/open-meteo.json")])
+        let http = FakeHTTP(["api.open-meteo.com": Fixture.data("weather/open-meteo.json")])
         let wx = service(http)
         wx.tick(now: t0, config: config(lat: 10.5, lon: 20.25, sky: false))
         wx.tick(now: t0 + 1000, config: config(lat: 10.5, lon: 20.25, mascot: false))
