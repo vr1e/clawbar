@@ -164,7 +164,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         let snapshot = data.snapshot
         // The original's "error" stamp marked a failed tick; here the one failure a tick can hit is an unparsable config.json.
         let input = PresenterInput(
-            config: config, now: now, timeZone: .current, data: snapshot, tickError: configStore.isUnreadable,
+            config: config, now: now, timeZone: .autoupdatingCurrent, data: snapshot, tickError: configStore.isUnreadable,
             appVersion: AppInfo.version, homeDirectory: NSHomeDirectory()
         )
         let view = WidgetPresenter.make(input)
@@ -221,7 +221,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     private func skyInputs(now: Date) -> SkyInputs {
         let s = data.snapshot
-        return SkyInfo.inputs(s.weather, place: s.place, now: now, localZone: .current, dev: skyDev)
+        return SkyInfo.inputs(s.weather, place: s.place, now: now, localZone: .autoupdatingCurrent, dev: skyDev)
     }
 
     private func skyTooltip() -> String {
