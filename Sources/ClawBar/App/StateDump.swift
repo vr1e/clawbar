@@ -28,7 +28,8 @@ struct StateDump {
 
     func render() -> String {
         var lines = ["nonce: \(nonce)", "app: \(AppInfo.title) (pid \(pid))"]
-        func add(_ key: String, _ value: Any) { lines.append("\(key): \(value)") }
+        // One key: value line each, so line breaks in a value are written as \n.
+        func add(_ key: String, _ value: Any) { lines.append("\(key): " + "\(value)".replacingOccurrences(of: "\n", with: "\\n")) }
         add("statusItem.visible", statusItemVisible)
         add("statusItem.frame", statusItemFrame.map(Self.rect) ?? "none")
         add("widget.visible", widgetVisible)
@@ -68,8 +69,7 @@ struct StateDump {
         add("weather", snapshot.weather.map { "code \($0.code), \(Self.num($0.tempC)) °C, wind \(Self.num($0.windKmh)) km/h" } ?? "none")
         add("view.pct", view.pctText)
         add("view.tray", view.trayText)
-        // One key: value line, so the tooltip's line breaks are written as \n.
-        add("view.trayTooltip", view.trayTooltip.replacingOccurrences(of: "\n", with: "\\n"))
+        add("view.trayTooltip", view.trayTooltip)
         add("view.reset", view.resetText)
         add("view.week", view.week.value)
         add("view.sessions", view.sessionsText)

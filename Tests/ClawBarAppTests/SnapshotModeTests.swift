@@ -70,7 +70,7 @@ import ClawBarShared
         #expect(names.contains("menu-bar-en.txt") && names.contains("menu-bar-de.txt"))
         let bar = try String(contentsOf: tmp.url.appendingPathComponent("menu-bar-en.txt"), encoding: .utf8)
         #expect(bar.contains("\nsample: 34 (ok)\n  34% of session · 2h 05m\n  week 59% · Fable 8%\n  2 sessions · 1 working · 1 waiting\n"))
-        #expect(bar.contains("\nstale: 34 (grey)\n"))
+        #expect(bar.contains("\nstale: 34 (dead)\n"))
         let barDE = try String(contentsOf: tmp.url.appendingPathComponent("menu-bar-de.txt"), encoding: .utf8)
         #expect(barDE.contains("\nsample: 34 (ok)\n  Sitzung 34% · 2h 05min\n"))
         #expect(files.allSatisfy { FileManager.default.fileExists(atPath: $0.path) })

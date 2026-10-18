@@ -31,6 +31,10 @@ enum SnapshotCases {
             c.data.usageProbeCompleted = true
             c.data.usageIssue = issue
         }
+        func failedUpdate(_ c: inout SnapshotCase, _ failure: UpdateFailure) {
+            c.config.expanded = true
+            c.data.version = VersionState(local: "2.1.300", latest: "2.1.302", updateFailure: failure, installHint: .homebrew)
+        }
 
         add("sample")
         add("expanded") { $0.config.expanded = true }
@@ -59,21 +63,8 @@ enum SnapshotCases {
             $0.config.expanded = true
             $0.data.version = VersionState(local: "2.1.300", latest: "2.1.302", updating: true)
         }
-        add("update-failed") {
-            $0.config.expanded = true
-            $0.data.version = VersionState(
-                local: "2.1.300", latest: "2.1.302",
-                updateFailure: UpdateFailure(exitCode: 1, outputTail: "Error: permission denied"), installHint: .homebrew
-            )
-        }
-        add("update-unchanged") {
-            $0.config.expanded = true
-            $0.data.version = VersionState(
-                local: "2.1.300", latest: "2.1.302",
-                updateFailure: UpdateFailure(exitCode: 0, outputTail: "Checking for updates...\nDone", from: "2.1.300", to: "2.1.302"),
-                installHint: .homebrew
-            )
-        }
+        add("update-failed") { failedUpdate(&$0, UpdateFailure(exitCode: 1, outputTail: "Error: permission denied")) }
+        add("update-unchanged") { failedUpdate(&$0, UpdateFailure(exitCode: 0, outputTail: "Checking for updates...\nDone", from: "2.1.300")) }
         add("status-issues") {
             $0.data.status = ServiceStatus(
                 indicator: "major", incidents: ["Elevated errors on Claude Opus"],
@@ -230,12 +221,10 @@ enum SnapshotMode {
 
     /// The menu bar item's text, colour and tooltip in every state, since no PNG shows the tooltip.
     static func menuBarDump(lang: Lang) -> String {
-        let colors = [(Palette.ok, "ok"), (Palette.warn, "warn"), (Palette.crit, "crit"), (Palette.dead, "grey")]
         let states = SnapshotCases.all().map { c in
             let v = view(for: c, lang: lang)
-            let color = colors.first { $0.0 == v.trayColor }?.1 ?? v.trayColor.hex
-            let tooltip = v.trayTooltip.split(separator: "\n", omittingEmptySubsequences: false).map { "  " + $0 }
-            return (["\(c.name): \(v.trayText) (\(color))"] + tooltip).joined(separator: "\n")
+            let level = Level.allCases.first { $0.color == v.trayColor }?.rawValue ?? v.trayColor.hex
+            return "\(c.name): \(v.trayText) (\(level))\n  " + v.trayTooltip.replacingOccurrences(of: "\n", with: "\n  ")
         }
         return "ClawBar menu bar item (\(lang.rawValue))\n\n" + states.joined(separator: "\n\n") + "\n"
     }
