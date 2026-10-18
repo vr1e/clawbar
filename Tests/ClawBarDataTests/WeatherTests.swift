@@ -9,8 +9,13 @@ struct HTTPFailure: Error {}
 /// Answers by host from a table the test can change; records every request.
 final class FakeHTTP: HTTPFetching {
     private let state = Mutex<(answers: [String: Data?], urls: [URL])>(([:], []))
+    /// Between recording a request and answering it.
+    private let latency: Duration
 
-    init(_ answers: [String: Data?] = [:]) { state.withLock { $0.answers = answers } }
+    init(_ answers: [String: Data?] = [:], latency: Duration = .zero) {
+        self.latency = latency
+        state.withLock { $0.answers = answers }
+    }
 
     /// nil data makes that host fail.
     func answer(_ host: String, _ data: Data?) { state.withLock { $0.answers[host] = data } }
@@ -23,6 +28,7 @@ final class FakeHTTP: HTTPFetching {
             s.urls.append(url)
             return s.answers[url.host ?? ""]
         }
+        if latency > .zero { try await Task.sleep(for: latency) }
         guard case .some(.some(let data)) = answer else { throw HTTPFailure() }
         return data
     }
@@ -97,12 +103,15 @@ final class FakeHTTP: HTTPFetching {
         return c
     }
 
+    /// Answers late, so a test that ticks as soon as a request goes out fails every time, not only under load.
+    func lateHTTP(_ answers: [String: Data?] = [:]) -> FakeHTTP { FakeHTTP(answers, latency: .milliseconds(20)) }
+
     func service(_ http: FakeHTTP) -> WeatherService {
         WeatherService(http: http, clock: { [t0] in t0 }, log: { _ in })
     }
 
     @Test func configuredCoordinatesNeedNoIPLookup() async {
-        let http = FakeHTTP(["api.open-meteo.com": Fixture.data("weather/open-meteo.json")])
+        let http = lateHTTP(["api.open-meteo.com": Fixture.data("weather/open-meteo.json")])
         let wx = service(http)
         wx.tick(now: t0, config: config(lat: 10.5, lon: 20.25))
         #expect(await eventually { wx.weather != nil })
@@ -112,7 +121,7 @@ final class FakeHTTP: HTTPFetching {
     }
 
     @Test func withoutCoordinatesTheIPLocationComesFirstThenTheWeatherAtOnce() async {
-        let http = FakeHTTP([
+        let http = lateHTTP([
             "ipwho.is": Fixture.data("weather/ipwho.json"),
             "api.open-meteo.com": Fixture.data("weather/open-meteo.json"),
         ])
@@ -125,11 +134,13 @@ final class FakeHTTP: HTTPFetching {
     }
 
     @Test func aFailedIPLookupIsRetriedAtMostEveryTenMinutes() async {
-        let http = FakeHTTP()
+        let http = lateHTTP()
         let wx = service(http)
+        let failures = Counter()
+        wx.log = { _ in failures.value += 1 }
         wx.tick(now: t0, config: config())
-        #expect(await eventually { http.count("ipwho.is") == 1 })
-        await settle()
+        #expect(await eventually { failures.value == 1 })
+        #expect(http.count("ipwho.is") == 1)
         wx.tick(now: t0 + 60, config: config())
         wx.tick(now: t0 + 599, config: config())
         await settle()
@@ -139,8 +150,10 @@ final class FakeHTTP: HTTPFetching {
     }
 
     @Test func openMeteoFailingFallsBackToMetNoAtOnceAndIsRetriedHourly() async {
-        let http = FakeHTTP(["api.met.no": Fixture.data("weather/met-no.json")])
+        let http = lateHTTP(["api.met.no": Fixture.data("weather/met-no.json")])
         let wx = service(http)
+        let updates = Counter()
+        wx.onUpdate = { updates.value += 1 }
         let c = config(lat: 10.5, lon: 20.25)
         wx.tick(now: t0, config: c)
         #expect(await eventually { wx.weather?.code == 80 })
@@ -148,7 +161,9 @@ final class FakeHTTP: HTTPFetching {
 
         // within the hour the next fetches stay with met.no
         wx.tick(now: t0 + 900, config: c)
-        #expect(await eventually { http.count("api.met.no") == 2 })
+        // the update, not the request, ends the fetch; a tick while it runs is dropped
+        #expect(await eventually { updates.value == 2 })
+        #expect(http.count("api.met.no") == 2)
         #expect(http.count("api.open-meteo.com") == 1)
 
         // an hour after the fallback Open-Meteo gets another chance, and wins
@@ -162,7 +177,7 @@ final class FakeHTTP: HTTPFetching {
     }
 
     @Test func theIntervalCountsFromTheLastAttempt() async {
-        let http = FakeHTTP(["api.open-meteo.com": Fixture.data("weather/open-meteo.json")])
+        let http = lateHTTP(["api.open-meteo.com": Fixture.data("weather/open-meteo.json")])
         let wx = service(http)
         let c = config(lat: 10.5, lon: 20.25)
         wx.tick(now: t0, config: c)
@@ -175,7 +190,7 @@ final class FakeHTTP: HTTPFetching {
     }
 
     @Test func editedCoordinatesRefetchAtOnce() async {
-        let http = FakeHTTP(["api.open-meteo.com": Fixture.data("weather/open-meteo.json")])
+        let http = lateHTTP(["api.open-meteo.com": Fixture.data("weather/open-meteo.json")])
         let wx = service(http)
         wx.tick(now: t0, config: config(lat: 10.5, lon: 20.25))
         #expect(await eventually { wx.weather != nil })
@@ -186,7 +201,7 @@ final class FakeHTTP: HTTPFetching {
     }
 
     @Test func nothingIsFetchedUnlessTheMascotAndTheSkyShow() async {
-        let http = FakeHTTP(["api.open-meteo.com": Fixture.data("weather/open-meteo.json")])
+        let http = lateHTTP(["api.open-meteo.com": Fixture.data("weather/open-meteo.json")])
         let wx = service(http)
         wx.tick(now: t0, config: config(lat: 10.5, lon: 20.25, sky: false))
         wx.tick(now: t0 + 1000, config: config(lat: 10.5, lon: 20.25, mascot: false))
