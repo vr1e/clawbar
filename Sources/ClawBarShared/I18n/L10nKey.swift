@@ -113,6 +113,21 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case setShowAccount = "set.showAccount"
     case setShowStats = "set.showStats"
     case menuQuit = "menu.quit"
+    /// Shown only while the session limit is used up.
+    case menuPlay = "menu.play"
+
+    // Clawd Run, the game for a used-up session limit
+    /// The card's button under the reset line.
+    case uiPlay = "ui.play"
+    case uiPlayTip = "ui.playTip"
+    case gameTitle = "game.title"
+    case gameStart = "game.start"
+    case gameOver = "game.over"
+    case gameRestart = "game.restart"
+    case gamePaused = "game.paused"
+    case gameHint = "game.hint"
+    /// The caption once the limit has reset while the game is open.
+    case gameBack = "game.back"
 
     // Hearts
     case health0 = "health.0"

@@ -17,6 +17,7 @@ enum TooltipLayout {
         // The hearts' text changes every tick; it is read when shown, so only visibility matters here.
         if heartsVisible, mascotVisible, let r = rects[.hearts] { out.append(TooltipRegion(id: .hit(.hearts), rect: r)) }
         add(.reset, when: !v.resetText.isEmpty)
+        add(.play, when: !v.playText.isEmpty)
         add(.sessions, when: v.sessionsVisible)
         add(.status, when: v.statusVisible)
         add(.version, when: v.detailsExpanded && !v.versionText.isEmpty)
@@ -40,6 +41,7 @@ enum TooltipLayout {
             case .exit: v.exitTooltip
             case .hearts: hearts.tooltip
             case .reset: v.resetTooltip
+            case .play: v.playTooltip
             case .sessions: v.sessionsTooltip
             case .status: v.statusTooltip
             case .version: v.versionTooltip

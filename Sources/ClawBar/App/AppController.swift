@@ -27,6 +27,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private let statusItem = StatusItemController()
     private let loginItem: LoginItemController
     private let ipc = IPCListener()
+    private let game = GameWindowController()
+    /// Whether Clawd Run opened over a used-up limit, so its caption can tell when the limit resets.
+    private var gameOpenedAtLimit = false
 
     private var dataTimer: Timer?
     private var sessionTimer: Timer?
@@ -76,6 +79,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
         layout.onRectsChange = { [unowned self] in scheduleTooltipRefresh() }
         data.onChange = { [weak self] in self?.recompute() }
 
+        game.lang = { [unowned self] in config.lang }
+        game.caption = { [unowned self] in gameCaption() }
         statusItem.onToggle = { [unowned self] in toggleWidget() }
         statusItem.menuProvider = { [unowned self] in statusMenu() }
 
@@ -107,6 +112,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     func stop() {
         for t in [dataTimer, sessionTimer, animationTimer, saveTimer] { t?.invalidate() }
+        game.close()
         observers.forEach { NotificationCenter.default.removeObserver($0) }
         ipc.stop()
         savePosition()
@@ -365,6 +371,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
             case .none: break
             }
         case .appVersion: NSWorkspace.shared.open(app.view.appVersionURL)
+        case .play: openGame()
         case .hearts, .percentRow, .number, .reset, .sessions, .account: break
         }
     }
@@ -403,7 +410,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private func statusMenu() -> NSMenu {
         let entries = StatusMenu.entries(
             lang: config.lang, widgetVisible: widgetVisible, topmost: config.topmost, launchAtLogin: config.launchAtLogin,
-            shown: WidgetBlock.shown(in: config)
+            shown: WidgetBlock.shown(in: config), limitReached: app.view.limitReached
         )
         return MenuBuilder.menu(entries) { [unowned self] in perform($0) }
     }
@@ -417,6 +424,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .toggleTopmost: change { $0.topmost.toggle() }
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .openConfig: openConfig()
+        case .play: openGame()
         case .language(let l): change { $0.language = l.rawValue }
         case .toggleBlock(let b): change { $0[keyPath: b.flag].toggle() }
         case .quit: NSApp.terminate(nil)
@@ -434,6 +442,19 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .quit: perform(StatusMenuAction.quit)
         case .lang(let l): perform(StatusMenuAction.language(l))
         }
+    }
+
+    // MARK: Clawd Run
+
+    private func openGame() {
+        if !game.isOpen { gameOpenedAtLimit = app.view.limitReached }
+        game.show()
+    }
+
+    /// The time until the limit resets while it lasts, then the news that it has.
+    private func gameCaption() -> String {
+        if app.view.limitReached { return app.view.resetText }
+        return gameOpenedAtLimit ? L10n.t(.gameBack, config.lang) : ""
     }
 
     /// Writes every key first when the file is missing, then opens it in TextEdit: .json often has no handler.

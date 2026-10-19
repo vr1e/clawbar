@@ -64,8 +64,12 @@ import ClawBarShared
             #expect(names.contains("status-item-\(text)-dark.png"))
         }
         #expect(names.contains("menus-en.txt") && names.contains("menus-de.txt"))
+        for screen in ["ready", "running", "paused", "over"] {
+            #expect(names.contains("game-\(screen)-en.png") && names.contains("game-\(screen)-de.png"))
+        }
         let menus = try String(contentsOf: tmp.url.appendingPathComponent("menus-en.txt"), encoding: .utf8)
         #expect(menus.contains("Quit ClawBar"))
+        #expect(menus.contains("Play Clawd Run…"))
         #expect(menus.contains("Developer menu"))
         #expect(names.contains("menu-bar-en.txt") && names.contains("menu-bar-de.txt"))
         let bar = try String(contentsOf: tmp.url.appendingPathComponent("menu-bar-en.txt"), encoding: .utf8)

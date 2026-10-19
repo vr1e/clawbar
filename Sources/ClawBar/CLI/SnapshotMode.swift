@@ -2,6 +2,7 @@ import AppKit
 import CoreGraphics
 import Foundation
 import ClawBarClawd
+import ClawBarGame
 import ClawBarPresenter
 import ClawBarShared
 import ClawBarSky
@@ -107,7 +108,7 @@ enum SnapshotCases {
 }
 
 /// `--snapshot <dir>`: the card in every state, EN and DE, at k 1.0, 1.2 and 2.0; the menu bar item, and its text and
-/// tooltip in every state; both menus.
+/// tooltip in every state; both menus; Clawd Run's screens.
 enum SnapshotMode {
     static let scales = [1.0, 1.2, 2.0]
     static let backdrop = RGBA(r: 13, g: 17, b: 23)
@@ -139,6 +140,7 @@ enum SnapshotMode {
             }
         }
         out += try writeStatusItems(to: dir)
+        out += try writeGame(to: dir)
         for lang in Lang.allCases {
             let url = dir.appendingPathComponent("menus-\(lang.rawValue).txt")
             try menuDump(lang: lang).write(to: url, atomically: true, encoding: .utf8)
@@ -219,6 +221,47 @@ enum SnapshotMode {
         return out
     }
 
+    /// Clawd Run at the start, mid-round with a bug about, paused and after a crash, at 2 pixels per point.
+    static func writeGame(to dir: URL) throws -> [URL] {
+        var out: [URL] = []
+        for lang in Lang.allCases {
+            for (name, frame) in gameFrames(lang: lang) {
+                guard let image = GameView.image(frame) else { throw CLIError(message: "rendering game-\(name) failed") }
+                let url = dir.appendingPathComponent("game-\(name)-\(lang.rawValue).png")
+                try Imaging.writePNG(image, to: url)
+                out.append(url)
+            }
+        }
+        return out
+    }
+
+    /// A seeded round played by the engine's demo player, so every run draws the same screens.
+    static func gameFrames(lang: Lang) -> [(name: String, frame: RunnerFrame)] {
+        let caption = L10n.t(.resetIn, lang, "1h 12m")
+        let e = RunnerEngine(random: SeededRandomSource(seed: 2), highScore: 1234)
+        var frames = [(name: "ready", frame: e.frame(lang: lang, caption: caption))]
+        e.step(RunnerInput(jump: true))
+        // Bugs fly from speed 8.5, some 2500 ticks in; stop once one is well on screen.
+        for t in 0 ..< 6000 where e.phase == .running {
+            e.step(e.demoInput)
+            if t > 2500, bugOnScreen(e.frame(lang: lang, caption: "")) { break }
+        }
+        frames.append((name: "running", frame: e.frame(lang: lang, caption: caption)))
+        frames.append((name: "paused", frame: e.frame(lang: lang, caption: caption, paused: true)))
+        while e.phase == .running { e.step(RunnerInput()) }
+        for _ in 0 ..< RunnerTuning.restartDelayTicks { e.step(RunnerInput()) }
+        frames.append((name: "over", frame: e.frame(lang: lang, caption: L10n.t(.gameBack, lang))))
+        return frames
+    }
+
+    /// A bug drawn in the left two thirds of the canvas.
+    static func bugOnScreen(_ frame: RunnerFrame) -> Bool {
+        frame.ops.contains { op in
+            guard case let .rects(rects, color, _) = op, color == Palette.runnerBug else { return false }
+            return rects.contains { $0.minX < 400 }
+        }
+    }
+
     /// The menu bar item's text, colour and tooltip in every state, since no PNG shows the tooltip.
     static func menuBarDump(lang: Lang) -> String {
         let states = SnapshotCases.all().map { c in
@@ -240,6 +283,12 @@ enum SnapshotMode {
                 "Status menu, widget hidden, always on top, no Clawd or stats",
                 MenuEntry.dump(StatusMenu.entries(
                     lang: lang, widgetVisible: false, topmost: true, launchAtLogin: false, shown: [.sky, .status, .sessions, .account]
+                ))
+            ),
+            (
+                "Status menu, session limit used up",
+                MenuEntry.dump(StatusMenu.entries(
+                    lang: lang, widgetVisible: true, topmost: false, launchAtLogin: true, shown: Set(WidgetBlock.allCases), limitReached: true
                 ))
             ),
             ("Developer menu, live data", DevMenuBuilder.dump(DevMenu.build(dev: ClawdDevState(), sky: SkyDevState(), skyVisible: true, lang: lang))),

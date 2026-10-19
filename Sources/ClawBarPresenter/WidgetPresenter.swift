@@ -89,6 +89,11 @@ private struct Render {
         v.trayText = String(pct)
         v.trayColor = stale == nil ? color : Palette.dead
         v.trayTooltip = trayTooltip(pct, span: span, usage) + (stale.map { "\n" + $0 } ?? "")
+        if pct >= 100 {
+            v.limitReached = true
+            v.playText = t(.uiPlay)
+            v.playTooltip = t(.uiPlayTip)
+        }
     }
 
     /// The plan's issue states. Launch failures, time-outs and failed probes show nothing: the stale stamp covers them.

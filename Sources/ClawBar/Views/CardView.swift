@@ -24,7 +24,12 @@ struct CardView: View {
             WText(v.resetText.isEmpty ? " " : v.resetText, 11, color: v.resetColor, wraps: true)
                 .frame(width: Self.content * k, alignment: .leading)
                 .publish(.reset, to: layout)
-                .padding(.bottom, 9 * k)
+                .padding(.bottom, (v.playText.isEmpty ? 9 : 6) * k)
+            if !v.playText.isEmpty {
+                PlayButton(text: v.playText)
+                    .publish(.play, to: layout)
+                    .padding(.bottom, 10 * k)
+            }
             BarLabelRow(row: v.week)
                 .padding(.bottom, 4 * k)
             Bar(fraction: v.week.fraction, color: v.week.color, height: 4, radius: 2)
@@ -169,6 +174,41 @@ private struct Bar: View {
                 .frame(width: f * CardView.content * k)
         }
         .frame(width: CardView.content * k, height: height * k)
+    }
+}
+
+/// Clawd Run's button, the width of the bars: a pixel Clawd and the label in his orange on a faint tint of it.
+private struct PlayButton: View {
+    let text: String
+    @Environment(\.uiScale) private var k
+
+    static let sprite = PixelArt.rects(PixelArt.clawdStanding, value: "#", px: 1, py: 1)
+    static let eyes = PixelArt.rects(PixelArt.clawdStanding, value: "o", px: 1, py: 1)
+
+    var body: some View {
+        let scale = k
+        HStack(alignment: .center, spacing: 7 * k) {
+            Canvas { ctx, _ in
+                ctx.scaleBy(x: scale, y: scale)
+                var shape = Path()
+                shape.addRects(Self.sprite)
+                ctx.fill(shape, with: .color(Color(rgba: Palette.clawdBody)))
+                var eyes = Path()
+                eyes.addRects(Self.eyes)
+                ctx.fill(eyes, with: .color(Color(rgba: Palette.clawdEyes)))
+            }
+            // The sprite's two empty bottom rows are left off, so Clawd centres on the label.
+            .frame(width: 18 * k, height: 10 * k)
+            WText(text, 10.5, weight: .semibold, color: Palette.clawdBody)
+        }
+        .frame(width: CardView.content * k, height: 24 * k)
+        .background {
+            let shape = RoundedRectangle(cornerRadius: 6 * k)
+            ZStack {
+                shape.fill(Color(rgba: Palette.clawdBody).opacity(0.14))
+                shape.strokeBorder(Color(rgba: Palette.clawdBody).opacity(0.5), lineWidth: 1 * k)
+            }
+        }
     }
 }
 

@@ -13,6 +13,8 @@ enum WPFLineBox {
         case .topLeading: p
         case .bottomLeading: CGPoint(x: p.x, y: p.y - height * size)
         case .bottom: CGPoint(x: p.x - width / 2, y: p.y - height * size)
+        case .topTrailing: CGPoint(x: p.x - width, y: p.y)
+        case .top: CGPoint(x: p.x - width / 2, y: p.y)
         }
     }
 }

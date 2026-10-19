@@ -22,9 +22,10 @@ let package = Package(
         .target(name: "ClawBarPresenter", dependencies: ["ClawBarShared"]),
         .target(name: "ClawBarClawd", dependencies: ["ClawBarShared"]),
         .target(name: "ClawBarSky", dependencies: ["ClawBarShared"]),
+        .target(name: "ClawBarGame", dependencies: ["ClawBarShared"]),
         .executableTarget(
             name: "ClawBar",
-            dependencies: ["ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarSky"],
+            dependencies: ["ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarSky", "ClawBarGame"],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
 
@@ -43,6 +44,7 @@ let package = Package(
         .testTarget(name: "ClawBarPresenterTests", dependencies: ["ClawBarPresenter", "ClawBarShared"], swiftSettings: testSettings),
         .testTarget(name: "ClawBarClawdTests", dependencies: ["ClawBarClawd", "ClawBarShared"], swiftSettings: testSettings),
         .testTarget(name: "ClawBarSkyTests", dependencies: ["ClawBarSky", "ClawBarShared"], swiftSettings: testSettings),
+        .testTarget(name: "ClawBarGameTests", dependencies: ["ClawBarGame", "ClawBarShared"], swiftSettings: testSettings),
         .testTarget(
             name: "ClawBarAppTests",
             dependencies: ["ClawBar", "ClawBarShared"],

@@ -77,6 +77,7 @@ struct StateDump {
         add("view.tray", view.trayText)
         add("view.trayTooltip", view.trayTooltip)
         add("view.reset", view.resetText)
+        add("view.limitReached", String(view.limitReached))
         add("view.week", view.week.value)
         add("view.sessions", view.sessionsText)
         add("view.status", view.statusText)

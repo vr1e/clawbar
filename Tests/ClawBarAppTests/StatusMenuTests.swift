@@ -23,6 +23,17 @@ import ClawBarShared
         #expect(titles(e[10].children) == ["English", "Deutsch"])
     }
 
+    @Test func aUsedUpLimitAddsClawdRunAfterTheWidgetToggle() {
+        let base = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false, shown: all)
+        let e = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false, shown: all, limitReached: true)
+        #expect(e.count == base.count + 1)
+        #expect(e[3].title == "Play Clawd Run…")
+        #expect(e[3].action == .play && e[3].enabled)
+        #expect(titles(Array(e[..<3]) + Array(e[4...])) == titles(base))
+        let de = StatusMenu.entries(lang: .de, widgetVisible: true, topmost: false, launchAtLogin: false, shown: all, limitReached: true)
+        #expect(de[3].title == L10n.t(.menuPlay, .de))
+    }
+
     @Test func theToggleSaysShowWhileTheWidgetIsHidden() {
         let e = StatusMenu.entries(lang: .en, widgetVisible: false, topmost: false, launchAtLogin: false, shown: all)
         #expect(e[2].title == "Show widget")

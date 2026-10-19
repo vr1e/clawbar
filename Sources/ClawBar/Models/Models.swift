@@ -38,7 +38,7 @@ final class AnimationModel {
 
 /// Everything SwiftUI measures that AppKit needs: hit and tooltip rects, the number's width, the card's size.
 enum HitID: String, Hashable, CaseIterable, Sendable {
-    case details, hide, exit, hearts, percentRow, number, reset, sessions, status, version, appVersion, account
+    case details, hide, exit, hearts, percentRow, number, reset, play, sessions, status, version, appVersion, account
 }
 
 /// The named coordinate space the card publishes its rects in: points, origin at the card's top-left.
