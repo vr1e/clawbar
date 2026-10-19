@@ -17,7 +17,7 @@ enum JSONFile {
         data.starts(with: [0xEF, 0xBB, 0xBF]) ? data.dropFirst(3) : data
     }
 
-    /// Key-sorted and atomic (temp file + rename), creating the folder when needed; pretty unless it is mostly numbers.
+    /// Key-sorted and atomic (temp file + rename), creating the folder when needed; pretty unless told otherwise.
     static func write(_ object: [String: Any], to url: URL, pretty: Bool = true) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         var options: JSONSerialization.WritingOptions = [.sortedKeys, .withoutEscapingSlashes]

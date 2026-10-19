@@ -8,64 +8,67 @@ import ClawBarShared
     let dir = TempDir("cb-hist")
     var m0: Int { UsageSample.minute(of: t0) }
     var url: URL { dir.file("usage-history.json") }
-    static let day = 24 * 60
 
-    func usage(_ session: Int?, _ week: Int?) -> UsageSnapshot { UsageSnapshot(sessionPercent: session, weekPercent: week) }
+    func record(_ session: Int?, _ week: Int?, at date: Date, into s: inout [UsageSample]) -> Bool {
+        UsageHistoryStore.record(UsageSnapshot(sessionPercent: session, weekPercent: week), at: date, into: &s)
+    }
 
-    func store(_ text: String? = nil, now: Date? = nil) -> UsageHistoryStore {
+    func load(_ text: String? = nil) -> [UsageSample] {
         if let text { dir.write("usage-history.json", text) }
-        return UsageHistoryStore(url: url, now: now ?? t0)
+        return UsageHistoryStore(url: url).load(now: t0)
     }
 
     @Test func aChangeIsRecordedAtOnce() {
-        var s = store()
-        let changed = [s.record(usage(34, 59), at: t0), s.record(usage(35, 59), at: t0 + 60)]
+        var s: [UsageSample] = []
+        let changed = [record(34, 59, at: t0, into: &s), record(35, 59, at: t0 + 60, into: &s)]
         #expect(changed == [true, true])
-        #expect(s.samples == [UsageSample(minute: m0, session: 34, week: 59), UsageSample(minute: m0 + 1, session: 35, week: 59)])
+        #expect(s == [UsageSample(minute: m0, session: 34, week: 59), UsageSample(minute: m0 + 1, session: 35, week: 59)])
     }
 
     @Test func anUnchangedValueIsSampledEveryFiveMinutes() {
-        var s = store()
+        var s: [UsageSample] = []
         let changed = [
-            s.record(usage(34, 59), at: t0), s.record(usage(34, 59), at: t0 + 4 * 60 + 59), s.record(usage(34, 59), at: t0 + 5 * 60),
+            record(34, 59, at: t0, into: &s), record(34, 59, at: t0 + 4 * 60 + 59, into: &s),
+            record(34, 59, at: t0 + 5 * 60, into: &s),
         ]
         #expect(changed == [true, false, true])
-        #expect(s.samples.map(\.minute) == [m0, m0 + 5])
+        #expect(s.map(\.minute) == [m0, m0 + 5])
     }
 
     @Test func theFileIsCompactWithMinusOneForAMissingValue() throws {
-        var s = store()
-        _ = s.record(usage(nil, 59), at: t0)
-        try s.save()
+        let samples = [UsageSample(minute: m0, session: nil, week: 59)]
+        try UsageHistoryStore(url: url).save(samples)
         #expect(try String(contentsOf: url, encoding: .utf8) == "{\"samples\":[[\(m0),-1,59]]}\n")
-        #expect(store().samples == [UsageSample(minute: m0, session: nil, week: 59)])
+        #expect(load() == samples)
     }
 
     @Test func samplesOlderThanEightDaysAreDroppedOnLoadAndOnRecord() {
-        let day = Self.day
-        var s = store("{\"samples\":[[\(m0 - 8 * day - 1),10,20],[\(m0 - 8 * day),11,21],[\(m0 - day),12,22]]}")
-        #expect(s.samples.map(\.minute) == [m0 - 8 * day, m0 - day])
-        _ = s.record(usage(13, 23), at: t0 + 60)
-        #expect(s.samples.map(\.minute) == [m0 - day, m0 + 1])
+        let day = 24 * 60
+        var s = load("{\"samples\":[[\(m0 - 8 * day - 1),10,20],[\(m0 - 8 * day),11,21],[\(m0),12,22]]}")
+        #expect(s.map(\.minute) == [m0 - 8 * day, m0])
+        // aging out alone needs no save, since loading drops them too
+        let changed = record(12, 22, at: t0 + 60, into: &s)
+        #expect(!changed)
+        #expect(s.map(\.minute) == [m0])
     }
 
     @Test func malformedRowsAreSkippedAndTheRestSorted() {
-        let s = store("{\"samples\":[[\(m0),1,2],\"x\",[\(m0)],[\(m0),true,2],[\(m0),null,2],[\(m0),1,2,3],[\(m0 - 1),3,4]]}")
-        #expect(s.samples == [UsageSample(minute: m0 - 1, session: 3, week: 4), UsageSample(minute: m0, session: 1, week: 2)])
-        #expect(store("not json").samples.isEmpty)
-        #expect(store("{}").samples.isEmpty)
+        let s = load("{\"samples\":[[\(m0),1,2],\"x\",[\(m0)],[\(m0),true,2],[\(m0),null,2],[\(m0),1,2,3],[\(m0 - 1),3,4]]}")
+        #expect(s == [UsageSample(minute: m0 - 1, session: 3, week: 4), UsageSample(minute: m0, session: 1, week: 2)])
+        #expect(load("not json").isEmpty)
+        #expect(load("{}").isEmpty)
     }
 
     @Test func aClockSetBackDropsTheSamplesItHasNotReachedAgain() {
         // one from the future is dropped on load
-        var s = store("{\"samples\":[[\(m0),34,59],[\(m0 + 10),35,59]]}")
-        #expect(s.samples.map(\.minute) == [m0])
-        let changed = [s.record(usage(35, 59), at: t0 + 600), s.record(usage(36, 60), at: t0 + 300)]
+        var s = load("{\"samples\":[[\(m0),34,59],[\(m0 + 10),35,59]]}")
+        #expect(s.map(\.minute) == [m0])
+        let changed = [record(35, 59, at: t0 + 600, into: &s), record(36, 60, at: t0 + 300, into: &s)]
         #expect(changed == [true, true])
-        #expect(s.samples.map(\.minute) == [m0, m0 + 5])
-        // dropping alone is a change, though the value repeats the one before
-        let dropped = s.record(usage(34, 59), at: t0 + 60)
+        #expect(s.map(\.minute) == [m0, m0 + 5])
+        // dropping alone needs a save, though the value repeats the one before
+        let dropped = record(34, 59, at: t0 + 60, into: &s)
         #expect(dropped)
-        #expect(s.samples == [UsageSample(minute: m0, session: 34, week: 59)])
+        #expect(s == [UsageSample(minute: m0, session: 34, week: 59)])
     }
 }

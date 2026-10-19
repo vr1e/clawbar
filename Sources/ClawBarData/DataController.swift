@@ -53,7 +53,7 @@ public final class DataController {
     private let log: ErrorLog
     private let latchStore: LatchStore
     private var latch: UsageLatch?
-    private var history: UsageHistoryStore
+    private let historyStore: UsageHistoryStore
     private let weather: WeatherService
 
     private var login: LoginEnvironment?
@@ -93,11 +93,11 @@ public final class DataController {
         log = ErrorLog(url: paths.errorLog)
         latchStore = LatchStore(url: paths.stateFile)
         latch = latchStore.load()
-        history = UsageHistoryStore(url: paths.historyFile, now: deps.clock())
+        historyStore = UsageHistoryStore(url: paths.historyFile)
         weather = WeatherService(http: deps.http, clock: deps.clock, log: { _ in })
         weather.onUpdate = { [weak self] in self?.weatherChanged() }
         weather.log = { [weak self] in self?.fail("weather", $0) }
-        snapshot.history = history.samples
+        snapshot.history = historyStore.load(now: deps.clock())
     }
 
     // MARK: - Public API
@@ -281,10 +281,9 @@ public final class DataController {
 
     /// Every good answer is a sample, whether or not the chart is shown, since nothing can fill in a missed day later.
     private func recordHistory(_ u: UsageSnapshot, at now: Date) {
-        guard history.record(u, at: now) else { return }
-        snapshot.history = history.samples
+        guard UsageHistoryStore.record(u, at: now, into: &snapshot.history) else { return }
         do {
-            try history.save()
+            try historyStore.save(snapshot.history)
             succeed("history")
         } catch {
             fail("history", error.localizedDescription)
