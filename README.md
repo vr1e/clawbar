@@ -2,7 +2,8 @@
 
 Your Claude plan limits in the macOS menu bar, plus a small floating widget where Clawd, the pixel crab from Claude
 Code's welcome screen, lives. ClawBar is a native Swift port of
-[clawd-usage-winwidget](https://github.com/Enhed/clawd-usage-winwidget) 1.3.0 by Enhed.
+[clawd-usage-winwidget](https://github.com/Enhed/clawd-usage-winwidget) by Enhed, based on 1.3.0 with some features of
+later releases.
 
 <img src="assets/preview.png" width="339" alt="The ClawBar widget with its details open">
 
@@ -14,7 +15,7 @@ Code's welcome screen, lives. ClawBar is a native Swift port of
   and dozes when idle, burrows to sleep when nothing runs, sweats near the limit and lies belly-up at 100%. Three
   hearts show how much of the session limit is left. Click him for a trick.
 - **The sky** behind him follows the real time of day and the live weather where you are: sun and moon in their
-  real phase, stars, clouds, fog, rain, snow and thunderstorms.
+  real phase, stars, clouds, fog, rain, snow and thunderstorms. Hover it for the weather, the sun times and the moon.
 - **English and German**, switchable at runtime.
 
 The numbers come from Claude Code's own `/usage` command, run locally in a mode that never reaches the model: it
@@ -39,7 +40,8 @@ To update, run both commands again. `config.json` and ClawBar's other files stay
 ## Use
 
 - **Left-click** the menu bar item to show or hide the widget; **right-click** (or ctrl-click) it for the menu:
-  refresh, larger or smaller, always on top, launch at login, open config.json, language, quit.
+  refresh, larger or smaller, always on top, launch at login, open config.json, which blocks the widget shows,
+  language, quit.
 - **Drag** the widget from anywhere except Clawd and the buttons. ▾ opens the details, – hides the widget, ✕ quits.
 - **Click** the status line to open status.claude.com, the version line to see the changelog or to run
   `claude update` when an update is out, and the ClawBar line to open the original project.
@@ -62,7 +64,7 @@ and the widget's last-update stamp says *error*.
 | `topmost` | `false` | keep the widget above other windows |
 | `warnPercent`, `critPercent` | `60`, `85` | level colour thresholds, 1–100 |
 | `expanded` | `false` | details open |
-| `showStats`, `showStatus`, `showSessions`, `showAccount`, `showMascot`, `showSky` | `true` | blocks to show |
+| `showStats`, `showStatus`, `showSessions`, `showAccount`, `showMascot`, `showSky` | `true` | blocks to show, also under **Show in widget** |
 | `weatherLat`, `weatherLon` | unset | weather for these coordinates instead of your IP's location |
 | `refreshSeconds` | `10` | UI refresh, 2–300 |
 | `usageIntervalSeconds` | `60` | `/usage` probe, 30–3600 |
@@ -78,7 +80,8 @@ and the widget's last-update stamp says *error*.
 
 - **Claude Code:** `claude -p /usage` (with safe mode and no session persistence), `claude auth status`,
   `claude --version`, and `claude update` when you click it. It reads `~/.claude/sessions/<pid>.json` to list
-  sessions (never the `.key` files next to them) and `settings.json` for the update channel.
+  sessions (never the `.key` files next to them) and `settings.json` for the update channel; `~/.claude` stands for
+  Claude Code's folder, or `CLAUDE_CONFIG_DIR` when that is set.
 - **Your login shell:** run at start (`$SHELL -ilc`) for claude's path, `PATH` and `CLAUDE_CONFIG_DIR`, which
   a GUI app does not inherit. If it gives no answer within 5 seconds and claude is not found, ClawBar asks it again
   every usage interval, at most three more times.
@@ -119,23 +122,25 @@ and the widget's last-update stamp says *error*.
 ## Differences from the original
 
 <!-- parity-table: begin; generated from a private feature map, so edits here are overwritten -->
-ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.6.0.
+ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.15.0.
 *Ported differently* has its gist in the notes and its details in the bullets below.
 
 | Feature | In ClawBar | Notes |
 |---|---|---|
 | Usage limits | ✅ Ported differently | A stricter token-free check, more reset-time formats and a row for every model's week. |
-| Sessions | ✅ Ported differently | Refreshed every 2 s, and stricter about what counts as a session. |
+| Sessions | ✅ Ported differently | Refreshed every 2 s, and stricter about what counts as a session. Not yet: Sessions from other machines. |
 | Clawd and his hearts | ✅ Ported | |
-| Sky and weather | ✅ Ported differently | The sky keeps the weather location's time zone. |
+| Sky and weather | ✅ Ported differently | The sky keeps the weather location's time zone, and its moon is closer to the real one. |
 | Service status | ✅ Ported | |
 | Account and plan | ✅ Ported | |
 | Claude Code version and update | ✅ Ported differently | The update runs in the background and explains a failure. |
 | Widget window | ✅ Ported differently | On every Space, and opens at login by itself. |
-| Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit. Not yet: Reset times as clock times in the tooltip. |
-| Languages | ✅ Ported differently | English is worded for macOS and German is added. Not yet: French. Not ported: Russian. |
+| Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit. Not yet: Reset times as clock times in the tooltip; A shorter menu with Settings. |
+| Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
 | 7-day history | ⏳ Not yet | |
+| Themes and skins | ⏳ Not yet | |
+| Settings window | ⏳ Not yet | Not ported: A tab for Claude Code's own settings. |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
 | PC tips | ➖ Not ported | They look over a Windows PC. |
 | Clawd's Remote Control session | ➖ Not ported | It belongs with the chat. |
@@ -144,7 +149,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 
 - German replaces Russian as the second language.
 - A menu bar item replaces the tray icon; the default size is 1.2, which suits Retina points. Its menu adds always
-  on top and launch at login.
+  on top and launch at login, and a Show in widget submenu stands in for the original's Settings window.
 - The menu bar item's tooltip lists every limit, each model's week included, where the tray's stops at 63
   characters. Stale numbers turn the item grey, and its tooltip says when they are from. Its last line counts the
   sessions, so a waiting one shows with the widget hidden.
@@ -166,7 +171,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 - The ClawBar line and the menu header carry ClawBar's own version. Hovering the line names the original release it
   ports and clicking it opens the original project, where the original shows and opens its changelog.
 - The sky uses the weather location's time zone, retries Open-Meteo hourly after falling back to met.no, and draws
-  polar days and nights as day and night.
+  polar days and nights as day and night. Its moon phase corrects three signs in the original's formula, which
+  brings it to within about an hour of the real moon, where the original can be six hours off.
 - ClawBar opens at login as a login item, on by default, where the original's README shows how to set up a
   scheduled task.
 - The widget stays on all Spaces, pauses its animation while hidden or covered, and moves back on screen if its
