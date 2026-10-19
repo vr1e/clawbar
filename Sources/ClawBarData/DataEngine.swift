@@ -25,9 +25,11 @@ enum DataEvent: Sendable {
     case weatherFailed(String)
     /// nil once the samples are on disk.
     case historySaved(failure: String?)
+    /// nil once the latch is in state.json.
+    case latchSaved(failure: String?)
 }
 
-/// What the engine asks the controller to do. Each probe and lookup, and the history save, answers with its event.
+/// What the engine asks the controller to do. Each probe, lookup and save answers with its event.
 enum DataCommand: Sendable, Hashable {
     case locate(configPath: String?, login: LoginEnvironment?)
     case readSessions(directory: URL)
@@ -184,6 +186,8 @@ struct DataEngine: Sendable {
             fail("weather", message)
         case .historySaved(let failure):
             if let failure { fail("history", failure) } else { succeed("history") }
+        case .latchSaved(let failure):
+            if let failure { fail("latch", failure) } else { succeed("latch") }
         }
         return commands
     }

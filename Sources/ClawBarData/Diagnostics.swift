@@ -60,7 +60,7 @@ public enum Diagnostics {
                 if let w = u.week7 { say("usage 7d: \(w.requests) requests · \(w.sessions) sessions · \(w.lines.count) lines") }
             case .issue(let issue):
                 say("usage: \(DataEngine.describe(issue))")
-                if let local, let latch = UsageLatch(version: local, issue: issue) { store.save(latch) }
+                if let local, let latch = UsageLatch(version: local, issue: issue) { try? store.save(latch) }
             }
             if let e = report.envelope {
                 let cost = e.costUSD == 0 ? "0" : "\(e.costUSD)"

@@ -105,15 +105,15 @@ import ClawBarShared
 }
 
 @Suite struct UsageLatchTests {
-    @Test func bothLatchesRoundTripThroughTheStateFile() {
+    @Test func bothLatchesRoundTripThroughTheStateFile() throws {
         let dir = TempDir()
         let store = LatchStore(url: dir.paths.stateFile)
         #expect(store.load() == nil)
         let reached = UsageLatch(version: "2.1.302", issue: .modelReached(turns: 1, costUSD: 0.0123, tokens: 1285))
-        store.save(reached)
+        try store.save(reached)
         #expect(LatchStore(url: dir.paths.stateFile).load() == reached)
         let rejected = UsageLatch(version: "2.1.303", issue: .flagRejected("--no-session-persistence"))
-        store.save(rejected)
+        try store.save(rejected)
         #expect(store.load() == rejected)
     }
 
@@ -123,8 +123,8 @@ import ClawBarShared
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data(#"{"somethingElse": {"kept": true}}"#.utf8).write(to: url)
         let store = LatchStore(url: url)
-        store.save(UsageLatch(version: "2.1.302", issue: .flagRejected("--x")))
-        store.save(nil)
+        try store.save(UsageLatch(version: "2.1.302", issue: .flagRejected("--x")))
+        try store.save(nil)
         let j = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
         #expect(j["usageLatch"] == nil)
         #expect((j["somethingElse"] as? [String: Any])?["kept"] as? Bool == true)

@@ -161,14 +161,9 @@ public final class DataController {
                 return .update(UpdateRunner.failure(result, tail: tail, home: home), logTail: tail)
             }
         case .saveLatch(let latch):
-            latchStore.save(latch)
+            return .latchSaved(failure: Self.failure { try latchStore.save(latch) })
         case .saveHistory(let samples):
-            do {
-                try historyStore.save(samples)
-                return .historySaved(failure: nil)
-            } catch {
-                return .historySaved(failure: error.localizedDescription)
-            }
+            return .historySaved(failure: Self.failure { try historyStore.save(samples) })
         case .log(let line):
             log.append(line, now: deps.clock(), timeZone: deps.timeZone)
         case .cancelAll:
@@ -181,6 +176,16 @@ public final class DataController {
 
     private func weatherChanged() {
         complete(.weather(weather.weather, weather.place))
+    }
+
+    /// What `write` threw, described; nil when it went through.
+    private static func failure(_ write: () throws -> Void) -> String? {
+        do {
+            try write()
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
     }
 
     /// Runs `work` off the main actor, feeds its event back on it, and forgets the task when it ends.

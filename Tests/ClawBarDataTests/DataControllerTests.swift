@@ -129,6 +129,17 @@ final class Counter {
         #expect(h.runner.count(.usage) == 1)
     }
 
+    @Test func aLatchFileThatCannotBeWrittenIsLogged() async throws {
+        let h = Harness()
+        try FileManager.default.createDirectory(at: h.paths.stateFile, withIntermediateDirectories: true)
+        let reached = UsageIssue.modelReached(turns: 1, costUSD: 0.0123, tokens: 1285)
+        h.runner.reply(.usage, data: Fixture.data("usage/model-reached.json"))
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.usageIssue == reached })
+        #expect(await eventually { (try? String(contentsOf: h.paths.errorLog, encoding: .utf8))?.contains("\tlatch: ") == true })
+    }
+
     @Test func onChangeComesOnlyFromAsyncCompletions() async {
         let h = Harness()
         h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
@@ -239,6 +250,30 @@ final class Counter {
         dc.tick(now: t0)
         #expect(dc.snapshot.place == Place(lat: 10.5, lon: 20.25))
         #expect(await eventually { dc.snapshot.weather?.code == 61 })
+    }
+
+    @Test func statusAccountChangelogAndInstallHintReachTheSnapshot() async {
+        let h = Harness(claude: false)
+        h.config.claudePath = h.installClaude("lib/node_modules/@anthropic-ai/claude-code/cli.js")
+        h.dir.write("home/.claude/settings.json", #"{"autoUpdatesChannel": "stable"}"#)
+        h.runner.reply(.version, stdout: "2.1.301 (Claude Code)\n")
+        h.http.answer("downloads.claude.ai", Data("2.1.303\n".utf8))
+        h.http.answer("raw.githubusercontent.com", Fixture.data("version/CHANGELOG.md"))
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.version.changes != nil })
+        #expect(dc.snapshot.version.installHint == .npm)
+        #expect(dc.snapshot.version.changes == ChangesExcerpt(forVersion: "2.1.303", fromVersion: "2.1.301", items: [
+            "Fixed claude update on some installs", "Added a setting for the status line",
+            "nested detail with inline code", "Faster /usage",
+            "A star bullet with **bold** and a [link](https://example.com)",
+        ]))
+        // The channel comes from settings.json in the config directory.
+        #expect(h.http.urls.contains { $0.host == "downloads.claude.ai" && $0.lastPathComponent == "stable" })
+        #expect(await eventually { dc.snapshot.status != nil && dc.snapshot.account != nil })
+        #expect(dc.snapshot.status?.indicator == "none")
+        #expect(dc.snapshot.statusAt == t0)
+        #expect(dc.snapshot.account == AccountInfo(loggedIn: true, plan: "Team", email: "user@example.com", configDirectory: "/Users/example/.claude"))
     }
 
     @Test func shutdownStopsEveryProbe() async {

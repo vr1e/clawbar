@@ -259,6 +259,7 @@ import ClawBarShared
         #expect(e.handle(.historySaved(failure: "no room"), now: t0 + 60).isEmpty)
         #expect(e.handle(.historySaved(failure: nil), now: t0 + 120).isEmpty)
         #expect(e.handle(.historySaved(failure: "no room"), now: t0 + 180) == [.log("history: no room")])
+        #expect(e.handle(.latchSaved(failure: "no room"), now: t0 + 190) == [.log("latch: no room")])
         _ = e.handle(.weather(nil, Place(lat: 1, lon: 2)), now: t0 + 200)
         #expect(e.snapshot.place == Place(lat: 1, lon: 2))
         _ = e.handle(.place(nil), now: t0 + 201)
