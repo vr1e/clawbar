@@ -87,35 +87,3 @@ final class FakeRunner: ProcessRunning {
         for c in held { c.resume(returning: .success(ProcessOutcome(pid: 900, termination: .signal(SIGTERM)))) }
     }
 }
-
-/// The login shell's answers in turn, the last one again once they run out.
-final class FakeLoginShell: Sendable {
-    private let answers: [LoginEnvironment?]
-    private let count = Mutex(0)
-
-    init(_ answers: [LoginEnvironment?]) { self.answers = answers }
-
-    var runs: Int { count.withLock { $0 } }
-
-    func answer() -> LoginEnvironment? {
-        let n = count.withLock { n in
-            n += 1
-            return n
-        }
-        return answers[min(n, answers.count) - 1]
-    }
-}
-
-/// A clock the test moves by hand.
-final class TestClock: Sendable {
-    private let time: Mutex<Date>
-
-    init(_ start: Date) { time = Mutex(start) }
-
-    var now: Date {
-        get { time.withLock { $0 } }
-        set { time.withLock { $0 = newValue } }
-    }
-
-    var read: @Sendable () -> Date { { [self] in now } }
-}

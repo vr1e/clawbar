@@ -45,7 +45,6 @@ public final class DataController {
     private let latchStore: LatchStore
     private let historyStore: UsageHistoryStore
     private let weather: WeatherService
-    private var stopped = false
     private var tasks: [Int: Task<Void, Never>] = [:]
     private var nextTask = 0
 
@@ -65,7 +64,7 @@ public final class DataController {
         )
         weather = WeatherService(http: deps.http, clock: deps.clock, log: { _ in })
         weather.onUpdate = { [weak self] in self?.weatherChanged() }
-        weather.log = { [weak self] in self?.complete(.failed(source: "weather", message: $0)) }
+        weather.log = { [weak self] in self?.complete(.weatherFailed($0)) }
     }
 
     // MARK: - Public API
@@ -77,7 +76,6 @@ public final class DataController {
 
     /// The data tick: collect finished probes, start those whose interval has passed since their last attempt.
     public func tick(now: Date) {
-        guard !stopped else { return }
         weather.tick(now: now, config: engine.config)
         perform(.place(weather.place), now: now)
         perform(.tick, now: now)
@@ -105,34 +103,32 @@ public final class DataController {
 
     // MARK: - Running the engine
 
-    /// An entry point: the engine's commands run, sync answers go straight back in, and nothing fires `onChange`.
+    /// Runs the engine's commands for one event; a command answered at once goes straight back in. Nothing here fires
+    /// `onChange`.
     private func perform(_ event: DataEvent, now: Date) {
-        guard !stopped else { return }
-        run(event, now: now)
+        for command in engine.handle(event, now: now) {
+            if let answer = execute(command, now: now) { perform(answer, now: now) }
+        }
     }
 
     /// An async completion: as `perform`, then `onChange` when the snapshot moved.
     private func complete(_ event: DataEvent) {
-        guard !stopped else { return }
         let before = engine.snapshot
-        run(event, now: deps.clock())
+        perform(event, now: deps.clock())
         if engine.snapshot != before { onChange?() }
     }
 
-    private func run(_ event: DataEvent, now: Date) {
-        for command in engine.handle(event, now: now) { execute(command, now: now) }
-    }
-
-    private func execute(_ command: DataCommand, now: Date) {
+    /// Runs one command. A lookup or save answers at once with its event; the rest answer through `complete`.
+    private func execute(_ command: DataCommand, now: Date) -> DataEvent? {
         let runner = deps.runner, http = deps.http, home = deps.home
         switch command {
         case .locate(let configPath, let login):
             let found = ClaudeLocator(home: home, candidates: deps.candidates).locate(configPath: configPath, login: login)
-            run(.located(found, installHint: found.flatMap { UpdateRunner.installHint(claudePath: $0.path) }), now: now)
+            return .located(found, installHint: found.flatMap { UpdateRunner.installHint(claudePath: $0.path) })
         case .readSessions(let directory):
             let sessions = SessionRegistry(directory: directory, table: deps.table, readFile: deps.readFile)
                 .read(excluding: runner.childPIDs, now: now)
-            run(.sessionsRead(sessions), now: now)
+            return .sessionsRead(sessions)
         case .runLoginShell:
             let capture = deps.loginShell, environment = deps.environment
             spawn { .loginShell(await capture(runner, environment, home)) }
@@ -160,26 +156,27 @@ public final class DataController {
             let logURL = paths.updateLog
             let spec = UpdateRunner.spec(claude: claude, environment: environment, home: home, log: logURL)
             spawn {
-                let failure = UpdateRunner.failure(await runner.run(spec), log: logURL, home: home)
-                return .update(failure, logTail: UpdateRunner.tail(of: logURL, home: home))
+                let result = await runner.run(spec)
+                let tail = UpdateRunner.tail(of: logURL, home: home)
+                return .update(UpdateRunner.failure(result, tail: tail, home: home), logTail: tail)
             }
         case .saveLatch(let latch):
             latchStore.save(latch)
         case .saveHistory(let samples):
             do {
                 try historyStore.save(samples)
-                run(.succeeded(source: "history"), now: now)
+                return .historySaved(failure: nil)
             } catch {
-                run(.failed(source: "history", message: error.localizedDescription), now: now)
+                return .historySaved(failure: error.localizedDescription)
             }
         case .log(let line):
             log.append(line, now: deps.clock(), timeZone: deps.timeZone)
         case .cancelAll:
-            stopped = true
             weather.shutdown()
             for t in tasks.values { t.cancel() }
             runner.shutdown()
         }
+        return nil
     }
 
     private func weatherChanged() {

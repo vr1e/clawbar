@@ -22,13 +22,12 @@ enum DataEvent: Sendable {
     case changelog(String?)
     case update(UpdateFailure?, logTail: String)
     case weather(WeatherSnapshot?, Place?)
-    /// How work without an answer of its own went: a save, or the weather service.
-    case succeeded(source: String)
-    case failed(source: String, message: String)
+    case weatherFailed(String)
+    /// nil once the samples are on disk.
+    case historySaved(failure: String?)
 }
 
-/// What the engine asks the controller to do. The probes, the lookups and the login shell answer with their event;
-/// a save answers `succeeded` or `failed`, or not at all.
+/// What the engine asks the controller to do. Each probe and lookup, and the history save, answers with its event.
 enum DataCommand: Sendable, Hashable {
     case locate(configPath: String?, login: LoginEnvironment?)
     case readSessions(directory: URL)
@@ -59,11 +58,16 @@ struct DataEngine: Sendable {
         func due(_ interval: Int, _ now: Date) -> Bool {
             !running && Cadence.due(last: lastTry, interval: TimeInterval(interval), now: now)
         }
+
+        mutating func start(_ now: Date) {
+            lastTry = now
+            running = true
+        }
     }
 
-    /// What asked for claude's location, since the answer comes back as its own event.
-    private enum LocateReason {
-        case config, refresh, schedule, login
+    /// What continues once claude's location comes back as its own event.
+    private enum AfterLocate {
+        case refreshUsage, startDue
     }
 
     private let environment: [String: String]
@@ -72,32 +76,28 @@ struct DataEngine: Sendable {
     private var login: LoginEnvironment?
     /// Login shell runs that finished; the claude probes wait for the first.
     private var loginRuns = 0
-    private var loginRunning = false
     private var claude: ClaudeLocator.Found?
-    private var lastLocate: Date?
-    private var locateReason: LocateReason?
+    /// The login shell or the lookup that finds claude.
+    private var locating = Slot()
+    private var afterLocate: AfterLocate?
 
     private var usage = Slot()
     private var account = Slot()
     private var status = Slot()
     private var version = Slot()
     private var changelog = Slot()
-    private var versionAgain = false
-    /// After a clean `claude update`: the version it started from, for the next look to judge.
-    private var pendingVerify: String?
+    /// After a clean `claude update`: the version it started from and the log's last lines, for the next look to judge.
+    private var pendingVerify: (from: String, tail: String)?
     /// Taken from `pendingVerify` when a look starts: a look already running saw the old version.
-    private var judging: String?
-    private var updating = false
+    private var judging: (from: String, tail: String)?
     private var updateFrom: String?
     private var updateTo: String?
-    /// The update log's last lines, for a clean exit that left the version where it was.
-    private var updateTail = ""
     private var stopped = false
     /// The last logged failure per source, so a dead endpoint logs once, not every interval.
     private var failures: [String: String] = [:]
     private var commands: [DataCommand] = []
 
-    static let changelogRetry: TimeInterval = 600
+    static let changelogRetry = 600
     /// Each run sources the user's rc files again, so a shell that never answers is not asked forever.
     static let loginRunLimit = 4
 
@@ -120,13 +120,13 @@ struct DataEngine: Sendable {
             if resolved { readSessions() }
         case .refresh:
             guard resolved else { break }
-            if claude == nil { locate(.refresh, now: now) } else { refreshUsage(now: now) }
+            if claude == nil { locate(then: .refreshUsage, now: now) } else { refreshUsage(now: now) }
         case .startUpdate:
             startUpdate()
         case .configChanged(let new):
             let old = config
             config = new.clamped()
-            if config.claudePath != old.claudePath, resolved { locate(.config, now: now) }
+            if config.claudePath != old.claudePath, resolved { locate(now: now) }
         case .shutdown:
             stopped = true
             emit(.cancelAll)
@@ -138,11 +138,12 @@ struct DataEngine: Sendable {
             snapshot.sessions = sessions
             snapshot.sessionsRead = true
         case .loginShell(let login):
-            loginRunning = false
+            locating.running = false
             loginRuns += 1
             self.login = login
             if login == nil { fail("login", "the login shell gave no answer") } else { succeed("login") }
-            locate(.login, now: now)
+            readSessions()
+            locate(then: .startDue, now: now)
         case .usage(let report):
             usageAnswered(report, now: now)
         case .version(let local, let latest):
@@ -179,12 +180,11 @@ struct DataEngine: Sendable {
             snapshot.weather = weather
             snapshot.place = place
             succeed("weather")
-        case .succeeded(let source):
-            succeed(source)
-        case .failed(let source, let message):
-            fail(source, message)
+        case .weatherFailed(let message):
+            fail("weather", message)
+        case .historySaved(let failure):
+            if let failure { fail("history", failure) } else { succeed("history") }
         }
-        defer { commands = [] }
         return commands
     }
 
@@ -194,8 +194,8 @@ struct DataEngine: Sendable {
         if config.showStatus, status.due(config.statusIntervalSeconds, now) { startStatus(now: now) }
         // Not found: look again every usage interval, through a login shell that gave no answer yet, since one slowed
         // down at login may be the only one that knows where.
-        if claude == nil, !loginRunning, Cadence.due(last: lastLocate, interval: TimeInterval(config.usageIntervalSeconds), now: now) {
-            if login == nil, loginRuns < Self.loginRunLimit { runLoginShell(now: now) } else { locate(.schedule, now: now) }
+        if claude == nil, locating.due(config.usageIntervalSeconds, now) {
+            if login == nil, loginRuns < Self.loginRunLimit { runLoginShell(now: now) } else { locate(then: .startDue, now: now) }
         }
         guard resolved, claude != nil else { return }
         if version.due(config.versionIntervalSeconds, now) { startVersion(now: now) }
@@ -205,19 +205,19 @@ struct DataEngine: Sendable {
     }
 
     private mutating func runLoginShell(now: Date) {
-        lastLocate = now
-        loginRunning = true
+        locating.start(now)
         emit(.runLoginShell)
     }
 
-    private mutating func locate(_ reason: LocateReason, now: Date) {
-        lastLocate = now
-        locateReason = reason
+    private mutating func locate(then next: AfterLocate? = nil, now: Date) {
+        locating.start(now)
+        afterLocate = next
         emit(.locate(configPath: config.claudePath, login: login))
     }
 
     /// Claude's location, then whatever asked for it continues.
     private mutating func located(_ found: ClaudeLocator.Found?, installHint: InstallHint?, now: Date) {
+        locating.running = false
         claude = found
         if found != nil {
             snapshot.version.installHint = installHint
@@ -228,18 +228,12 @@ struct DataEngine: Sendable {
             snapshot.usageProbeCompleted = true
             fail("locate", "claude not found")
         }
-        let reason = locateReason
-        locateReason = nil
-        switch reason {
-        case .config, nil:
-            break
-        case .refresh:
-            refreshUsage(now: now)
-        case .schedule:
-            startDue(now: now)
-        case .login:
-            readSessions()
-            startDue(now: now)
+        let next = afterLocate
+        afterLocate = nil
+        switch next {
+        case .refreshUsage?: refreshUsage(now: now)
+        case .startDue?: startDue(now: now)
+        case nil: break
         }
     }
 
@@ -248,9 +242,8 @@ struct DataEngine: Sendable {
         emit(.readSessions(directory: SessionRegistry.directory(configDir: configDirectory, home: home)))
     }
 
-    /// Refresh now: the usage probe unless one is running or the probe is latched.
     private mutating func refreshUsage(now: Date) {
-        guard latch == nil, !usage.running, claude != nil else { return }
+        guard latch == nil, !usage.running else { return }
         startUsage(now: now)
     }
 
@@ -258,8 +251,7 @@ struct DataEngine: Sendable {
 
     private mutating func startUsage(now: Date) {
         guard let claude else { return }
-        usage.lastTry = now
-        usage.running = true
+        usage.start(now)
         emit(.probeUsage(claude: claude.path, environment: childEnvironment))
     }
 
@@ -283,7 +275,7 @@ struct DataEngine: Sendable {
         case .issue(let issue):
             if issue == .claudeNotFound {
                 claude = nil
-                lastLocate = now
+                locating.lastTry = now
             }
             if let l = UsageLatch(version: snapshot.version.local ?? "", issue: issue) {
                 // Without a known version the latch holds for this run and is keyed by the next version answer.
@@ -318,8 +310,7 @@ struct DataEngine: Sendable {
 
     private mutating func startVersion(now: Date) {
         guard let claude else { return }
-        version.lastTry = now
-        version.running = true
+        version.start(now)
         // Only a look started after a clean update may judge it.
         judging = pendingVerify
         pendingVerify = nil
@@ -335,26 +326,24 @@ struct DataEngine: Sendable {
         } else {
             succeed("version")
         }
-        judgeUpdate(probed: local, startedFrom: judging)
+        judgeUpdate(probed: local, verify: judging)
         judging = nil
         checkLatch(now: now)
-        if versionAgain {
-            versionAgain = false
-            startVersion(now: now)
-        }
+        // An update that ended during this look cleared its cadence: look again now.
+        if version.lastTry == nil { startVersion(now: now) }
         startChangelogIfNeeded(now: now)
     }
 
     /// A failed update lasts while the versions it started from hold, as upstream's failed=<ver> does; a clean exit
     /// that left the version where it was, with the update still out, is a failure too.
-    private mutating func judgeUpdate(probed: String?, startedFrom: String?) {
+    private mutating func judgeUpdate(probed: String?, verify: (from: String, tail: String)?) {
         let v = snapshot.version
         if let f = v.updateFailure, !(v.updateAvailable && f.holds(local: v.local, latest: v.latest)) {
             snapshot.version.updateFailure = nil
         }
-        if let startedFrom, probed == startedFrom, v.updateAvailable {
-            snapshot.version.updateFailure = UpdateFailure(exitCode: 0, outputTail: updateTail, from: startedFrom, to: v.latest)
-            fail("update", "exit 0, but Claude Code is still \(startedFrom)")
+        if let verify, probed == verify.from, v.updateAvailable {
+            snapshot.version.updateFailure = UpdateFailure(exitCode: 0, outputTail: verify.tail, from: verify.from, to: v.latest)
+            fail("update", "exit 0, but Claude Code is still \(verify.from)")
         }
     }
 
@@ -371,7 +360,7 @@ struct DataEngine: Sendable {
                 emit(.saveLatch(nil))
                 if snapshot.usageIssue?.isLatched == true { snapshot.usageIssue = nil }
                 usage.lastTry = nil
-                if !usage.running, claude != nil { startUsage(now: now) }
+                if !usage.running { startUsage(now: now) }
                 return
             }
         }
@@ -381,32 +370,27 @@ struct DataEngine: Sendable {
 
     private mutating func startChangelogIfNeeded(now: Date) {
         let v = snapshot.version
-        guard v.updateAvailable, let local = v.local, let latest = v.latest, !changelog.running else { return }
+        guard v.updateAvailable, let local = v.local, let latest = v.latest, changelog.due(Self.changelogRetry, now) else { return }
         if let c = v.changes, c.forVersion == latest, c.fromVersion == local { return }
-        guard Cadence.due(last: changelog.lastTry, interval: Self.changelogRetry, now: now) else { return }
-        changelog.lastTry = now
-        changelog.running = true
+        changelog.start(now)
         emit(.fetchChangelog)
     }
 
     private mutating func startAccount(now: Date) {
         guard let claude else { return }
-        account.lastTry = now
-        account.running = true
+        account.start(now)
         emit(.probeAccount(claude: claude.path, environment: childEnvironment))
     }
 
     private mutating func startStatus(now: Date) {
-        status.lastTry = now
-        status.running = true
+        status.start(now)
         emit(.probeStatus)
     }
 
     // MARK: - The update
 
     private mutating func startUpdate() {
-        guard !updating, let claude else { return }
-        updating = true
+        guard !snapshot.version.updating, let claude else { return }
         snapshot.version.updating = true
         snapshot.version.updateFailure = nil
         pendingVerify = nil
@@ -419,19 +403,17 @@ struct DataEngine: Sendable {
         var failure = result
         failure?.from = updateFrom
         failure?.to = updateTo
-        updating = false
-        updateTail = tail
         snapshot.version.updating = false
         snapshot.version.updateFailure = failure
         if let failure {
             fail("update", "exit \(failure.exitCode.map(String.init) ?? "timeout"): \(failure.outputTail)")
         } else {
             succeed("update")
-            pendingVerify = updateFrom
+            pendingVerify = updateFrom.map { (from: $0, tail: tail) }
         }
-        // The version may have changed either way: look again now.
+        // The version may have changed either way: look again now, or as soon as the running look answers.
         version.lastTry = nil
-        if version.running { versionAgain = true } else { startVersion(now: now) }
+        if !version.running { startVersion(now: now) }
     }
 
     // MARK: - Plumbing

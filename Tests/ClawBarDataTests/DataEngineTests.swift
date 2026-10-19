@@ -13,24 +13,21 @@ import ClawBarShared
 
     func engine(latch: UsageLatch? = nil, history: [UsageSample] = [], _ edit: (inout Config) -> Void = { _ in }) -> DataEngine {
         var config = Config()
-        config.showSky = false
         edit(&config)
         return DataEngine(config: config, environment: inherited, home: home, latch: latch, history: history)
     }
 
     /// The first tick, the login shell's answer and claude's location: what the engine asks for once it can probe.
     @discardableResult
-    func start(
-        _ e: inout DataEngine, now: Date, login: LoginEnvironment? = LoginEnvironment(), claude: ClaudeLocator.Found? = nil
-    ) -> [DataCommand] {
+    func start(_ e: inout DataEngine, now: Date, missing: Bool = false) -> [DataCommand] {
         var out = e.handle(.tick, now: now)
-        out += e.handle(.loginShell(login), now: now)
-        out += e.handle(.located(claude ?? found, installHint: nil), now: now)
+        out += e.handle(.loginShell(LoginEnvironment()), now: now)
+        out += e.handle(.located(missing ? nil : found, installHint: nil), now: now)
         return out
     }
 
     /// Started, with the version and the latest release answered.
-    func running(local: String = "2.1.302", latest: String = "2.1.302", now: Date) -> DataEngine {
+    func running(local: String? = "2.1.302", latest: String = "2.1.302", now: Date) -> DataEngine {
         var e = engine()
         start(&e, now: now)
         _ = e.handle(.version(local: local, latest: latest), now: now)
@@ -40,33 +37,17 @@ import ClawBarShared
     /// One release behind, the update seen.
     func behind(now: Date) -> DataEngine { running(local: "2.1.302", latest: "2.1.303", now: now) }
 
-    func usage(_ session: Int, week: Int = 68, stamps: [String] = []) -> DataEvent {
-        .usage(UsageProbe.Report(outcome: .usage(UsageSnapshot(sessionPercent: session, weekPercent: week)), unreadStamps: stamps))
+    func usage(_ session: Int, stamps: [String] = []) -> DataEvent {
+        .usage(UsageProbe.Report(outcome: .usage(UsageSnapshot(sessionPercent: session, weekPercent: 68)), unreadStamps: stamps))
     }
 
-    func issue(_ i: UsageIssue, stats: UsageSnapshot? = nil) -> DataEvent {
-        .usage(UsageProbe.Report(outcome: .issue(i), stats: stats))
+    func issue(_ i: UsageIssue) -> DataEvent {
+        .usage(UsageProbe.Report(outcome: .issue(i)))
     }
 
-    /// Each command's kind, for asserting what was asked and in which order.
+    /// Each command's case name, for asserting what was asked and in which order.
     func kinds(_ commands: [DataCommand]) -> [String] {
-        commands.map {
-            switch $0 {
-            case .locate: "locate"
-            case .readSessions: "readSessions"
-            case .runLoginShell: "runLoginShell"
-            case .probeUsage: "probeUsage"
-            case .probeVersion: "probeVersion"
-            case .probeAccount: "probeAccount"
-            case .probeStatus: "probeStatus"
-            case .fetchChangelog: "fetchChangelog"
-            case .runUpdate: "runUpdate"
-            case .saveLatch: "saveLatch"
-            case .saveHistory: "saveHistory"
-            case .log: "log"
-            case .cancelAll: "cancelAll"
-            }
-        }
+        commands.map { command in String("\(command)".prefix { $0 != "(" }) }
     }
 
     func logs(_ commands: [DataCommand]) -> [String] {
@@ -80,19 +61,19 @@ import ClawBarShared
         #expect(kinds(e.handle(.tick, now: t0)) == ["probeStatus", "runLoginShell"])
         // Nothing until the shell answers: a second tick neither asks again nor probes.
         #expect(e.handle(.tick, now: t0 + 60).isEmpty)
-        #expect(e.handle(.loginShell(altLogin), now: t0 + 1) == [.locate(configPath: nil, login: altLogin)])
+        let answered = e.handle(.loginShell(altLogin), now: t0 + 1)
+        #expect(kinds(answered) == ["readSessions", "locate"])
+        #expect(answered.last == .locate(configPath: nil, login: altLogin))
         let probes = e.handle(.located(found, installHint: .npm), now: t0 + 1)
-        #expect(kinds(probes) == ["readSessions", "probeVersion", "probeUsage", "probeAccount"])
+        #expect(kinds(probes) == ["probeVersion", "probeUsage", "probeAccount"])
         #expect(e.snapshot.version.installHint == .npm)
-        guard case .readSessions(let dir) = probes[0], case .probeUsage(let claude, let env) = probes[2] else {
+        guard case .readSessions(let dir) = answered.first, case .probeUsage(let claude, let env) = probes.dropFirst().first else {
             Issue.record("the sessions read or the usage probe is missing")
             return
         }
         #expect(dir.path == "/Users/example/.claude-alt/sessions")
         #expect(claude == found.path)
-        #expect(env["CLAUDECODE"] == nil)
-        #expect(env["CLAUDE_CONFIG_DIR"] == "/Users/example/.claude-alt")
-        #expect(env["PATH"]?.hasPrefix("/Users/example/.nvm/bin:/usr/bin:") == true)
+        #expect(env == ChildEnv.make(inherited: inherited, login: altLogin, claude: found.path))
     }
 
     @Test func hiddenRowsAreNotProbed() {
@@ -100,7 +81,7 @@ import ClawBarShared
             $0.showStatus = false
             $0.showAccount = false
         }
-        #expect(kinds(start(&e, now: t0)) == ["runLoginShell", "locate", "readSessions", "probeVersion", "probeUsage"])
+        #expect(kinds(start(&e, now: t0)) == ["runLoginShell", "readSessions", "locate", "probeVersion", "probeUsage"])
     }
 
     @Test func usageStartsAgainOnlyWhenItsIntervalHasPassedSinceTheLastAttempt() {
@@ -128,21 +109,17 @@ import ClawBarShared
         #expect(kinds(e.handle(.refresh, now: t0 + 3)) == ["probeUsage"])
         // Claude missing: the refresh looks for it first.
         var missing = engine()
-        _ = missing.handle(.tick, now: t0)
-        _ = missing.handle(.loginShell(LoginEnvironment()), now: t0)
-        _ = missing.handle(.located(nil, installHint: nil), now: t0)
+        start(&missing, now: t0, missing: true)
         #expect(kinds(missing.handle(.refresh, now: t0 + 1)) == ["locate"])
         #expect(kinds(missing.handle(.located(found, installHint: nil), now: t0 + 1)) == ["probeUsage"])
     }
 
     @Test func aMissingClaudeIsRetriedEveryUsageInterval() {
         var e = engine()
-        _ = e.handle(.tick, now: t0)
-        _ = e.handle(.loginShell(LoginEnvironment()), now: t0)
-        let missing = e.handle(.located(nil, installHint: nil), now: t0)
+        let missing = start(&e, now: t0, missing: true)
         #expect(e.snapshot.usageIssue == .claudeNotFound)
         #expect(e.snapshot.usageProbeCompleted)
-        #expect(kinds(missing) == ["log", "readSessions"])
+        #expect(kinds(missing) == ["probeStatus", "runLoginShell", "readSessions", "locate", "log"])
         #expect(logs(missing) == ["locate: claude not found"])
         #expect(e.handle(.tick, now: t0 + 59).isEmpty)
         #expect(kinds(e.handle(.tick, now: t0 + 60)) == ["locate"])
@@ -165,9 +142,9 @@ import ClawBarShared
         #expect(kinds(e.handle(.tick, now: t0 + 120)).contains("runLoginShell"))
         let nvm = "/Users/example/.nvm/versions/node/v22.11.0/bin/claude"
         let login = LoginEnvironment(claudePath: nvm)
-        #expect(e.handle(.loginShell(login), now: t0 + 120) == [.locate(configPath: nil, login: login)])
+        #expect(e.handle(.loginShell(login), now: t0 + 120).last == .locate(configPath: nil, login: login))
         let probes = e.handle(.located(ClaudeLocator.Found(path: nvm, source: .loginShell), installHint: nil), now: t0 + 120)
-        #expect(kinds(probes) == ["readSessions", "probeVersion", "probeUsage", "probeAccount"])
+        #expect(kinds(probes) == ["probeVersion", "probeUsage", "probeAccount"])
         #expect(e.snapshot.usageIssue == nil)
     }
 
@@ -191,9 +168,7 @@ import ClawBarShared
 
     @Test func theLoginShellIsAskedAgainOnlyWhileItGaveNoAnswerAndClaudeIsMissing() {
         var answered = engine()
-        _ = answered.handle(.tick, now: t0)
-        _ = answered.handle(.loginShell(LoginEnvironment()), now: t0)
-        _ = answered.handle(.located(nil, installHint: nil), now: t0)
+        start(&answered, now: t0, missing: true)
         #expect(kinds(answered.handle(.tick, now: t0 + 60)) == ["locate"])
         var present = engine()
         start(&present, now: t0)
@@ -280,10 +255,10 @@ import ClawBarShared
 
     @Test func aFailureOutsideTheEngineIsLoggedOnceUntilItSucceeds() {
         var e = engine()
-        #expect(e.handle(.failed(source: "history", message: "no room"), now: t0) == [.log("history: no room")])
-        #expect(e.handle(.failed(source: "history", message: "no room"), now: t0 + 60).isEmpty)
-        #expect(e.handle(.succeeded(source: "history"), now: t0 + 120).isEmpty)
-        #expect(e.handle(.failed(source: "history", message: "no room"), now: t0 + 180) == [.log("history: no room")])
+        #expect(e.handle(.historySaved(failure: "no room"), now: t0) == [.log("history: no room")])
+        #expect(e.handle(.historySaved(failure: "no room"), now: t0 + 60).isEmpty)
+        #expect(e.handle(.historySaved(failure: nil), now: t0 + 120).isEmpty)
+        #expect(e.handle(.historySaved(failure: "no room"), now: t0 + 180) == [.log("history: no room")])
         _ = e.handle(.weather(nil, Place(lat: 1, lon: 2)), now: t0 + 200)
         #expect(e.snapshot.place == Place(lat: 1, lon: 2))
         _ = e.handle(.place(nil), now: t0 + 201)
@@ -325,9 +300,7 @@ import ClawBarShared
         #expect(e.handle(.version(local: "2.1.302", latest: "2.1.302"), now: t0 + 1) == [.saveLatch(UsageLatch(version: "2.1.302", issue: reached))])
         #expect(e.snapshot.usageIssue == reached)
         // No look running: the latch asks for one.
-        var late = engine()
-        start(&late, now: t0)
-        _ = late.handle(.version(local: nil, latest: "2.1.302"), now: t0)
+        var late = running(local: nil, latest: "2.1.302", now: t0)
         #expect(kinds(late.handle(issue(reached), now: t0 + 1)) == ["probeVersion", "log"])
         #expect(late.handle(.version(local: "2.1.302", latest: "2.1.302"), now: t0 + 2).contains(.saveLatch(UsageLatch(version: "2.1.302", issue: reached))))
     }
@@ -492,9 +465,7 @@ import ClawBarShared
         ]))
         #expect(!kinds(e.handle(.tick, now: t0 + 3600)).contains("fetchChangelog"))
         // A failed download is tried again after 10 minutes.
-        var failed = engine()
-        start(&failed, now: t0)
-        _ = failed.handle(.version(local: "2.1.301", latest: "2.1.303"), now: t0)
+        var failed = running(local: "2.1.301", latest: "2.1.303", now: t0)
         #expect(logs(failed.handle(.changelog(nil), now: t0 + 1)) == ["changelog: download failed"])
         #expect(!kinds(failed.handle(.tick, now: t0 + 300)).contains("fetchChangelog"))
         #expect(kinds(failed.handle(.tick, now: t0 + 600)).contains("fetchChangelog"))

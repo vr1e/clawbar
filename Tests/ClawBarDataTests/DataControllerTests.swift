@@ -3,18 +3,16 @@ import Testing
 import ClawBarShared
 @testable import ClawBarData
 
-/// One controller over fakes: a fake claude on disk (never run), a fake runner, fake HTTP and a hand clock.
+/// One controller over fakes: a fake claude on disk (never run), a fake runner, fake HTTP and a clock stopped at t0.
 @MainActor
 final class Harness {
     static let t0 = utc("2026-10-16T22:30:00Z")
     let dir = TempDir("cb-dc")
     let runner = FakeRunner()
     let http = FakeHTTP()
-    let clock = TestClock(Harness.t0)
     let spy = ReadSpy()
     var table = FakeTable(starts: [:])
-    var shell = FakeLoginShell([nil])
-    var candidates: [String] = []
+    var shell: LoginEnvironment?
     var config = Config()
     /// Added to the environment the controller inherits.
     var extraEnvironment: [String: String] = [:]
@@ -31,17 +29,16 @@ final class Harness {
         http.answer("downloads.claude.ai", Data("2.1.302\n".utf8))
     }
 
-    @discardableResult
     func installClaude(_ relative: String) -> String {
         dir.write("home/\(relative)", "#!/bin/sh\nexit 0\n", executable: true).path
     }
 
     var deps: DataController.Dependencies {
-        let shell = shell
+        let shell = shell, t0 = Harness.t0
         return DataController.Dependencies(
-            runner: runner, http: http, clock: clock.read, timeZone: berlin,
+            runner: runner, http: http, clock: { t0 }, timeZone: berlin,
             environment: ["HOME": home, "PATH": "/usr/bin:/bin", "CLAUDECODE": "1"].merging(extraEnvironment) { $1 }, home: home,
-            table: table, readFile: spy.reader, loginShell: { _, _, _ in shell.answer() }, candidates: candidates
+            table: table, readFile: spy.reader, loginShell: { _, _, _ in shell }, candidates: []
         )
     }
 
@@ -67,7 +64,7 @@ final class Counter {
 
     @Test func probesRunTheLocatedClaudeWithTheScrubbedEnvironment() async throws {
         let h = Harness()
-        h.shell = FakeLoginShell([LoginEnvironment(path: "/Users/example/.nvm/bin:/usr/bin", claudeConfigDir: "/Users/example/.claude-alt")])
+        h.shell = LoginEnvironment(path: "/Users/example/.nvm/bin:/usr/bin", claudeConfigDir: "/Users/example/.claude-alt")
         let dc = h.make()
         dc.tick(now: t0)
         #expect(await eventually { h.runner.count(.usage) == 1 })
@@ -158,7 +155,7 @@ final class Counter {
     @Test func sessionsAreReadSynchronouslyFromTheLoginConfigDirWithoutOurChildren() async {
         let h = Harness()
         let alt = h.home + "/.claude-alt"
-        h.shell = FakeLoginShell([LoginEnvironment(claudeConfigDir: alt)])
+        h.shell = LoginEnvironment(claudeConfigDir: alt)
         h.table = FakeTable(starts: [4242: .unknown, 4343: .unknown])
         h.session(4242, in: alt)
         h.session(4343, in: alt, status: "waiting")
