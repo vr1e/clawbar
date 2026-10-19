@@ -320,7 +320,7 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
             config: Config(), now: Samples.now, timeZone: Samples.timeZone, data: .sample, appVersion: "9.9.9"
         ))
         #expect(v.appVersionText == "ClawBar v9.9.9")
-        #expect(v.appVersionTooltip == "macOS port of clawd-usage-winwidget 1.3.0 (MIT)")
+        #expect(v.appVersionTooltip == "macOS port of clawd-usage-winwidget 1.3.0, with some features of later releases (MIT)")
         #expect(v.appVersionURL == AppInfo.originalRepo)
     }
 }

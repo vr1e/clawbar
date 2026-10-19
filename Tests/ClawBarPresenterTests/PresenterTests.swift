@@ -31,7 +31,7 @@ import ClawBarShared
             week7Extra: "82% Subagent-lastige Sitzungen  ·  70% bei Kontext >150k  ·  Subagents: helper 35%, reviewer 7%, +1 weitere",
             versionText: "v2.1.302  ·  aktuell", versionColor: Palette.muted,
             versionTooltip: "Klicken für das Änderungsprotokoll von Claude Code", versionAction: .open(AppInfo.changelogPage),
-            appVersionTooltip: "macOS-Portierung von clawd-usage-winwidget 1.3.0 (MIT)",
+            appVersionTooltip: "macOS-Portierung von clawd-usage-winwidget 1.3.0, mit einigen Funktionen späterer Versionen (MIT)",
             accountText: "Max  ·  user@example.com", accountTooltip: "Max  ·  user@example.com",
             stampText: "14:04:35",
             trayText: "34", trayColor: Palette.ok,

@@ -13,7 +13,7 @@ public enum StringsDE {
         .uiOpenStatus: .text("status.claude.com öffnen"),
         .uiDay: .text("LETZTE 24 STUNDEN · DIESER MAC"),
         .uiWeek7: .text("LETZTE 7 TAGE"),
-        .uiPortOf: .text("macOS-Portierung von clawd-usage-winwidget {0} (MIT)"),
+        .uiPortOf: .text("macOS-Portierung von clawd-usage-winwidget {0}, mit einigen Funktionen späterer Versionen (MIT)"),
 
         .spanD: .text("{0}d {1}h"),
         .spanH: .text("{0}h {1:00}min"),

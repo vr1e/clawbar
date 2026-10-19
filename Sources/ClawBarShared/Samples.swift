@@ -65,7 +65,7 @@ extension WidgetViewState {
         statusText: "status: loading...", statusTooltip: "Open status.claude.com",
         dayLabel: "LAST 24 HOURS · THIS COMPUTER", dayMain: "no data",
         week7Label: "LAST 7 DAYS", week7Main: "no data",
-        appVersionTooltip: "macOS port of clawd-usage-winwidget 1.3.0 (MIT)",
+        appVersionTooltip: "macOS port of clawd-usage-winwidget 1.3.0, with some features of later releases (MIT)",
         trayTooltip: "ClawBar: no data"
     )
 
@@ -86,7 +86,7 @@ extension WidgetViewState {
         week7Extra: "82% subagent-heavy sessions  ·  70% at >150k context  ·  subagents: helper 35%, reviewer 7%, +1 more",
         versionText: "v2.1.302  ·  latest", versionColor: Palette.muted,
         versionTooltip: "Click for the Claude Code changelog", versionAction: .open(AppInfo.changelogPage),
-        appVersionTooltip: "macOS port of clawd-usage-winwidget 1.3.0 (MIT)",
+        appVersionTooltip: "macOS port of clawd-usage-winwidget 1.3.0, with some features of later releases (MIT)",
         accountText: "Max  ·  user@example.com", accountTooltip: "Max  ·  user@example.com",
         stampText: "14:04:35",
         trayText: "34", trayColor: Palette.ok,
