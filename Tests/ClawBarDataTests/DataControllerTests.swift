@@ -180,6 +180,38 @@ final class Counter {
         #expect(dc.snapshot.usageAt == t0)
     }
 
+    @Test func onlyAGoodAnswerIsASampleAndTheHistorySurvivesARestart() async {
+        let h = Harness()
+        h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
+        let dc = h.make()
+        #expect(dc.snapshot.history.isEmpty)
+        dc.tick(now: t0)
+        let sample = UsageSample(minute: UsageSample.minute(of: t0), session: 50, week: 68)
+        #expect(await eventually { dc.snapshot.history == [sample] })
+        h.runner.reply(.usage, data: todayEnvelope { $0["result"] = Fixture.text("usage/no-limits.txt") })
+        h.clock.now = t0 + 600
+        dc.tick(now: t0 + 600)
+        #expect(await eventually { dc.snapshot.usageIssue == .noLimits })
+        h.runner.reply(.usage, data: Data(), exit: 1, stderr: "boom")
+        h.clock.now = t0 + 1200
+        dc.tick(now: t0 + 1200)
+        #expect(await eventually { dc.snapshot.usageIssue == .probeFailed("exit 1: boom") })
+        #expect(dc.snapshot.history == [sample])
+        dc.shutdown()
+        #expect(h.make().snapshot.history == [sample])
+    }
+
+    @Test func aHistoryFileThatCannotBeWrittenIsLogged() async throws {
+        let h = Harness()
+        try FileManager.default.createDirectory(at: h.paths.historyFile, withIntermediateDirectories: true)
+        h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.history.count == 1 })
+        let log = try String(contentsOf: h.paths.errorLog, encoding: .utf8)
+        #expect(log.contains("\thistory: "))
+    }
+
     @Test func reachingTheModelLatchesPerCLIVersionAndANewVersionReArms() async {
         let h = Harness()
         let reached = UsageIssue.modelReached(turns: 1, costUSD: 0.0123, tokens: 1285)

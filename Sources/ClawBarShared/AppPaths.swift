@@ -6,6 +6,8 @@ public struct AppPaths: Sendable, Equatable {
     public let configFile: URL
     /// Small persisted state, such as the per-CLI-version probe latch.
     public let stateFile: URL
+    /// The session and week samples of the last 8 days, apart from state.json since it is rewritten every few minutes.
+    public let historyFile: URL
     public let errorLog: URL
     public let lockFile: URL
     /// Output of a headless `claude update`, written to a file so the update survives quitting.
@@ -15,6 +17,7 @@ public struct AppPaths: Sendable, Equatable {
         self.root = root
         configFile = root.appendingPathComponent("config.json")
         stateFile = root.appendingPathComponent("state.json")
+        historyFile = root.appendingPathComponent("usage-history.json")
         errorLog = root.appendingPathComponent("error.log")
         lockFile = root.appendingPathComponent("clawbar.lock")
         updateLog = root.appendingPathComponent("update.log")

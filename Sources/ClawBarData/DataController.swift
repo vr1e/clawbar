@@ -53,6 +53,7 @@ public final class DataController {
     private let log: ErrorLog
     private let latchStore: LatchStore
     private var latch: UsageLatch?
+    private let historyStore: UsageHistoryStore
     private let weather: WeatherService
 
     private var login: LoginEnvironment?
@@ -92,9 +93,11 @@ public final class DataController {
         log = ErrorLog(url: paths.errorLog)
         latchStore = LatchStore(url: paths.stateFile)
         latch = latchStore.load()
+        historyStore = UsageHistoryStore(url: paths.historyFile)
         weather = WeatherService(http: deps.http, clock: deps.clock, log: { _ in })
         weather.onUpdate = { [weak self] in self?.weatherChanged() }
         weather.log = { [weak self] in self?.fail("weather", $0) }
+        snapshot.history = historyStore.load(now: deps.clock())
     }
 
     // MARK: - Public API
@@ -241,6 +244,7 @@ public final class DataController {
                     me.snapshot.usageIssue = nil
                     me.succeed("usage")
                     me.logUnread(report.unreadStamps)
+                    me.recordHistory(u, at: clock())
                 case .issue(.noLimits):
                     // A login without a subscription: the old subscription's numbers no longer apply, its stats do.
                     me.snapshot.usage = report.stats ?? UsageSnapshot()
@@ -272,6 +276,17 @@ public final class DataController {
             succeed("usage-stamp")
         } else {
             fail("usage-stamp", "no date in " + shapes.map { "\"\($0)\"" }.joined(separator: ", "))
+        }
+    }
+
+    /// Every good answer is a sample, whether or not the chart is shown, since nothing can fill in a missed day later.
+    private func recordHistory(_ u: UsageSnapshot, at now: Date) {
+        guard UsageHistoryStore.record(u, at: now, into: &snapshot.history) else { return }
+        do {
+            try historyStore.save(snapshot.history)
+            succeed("history")
+        } catch {
+            fail("history", error.localizedDescription)
         }
     }
 
