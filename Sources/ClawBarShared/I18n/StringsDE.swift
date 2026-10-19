@@ -175,5 +175,14 @@ public enum StringsDE {
         .skyWind: .text("Wind {0} m/s"),
         .skyNoData: .text("Wetter: keine Daten"),
         .skySun: .text("Sonnenaufgang {0} · Sonnenuntergang {1}"),
+        .skyMoon: .text("Mond: {0}, {1} % beleuchtet"),
+        .skyMoonName0: .text("Neumond"),
+        .skyMoonName1: .text("zunehmende Sichel"),
+        .skyMoonName2: .text("erstes Viertel"),
+        .skyMoonName3: .text("zunehmender Mond"),
+        .skyMoonName4: .text("Vollmond"),
+        .skyMoonName5: .text("abnehmender Mond"),
+        .skyMoonName6: .text("letztes Viertel"),
+        .skyMoonName7: .text("abnehmende Sichel"),
     ]
 }

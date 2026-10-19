@@ -256,14 +256,8 @@ public final class SkyEngine {
     }
 
 
-    /// The mean synodic month since the new moon of 2000-01-06 18:14 UTC.
-    private static let synodicMonth = 29.530588853
-    private static let newMoon = Date(timeIntervalSince1970: 947_182_440)
-
     private func setMoonPhase(latitude: Double, now: Date) {
-        let p = Self.synodicMonth
-        let days = now.timeIntervalSince(Self.newMoon) / 86_400
-        let age = (days.truncatingRemainder(dividingBy: p) + p).truncatingRemainder(dividingBy: p)
+        let age = Moon.age(at: now)
         let key = MoonKey(halfDays: Int((age * 2).rounded(.toNearestOrEven)), south: latitude < 0)
         guard key != moonKey else { return }
         moonKey = key
@@ -272,7 +266,7 @@ public final class SkyEngine {
 
     /// A 7 × 7 disk; a pixel is lit on the bright side of the terminator u = cos θ·√(1 − v²).
     private static func moonRows(age: Double, south: Bool) -> (lit: [String], dark: [String]) {
-        let th = 2 * Double.pi * age / synodicMonth
+        let th = 2 * Double.pi * age / Moon.synodicMonth
         let k = cos(th)
         let n = 7, r = Double(n) / 2
         var lit: [String] = [], dark: [String] = []

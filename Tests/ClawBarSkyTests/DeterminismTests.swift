@@ -121,6 +121,6 @@ import ClawBarSky
         let (sun, _) = SkyInfo.sunTimes(broken, place: place, now: Samples.now, localZone: Zones.utc)
         #expect(sun.sunrise < sun.sunset && sun.sunrise.isFinite)
         let text = SkyInfo.tooltip(broken, place: place, sun: SunTimes(sunrise: .nan, sunset: .nan), now: Samples.now, dev: SkyDevState(), lang: .en)
-        #expect(text == "Berlin · 0°, partly cloudy\nwind 0 m/s\nsunrise — · sunset —")
+        #expect(text == "Berlin · 0°, partly cloudy\nwind 0 m/s\nsunrise — · sunset —\nmoon: first quarter, 39% lit")
     }
 }

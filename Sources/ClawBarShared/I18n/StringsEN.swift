@@ -175,5 +175,14 @@ public enum StringsEN {
         .skyWind: .text("wind {0} m/s"),
         .skyNoData: .text("weather: no data"),
         .skySun: .text("sunrise {0} · sunset {1}"),
+        .skyMoon: .text("moon: {0}, {1}% lit"),
+        .skyMoonName0: .text("new moon"),
+        .skyMoonName1: .text("waxing crescent"),
+        .skyMoonName2: .text("first quarter"),
+        .skyMoonName3: .text("waxing gibbous"),
+        .skyMoonName4: .text("full moon"),
+        .skyMoonName5: .text("waning gibbous"),
+        .skyMoonName6: .text("last quarter"),
+        .skyMoonName7: .text("waning crescent"),
     ]
 }

@@ -36,6 +36,7 @@ import ClawBarShared
         for a in ClawdAct.allCases { #expect(!L10n.act(a, lang).hasPrefix("act.")) }
         for p in SkyPhase.allCases { #expect(!L10n.phase(p, lang).hasPrefix("phase.")) }
         for h in 0 ... 6 { #expect(!L10n.health(h, lang).hasPrefix("health.")) }
+        for n in 0 ... 7 { #expect(!L10n.moonName(n, lang).hasPrefix("sky.")) }
         for code in [0, 1, 2, 3, 45, 48, 51, 56, 61, 66, 71, 77, 80, 85, 95] {
             #expect(!WeatherKinds.name(code: code, lang: lang).hasPrefix("wx."))
         }

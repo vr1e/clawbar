@@ -40,7 +40,7 @@ public enum SkyInfo {
     }
 
     /// Update-SkyTip: the developer override, else the live weather and its wind, else no data; then the sun times
-    /// from `sunTimes`, as HH:mm, or dashes on a polar day or night.
+    /// from `sunTimes`, as HH:mm, or dashes on a polar day or night; last the moon's phase, day and night.
     public static func tooltip(_ weather: WeatherSnapshot?, place: Place?, sun: SunTimes, now: Date, dev: SkyDevState, lang: Lang) -> String {
         var lines: [String] = []
         if dev.isForced {
@@ -58,6 +58,8 @@ public enum SkyInfo {
         // A sunrise before today is how sunTimes marks a polar day or night: no sunrise or sunset to show.
         let polar = !(sun.sunrise >= 0)
         lines.append(L10n.t(.skySun, lang, polar ? "—" : clock(sun.sunrise), polar ? "—" : clock(sun.sunset)))
+        let moon = Moon.info(at: now)
+        lines.append(L10n.t(.skyMoon, lang, L10n.moonName(moon.name, lang), moon.lit))
         return lines.joined(separator: "\n")
     }
 
