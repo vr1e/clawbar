@@ -90,8 +90,8 @@ and the widget's last-update stamp says *error*.
   api.open-meteo.com (weather) and api.met.no (weather fallback). Each request names ClawBar, its version and its
   GitHub page in the User-Agent.
 - **Its own files** live in `~/Library/Application Support/ClawBar/`: `config.json`, `state.json`, `error.log`,
-  `update.log`, `clawbar.lock` (keeps a second copy from starting) and `state-dump.txt` (written for
-  `--dump-state`).
+  `update.log`, `usage-history.json` (the session and week percentages of the last 8 days, from its own `/usage`
+  checks), `clawbar.lock` (keeps a second copy from starting) and `state-dump.txt` (written for `--dump-state`).
 
 ## Command line
 
@@ -122,7 +122,7 @@ and the widget's last-update stamp says *error*.
 ## Differences from the original
 
 <!-- parity-table: begin; generated from a private feature map, so edits here are overwritten -->
-ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.15.0.
+ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.15.1.
 *Ported differently* has its gist in the notes and its details in the bullets below.
 
 | Feature | In ClawBar | Notes |
@@ -138,7 +138,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit. Not yet: Reset times as clock times in the tooltip; A shorter menu with Settings. |
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
-| 7-day history | ⏳ Not yet | |
+| 7-day history | ✅ Ported | Not yet: Chart of the session and week limits; The week's top projects. |
 | Themes and skins | ⏳ Not yet | |
 | Settings window | ⏳ Not yet | Not ported: A tab for Claude Code's own settings. |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |

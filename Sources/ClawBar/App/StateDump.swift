@@ -56,6 +56,9 @@ struct StateDump {
         add("usage.at", Self.iso(snapshot.usageAt))
         add("usage.probeCompleted", snapshot.usageProbeCompleted)
         add("usage.issue", snapshot.usageIssue.map { "\($0)" } ?? "none")
+        let h = snapshot.history
+        let span = "\(Self.iso(h.first?.date)) to \(Self.iso(h.last?.date))"
+        add("usage.history", h.isEmpty ? "none" : "\(h.count) sample\(h.count == 1 ? "" : "s"), \(span)")
         let busy = snapshot.count(of: .busy), waiting = snapshot.count(of: .waiting)
         add("sessions", "\(snapshot.sessions.count) (busy \(busy), waiting \(waiting)), read: \(snapshot.sessionsRead)")
         add("status.indicator", snapshot.status?.indicator ?? "none")

@@ -89,6 +89,24 @@ public struct UsageSnapshot: Sendable, Hashable {
     }
 }
 
+/// The session and week percentages at one minute, for the 7-day history.
+public struct UsageSample: Sendable, Hashable {
+    /// Minutes since 1970 in UTC, so a DST change never reorders samples.
+    public var minute: Int
+    public var session: Int?
+    public var week: Int?
+
+    public init(minute: Int, session: Int? = nil, week: Int? = nil) {
+        self.minute = minute
+        self.session = session
+        self.week = week
+    }
+
+    public static func minute(of date: Date) -> Int { Int((date.timeIntervalSince1970 / 60).rounded(.down)) }
+
+    public var date: Date { Date(timeIntervalSince1970: TimeInterval(minute) * 60) }
+}
+
 /// Why the usage numbers are missing or stopped.
 public enum UsageIssue: Sendable, Hashable {
     /// No claude executable anywhere; retried every usage interval.
@@ -291,6 +309,8 @@ public struct DataSnapshot: Sendable, Hashable {
     /// Some usage probe has finished, good or bad: "loading..." stops here.
     public var usageProbeCompleted: Bool
     public var usageIssue: UsageIssue?
+    /// The last 8 days of usage samples, oldest first.
+    public var history: [UsageSample]
     public var sessions: [SessionInfo]
     /// The session registry has been read once; Clawd's mood waits for it.
     public var sessionsRead: Bool
@@ -304,7 +324,7 @@ public struct DataSnapshot: Sendable, Hashable {
 
     public init(
         usage: UsageSnapshot? = nil, usageAt: Date? = nil, usageProbeCompleted: Bool = false,
-        usageIssue: UsageIssue? = nil, sessions: [SessionInfo] = [], sessionsRead: Bool = false,
+        usageIssue: UsageIssue? = nil, history: [UsageSample] = [], sessions: [SessionInfo] = [], sessionsRead: Bool = false,
         status: ServiceStatus? = nil, statusAt: Date? = nil, account: AccountInfo? = nil,
         version: VersionState = VersionState(), weather: WeatherSnapshot? = nil, place: Place? = nil
     ) {
@@ -312,6 +332,7 @@ public struct DataSnapshot: Sendable, Hashable {
         self.usageAt = usageAt
         self.usageProbeCompleted = usageProbeCompleted
         self.usageIssue = usageIssue
+        self.history = history
         self.sessions = sessions
         self.sessionsRead = sessionsRead
         self.status = status

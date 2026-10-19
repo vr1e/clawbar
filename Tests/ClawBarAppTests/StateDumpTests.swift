@@ -28,6 +28,15 @@ import ClawBarShared
         }
     }
 
+    @Test func theHistoryIsReportedByItsSpan() {
+        #expect(dump().render().contains("\nusage.history: none\n"))
+        var d = dump()
+        let m = UsageSample.minute(of: Samples.now)
+        d.snapshot.history = [UsageSample(minute: m - 60, session: 30, week: 58), UsageSample(minute: m, session: 34, week: 59)]
+        let from = StateDump.iso(Samples.now - 3600), to = StateDump.iso(Samples.now)
+        #expect(d.render().contains("\nusage.history: 2 samples, \(from) to \(to)\n"))
+    }
+
     @Test func theAppLineEndsInThePidThatBuildAppWaitsOn() {
         // scripts/build-app.sh --install reads the running copy's pid from this line.
         #expect(dump().render().contains("\napp: \(AppInfo.title) (pid 4242)\n"))
