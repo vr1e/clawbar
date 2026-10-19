@@ -46,7 +46,7 @@ public enum Diagnostics {
 
         let store = LatchStore(url: paths.stateFile)
         if let latch = store.load(), let local, latch.holds(forVersion: local) {
-            say("usage: latched for \(latch.version): \(DataController.describe(latch.issue))")
+            say("usage: latched for \(latch.version): \(DataEngine.describe(latch.issue))")
         } else {
             let result = await deps.runner.run(UsageProbe.spec(claude: claude.path, environment: env, home: home))
             let report = UsageProbe.interpret(result, now: deps.clock(), timeZone: deps.timeZone)
@@ -59,7 +59,7 @@ public enum Diagnostics {
                 if let d = u.day { say("usage 24h: \(d.requests) requests · \(d.sessions) sessions · \(d.lines.count) lines") }
                 if let w = u.week7 { say("usage 7d: \(w.requests) requests · \(w.sessions) sessions · \(w.lines.count) lines") }
             case .issue(let issue):
-                say("usage: \(DataController.describe(issue))")
+                say("usage: \(DataEngine.describe(issue))")
                 if let local, let latch = UsageLatch(version: local, issue: issue) { store.save(latch) }
             }
             if let e = report.envelope {

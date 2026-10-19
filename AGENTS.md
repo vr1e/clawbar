@@ -24,8 +24,9 @@ Work goes on one branch per release, a set of changes squash-merged to `main` by
 
 - Every value the modules pass each other is a type in `Sources/ClawBarShared/`; each other target owns one concern
   and exports only its entry points.
-- `ClawdEngine`, `SkyEngine`, `SkyInfo` and `WidgetPresenter` are pure: time, time zone and randomness arrive as
-  inputs (`SeededRandomSource` in tests), and statics are `let`.
+- `ClawdEngine`, `DataEngine`, `SkyEngine`, `SkyInfo` and `WidgetPresenter` are pure: time, time zone and randomness
+  arrive as inputs (`SeededRandomSource` in tests), and statics are `let`. `DataController` runs `DataEngine`'s
+  commands against processes, the network and disk, and feeds each answer back as an event.
 - The `ClawBar` target is MainActor by default: Timer and notification blocks run inside `MainActor.assumeIsolated`.
 - Regular expressions are statics built with `Rx.make` (`Sources/ClawBarShared/Rx.swift`).
 - The original rounds half to even (`[int]`, `[byte]`, `[math]::Round`): use `.rounded(.toNearestOrEven)`.
