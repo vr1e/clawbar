@@ -402,7 +402,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     private func statusMenu() -> NSMenu {
         let entries = StatusMenu.entries(
-            lang: config.lang, widgetVisible: widgetVisible, topmost: config.topmost, launchAtLogin: config.launchAtLogin
+            lang: config.lang, widgetVisible: widgetVisible, topmost: config.topmost, launchAtLogin: config.launchAtLogin,
+            shown: WidgetBlock.shown(in: config)
         )
         return MenuBuilder.menu(entries) { [unowned self] in perform($0) }
     }
@@ -417,6 +418,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .openConfig: openConfig()
         case .language(let l): change { $0.language = l.rawValue }
+        case .toggleBlock(let b): change { $0[keyPath: b.flag].toggle() }
         case .quit: NSApp.terminate(nil)
         }
     }

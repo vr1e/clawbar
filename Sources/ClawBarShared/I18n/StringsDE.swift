@@ -94,6 +94,13 @@ public enum StringsDE {
         .menuLogin: .text("Beim Anmelden öffnen"),
         .menuConfig: .text("config.json öffnen"),
         .menuLanguage: .text("Sprache"),
+        .menuShown: .text("Im Widget zeigen"),
+        .setShowMascot: .text("Clawd"),
+        .setShowSky: .text("Himmel und Wetter hinter ihm"),
+        .setShowStatus: .text("Anthropic-Status"),
+        .setShowSessions: .text("Laufende Sitzungen"),
+        .setShowAccount: .text("Plan und Konto"),
+        .setShowStats: .text("Letzte 24 Stunden und 7 Tage (Details)"),
         .menuQuit: .text("ClawBar beenden"),
 
         .health6: .text("voller Energie"),

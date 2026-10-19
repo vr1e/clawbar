@@ -4,6 +4,36 @@ import ClawBarShared
 enum StatusMenuAction: Hashable {
     case toggleWidget, refresh, larger, smaller, toggleTopmost, toggleLaunchAtLogin, openConfig, quit
     case language(Lang)
+    case toggleBlock(WidgetBlock)
+}
+
+/// The widget's switchable blocks, in the original Settings window's order.
+enum WidgetBlock: CaseIterable, Hashable {
+    case mascot, sky, status, sessions, account, stats
+
+    var title: L10nKey {
+        switch self {
+        case .mascot: .setShowMascot
+        case .sky: .setShowSky
+        case .status: .setShowStatus
+        case .sessions: .setShowSessions
+        case .account: .setShowAccount
+        case .stats: .setShowStats
+        }
+    }
+
+    var flag: WritableKeyPath<Config, Bool> {
+        switch self {
+        case .mascot: \.showMascot
+        case .sky: \.showSky
+        case .status: \.showStatus
+        case .sessions: \.showSessions
+        case .account: \.showAccount
+        case .stats: \.showStats
+        }
+    }
+
+    static func shown(in config: Config) -> Set<WidgetBlock> { Set(allCases.filter { config[keyPath: $0.flag] }) }
 }
 
 /// One menu item as data, so menus can be tested and dumped as text.
@@ -43,7 +73,7 @@ enum StatusMenu {
     typealias Entry = MenuEntry<StatusMenuAction>
 
     /// The menu bar item's menu, rebuilt on every open so titles follow the language and checks the settings.
-    static func entries(lang: Lang, widgetVisible: Bool, topmost: Bool, launchAtLogin: Bool) -> [Entry] {
+    static func entries(lang: Lang, widgetVisible: Bool, topmost: Bool, launchAtLogin: Bool, shown: Set<WidgetBlock>) -> [Entry] {
         func item(_ key: L10nKey, _ action: StatusMenuAction) -> Entry {
             Entry(title: L10n.t(key, lang), action: action)
         }
@@ -52,6 +82,13 @@ enum StatusMenu {
         }
         let languages = Lang.allCases.map { l in
             Entry(title: l.nativeName, checked: l == lang, checkable: true, action: .language(l))
+        }
+        // The sky sits in Clawd's play area, so it cannot show without him.
+        let blocks = WidgetBlock.allCases.map { b in
+            Entry(
+                title: L10n.t(b.title, lang), checked: shown.contains(b), checkable: true,
+                enabled: b != .sky || shown.contains(.mascot), action: .toggleBlock(b)
+            )
         }
         return [
             Entry(title: AppInfo.title, enabled: false),
@@ -63,6 +100,7 @@ enum StatusMenu {
             toggle(.menuTopmost, topmost, .toggleTopmost),
             toggle(.menuLogin, launchAtLogin, .toggleLaunchAtLogin),
             item(.menuConfig, .openConfig),
+            Entry(title: L10n.t(.menuShown, lang), children: blocks),
             Entry(title: L10n.t(.menuLanguage, lang), children: languages),
             .separator,
             item(.menuQuit, .quit),

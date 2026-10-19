@@ -94,6 +94,13 @@ public enum StringsEN {
         .menuLogin: .text("Launch at login"),
         .menuConfig: .text("Open config.json"),
         .menuLanguage: .text("Language"),
+        .menuShown: .text("Show in widget"),
+        .setShowMascot: .text("Clawd"),
+        .setShowSky: .text("Sky and weather behind him"),
+        .setShowStatus: .text("Anthropic status"),
+        .setShowSessions: .text("Running sessions"),
+        .setShowAccount: .text("Plan and account"),
+        .setShowStats: .text("Last 24 hours and 7 days (details)"),
         .menuQuit: .text("Quit ClawBar"),
 
         .health6: .text("full of energy"),

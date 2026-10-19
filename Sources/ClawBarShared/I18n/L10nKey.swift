@@ -104,6 +104,14 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case menuLogin = "menu.login"
     case menuConfig = "menu.config"
     case menuLanguage = "menu.language"
+    /// The Show in widget submenu; its items are the original's Settings switches.
+    case menuShown = "menu.shown"
+    case setShowMascot = "set.showMascot"
+    case setShowSky = "set.showSky"
+    case setShowStatus = "set.showStatus"
+    case setShowSessions = "set.showSessions"
+    case setShowAccount = "set.showAccount"
+    case setShowStats = "set.showStats"
     case menuQuit = "menu.quit"
 
     // Hearts

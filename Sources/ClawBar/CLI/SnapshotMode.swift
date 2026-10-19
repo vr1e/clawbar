@@ -232,8 +232,16 @@ enum SnapshotMode {
     static func menuDump(lang: Lang) -> String {
         let forced = ClawdDevState(forcedMood: .work, forceCrit: true, forceHearts: 4)
         let sections: [(String, String)] = [
-            ("Status menu, widget shown", MenuEntry.dump(StatusMenu.entries(lang: lang, widgetVisible: true, topmost: false, launchAtLogin: true))),
-            ("Status menu, widget hidden, always on top", MenuEntry.dump(StatusMenu.entries(lang: lang, widgetVisible: false, topmost: true, launchAtLogin: false))),
+            (
+                "Status menu, widget shown",
+                MenuEntry.dump(StatusMenu.entries(lang: lang, widgetVisible: true, topmost: false, launchAtLogin: true, shown: Set(WidgetBlock.allCases)))
+            ),
+            (
+                "Status menu, widget hidden, always on top, no Clawd or stats",
+                MenuEntry.dump(StatusMenu.entries(
+                    lang: lang, widgetVisible: false, topmost: true, launchAtLogin: false, shown: [.sky, .status, .sessions, .account]
+                ))
+            ),
             ("Developer menu, live data", DevMenuBuilder.dump(DevMenu.build(dev: ClawdDevState(), sky: SkyDevState(), skyVisible: true, lang: lang))),
             (
                 "Developer menu, working + sweating + 2 hearts, night snow, sky hidden",
