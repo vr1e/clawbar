@@ -50,10 +50,8 @@ public enum L10n {
     public static func act(_ a: ClawdAct, _ lang: Lang) -> String { named("act.\(a.rawValue)", lang) }
     public static func phase(_ p: SkyPhase, _ lang: Lang) -> String { named("phase.\(p.rawValue)", lang) }
 
-    /// The moon's name for 0...7, from the new moon round to the waning crescent; values outside wrap.
-    public static func moonName(_ n: Int, _ lang: Lang) -> String {
-        named("sky.moonNames.\(((n % 8) + 8) % 8)", lang)
-    }
+    /// The moon's name for 0...7, from the new moon round to the waning crescent.
+    public static func moonName(_ n: Int, _ lang: Lang) -> String { named("sky.moonNames.\(n)", lang) }
 
     /// The health tier name for 0...6 halves; values outside are clamped.
     public static func health(_ halves: Int, _ lang: Lang) -> String {

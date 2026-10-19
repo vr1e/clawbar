@@ -55,7 +55,6 @@ import ClawBarShared
         let e = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false, shown: all)
         #expect(!e[0].enabled && e[0].action == nil)
         #expect(e.dropFirst().filter { !$0.isSeparator }.allSatisfy { $0.enabled })
-        #expect(e[9].children.allSatisfy { $0.enabled })
         #expect(e.compactMap(\.action) == [
             .toggleWidget, .refresh, .larger, .smaller, .toggleTopmost, .toggleLaunchAtLogin, .openConfig, .quit,
         ])

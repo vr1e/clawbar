@@ -77,18 +77,15 @@ enum StatusMenu {
         func item(_ key: L10nKey, _ action: StatusMenuAction) -> Entry {
             Entry(title: L10n.t(key, lang), action: action)
         }
-        func toggle(_ key: L10nKey, _ on: Bool, _ action: StatusMenuAction) -> Entry {
-            Entry(title: L10n.t(key, lang), checked: on, checkable: true, action: action)
+        func toggle(_ key: L10nKey, _ on: Bool, _ action: StatusMenuAction, enabled: Bool = true) -> Entry {
+            Entry(title: L10n.t(key, lang), checked: on, checkable: true, enabled: enabled, action: action)
         }
         let languages = Lang.allCases.map { l in
             Entry(title: l.nativeName, checked: l == lang, checkable: true, action: .language(l))
         }
         // The sky sits in Clawd's play area, so it cannot show without him.
         let blocks = WidgetBlock.allCases.map { b in
-            Entry(
-                title: L10n.t(b.title, lang), checked: shown.contains(b), checkable: true,
-                enabled: b != .sky || shown.contains(.mascot), action: .toggleBlock(b)
-            )
+            toggle(b.title, shown.contains(b), .toggleBlock(b), enabled: b != .sky || shown.contains(.mascot))
         }
         return [
             Entry(title: AppInfo.title, enabled: false),

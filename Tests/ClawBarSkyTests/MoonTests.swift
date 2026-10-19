@@ -66,9 +66,9 @@ import ClawBarShared
     /// The elongation with upstream's three signs fixed stays within ~1.1 h; the mean month was up to ~23 h off.
     @Test(arguments: [
         (epoch, 0.0),
-        (full, 29.530588853 / 2),
+        (full, Moon.synodicMonth / 2),
         (Date(timeIntervalSince1970: 947_182_440), 0.0),  // the new moon of 2000-01-06 18:14 UTC
-        (local(2026, 10, 26, 4, 12, in: Zones.utc), 29.530588853 / 2),
+        (local(2026, 10, 26, 4, 12, in: Zones.utc), Moon.synodicMonth / 2),
     ])
     func theAgeIsWithinAnHourAndAHalfAtKnownPhases(at: Date, age: Double) {
         let p = Moon.synodicMonth
