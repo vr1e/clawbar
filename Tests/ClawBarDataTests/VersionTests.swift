@@ -75,7 +75,7 @@ import ClawBarShared
 
     @Test func successIsNoFailure() {
         let ok = ProcessResult.success(ProcessOutcome(pid: 5, termination: .exit(0)))
-        #expect(UpdateRunner.failure(ok, log: dir.file("none.log"), home: "/Users/example") == nil)
+        #expect(UpdateRunner.failure(ok, tail: "", home: "/Users/example") == nil)
     }
 
     @Test func aFailureCarriesTheExitCodeAndARedactedTail() throws {
@@ -83,7 +83,7 @@ import ClawBarShared
             + "\nChecking for updates...\r\u{1B}[32mDownloading 40%\u{1B}[0m\rDownloading 100%\n"
             + "Error: cannot write /Users/example/.local/bin/claude for user@example.com\n\n")
         let r = ProcessResult.success(ProcessOutcome(pid: 5, termination: .exit(1)))
-        let f = try #require(UpdateRunner.failure(r, log: log, home: "/Users/example"))
+        let f = try #require(UpdateRunner.failure(r, tail: UpdateRunner.tail(of: log, home: "/Users/example"), home: "/Users/example"))
         #expect(f.exitCode == 1)
         let lines = f.outputTail.split(separator: "\n")
         #expect(lines.count == UpdateRunner.tailLines)
@@ -93,10 +93,10 @@ import ClawBarShared
 
     @Test func aTimeoutHasNoExitCodeAndLaunchErrorsUseShellCodes() throws {
         let timedOut = ProcessResult.success(ProcessOutcome(pid: 5, termination: .signal(SIGTERM), timedOut: true))
-        #expect(try #require(UpdateRunner.failure(timedOut, log: dir.file("x.log"), home: "/h")).exitCode == nil)
+        #expect(try #require(UpdateRunner.failure(timedOut, tail: "", home: "/h")).exitCode == nil)
         let killed = ProcessResult.success(ProcessOutcome(pid: 5, termination: .signal(SIGKILL)))
-        #expect(UpdateRunner.failure(killed, log: dir.file("x.log"), home: "/h")?.exitCode == 137)
-        let missing = UpdateRunner.failure(.failure(.notFound("/Users/example/.local/bin/claude")), log: dir.file("x.log"), home: "/Users/example")
+        #expect(UpdateRunner.failure(killed, tail: "", home: "/h")?.exitCode == 137)
+        let missing = UpdateRunner.failure(.failure(.notFound("/Users/example/.local/bin/claude")), tail: "", home: "/Users/example")
         #expect(missing == UpdateFailure(exitCode: 127, outputTail: "not found: ~/.local/bin/claude"))
     }
 

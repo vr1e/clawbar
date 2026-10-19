@@ -9,13 +9,15 @@ For what is left from upstream, or whether a feature is ported, read `upstream-f
 feature and its status); when a feature lands or a review moves on, update its rows and run
 `swift docs.local/parity-table.swift`, which rebuilds README's parity table.
 
-Work goes on one branch per release, a set of changes squash-merged to `main` by PR; the release bumps
-`AppInfo.version` (`Sources/ClawBarShared/AppPaths.swift`).
+A change is one branch, named from its title (`extract-the-probe-schedule-into-a-pure-dataengine`), squash-merged
+to `main` by PR; it leaves the version alone. Releases are cut from `main` by the `release` skill
+(`.claude/skills/release/`), which bumps it.
 
 ## Toolchain
 
 - The package builds with the Command Line Tools alone: no `xcodebuild`, `actool`, string catalogs or XCTest
-  (tests use Swift Testing).
+  (tests use Swift Testing). Shipped targets carry no resources either, since `Bundle.module` breaks in the
+  hand-assembled .app: strings are the Swift tables in `Sources/ClawBarShared/I18n/`.
 - Their SwiftUI lacks its macro plugin, so `@State`, `@Entry`, `@Animatable` and `#Preview` do not compile. State
   lives in `@Observable` classes (that macro works) passed into views; environment values use a hand-written
   `EnvironmentKey` (see `uiScale` in `Sources/ClawBar/Views/Metrics.swift`).
@@ -24,13 +26,15 @@ Work goes on one branch per release, a set of changes squash-merged to `main` by
 
 - Every value the modules pass each other is a type in `Sources/ClawBarShared/`; each other target owns one concern
   and exports only its entry points.
-- `ClawdEngine`, `SkyEngine`, `SkyInfo` and `WidgetPresenter` are pure: time, time zone and randomness arrive as
-  inputs (`SeededRandomSource` in tests), and statics are `let`.
+- Before naming a type or writing about the data side, read `GLOSSARY.md`: the words for probe, data snapshot, data
+  engine, latch and snapshot mode (the `--snapshot` render, not a data snapshot), and the ones to avoid.
+- `ClawdEngine`, `DataEngine`, `SkyEngine`, `SkyInfo` and `WidgetPresenter` are pure: time, time zone and randomness
+  arrive as inputs (`SeededRandomSource` in tests), and statics are `let`. `DataController` runs `DataEngine`'s
+  commands against processes, the network and disk, and feeds each answer back as an event.
 - The `ClawBar` target is MainActor by default: Timer and notification blocks run inside `MainActor.assumeIsolated`.
 - Regular expressions are statics built with `Rx.make` (`Sources/ClawBarShared/Rx.swift`).
 - The original rounds half to even (`[int]`, `[byte]`, `[math]::Round`): use `.rounded(.toNearestOrEven)`.
 - Comments say why, in one line where one suffices.
-- PRs leave the version alone; only a release bumps it, through the `release` skill (`.claude/skills/release/`).
 
 ## Safety
 
@@ -42,11 +46,12 @@ files beside them in `~/.claude/sessions/` are secrets and stay unopened.
 ## Checking a change
 
 - `swift build && swift test`; no CI runs them.
-- Anything visible: `.build/debug/ClawBar --snapshot <dir>` renders every widget state in English and German at
-  k 1.0, 1.2 and 2.0, the menu bar item, and both menus as text; open the PNGs to look.
+- Anything visible: `.build/debug/ClawBar --snapshot <dir>` renders every widget state in both languages at three
+  sizes, the menu bar item, and the menus as text; open the PNGs to look.
 - Probes: `.build/debug/ClawBar --diagnose` runs each once against the real `claude` and network.
-- The running app: start `CLAWBAR_HOME=<any dir> .build/debug/ClawBar` in the background. With no mode the binary is
-  the app and never exits; without `CLAWBAR_HOME` it uses the user's real files, or only shows the installed app's
-  widget. `--dump-state` and `--command <cmd>` reach it under the same `CLAWBAR_HOME`; `--command quit` ends it.
-- Installing: `scripts/build-app.sh --install` quits the user's running ClawBar and replaces the installed copy; it is
-  for when the user asks to install.
+- The running app: start `CLAWBAR_HOME=<any dir> .build/debug/ClawBar` in the background; with no mode the binary
+  is the app and never exits. Without `CLAWBAR_HOME` it runs on the user's real files, or, when the installed app is
+  running, only tells it to show its widget and exits. `--dump-state` and `--command <cmd>` reach the copy on the
+  same `CLAWBAR_HOME`; `--command quit` ends it.
+- `scripts/build-app.sh --install` replaces the user's installed ClawBar, quitting the running copy; run it only
+  when the user asks to install.

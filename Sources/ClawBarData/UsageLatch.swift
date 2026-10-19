@@ -39,7 +39,7 @@ struct LatchStore: Sendable {
     }
 
     /// nil clears the latch.
-    func save(_ latch: UsageLatch?) {
+    func save(_ latch: UsageLatch?) throws {
         var j = JSONFile.object(at: url) ?? [:]
         if let latch {
             var entry: [String: Any] = ["cliVersion": latch.version]
@@ -60,6 +60,6 @@ struct LatchStore: Sendable {
             guard j[Self.key] != nil else { return }
             j.removeValue(forKey: Self.key)
         }
-        try? JSONFile.write(j, to: url)
+        try JSONFile.write(j, to: url)
     }
 }

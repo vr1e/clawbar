@@ -77,8 +77,9 @@ enum UpdateRunner {
         )
     }
 
-    /// nil for a clean exit; otherwise the exit code (nil on timeout) and the log's redacted last lines.
-    static func failure(_ result: ProcessResult, log: URL, home: String = NSHomeDirectory()) -> UpdateFailure? {
+    /// nil for a clean exit; otherwise the exit code (nil on timeout) and `tail`, the log's last lines, or the launch
+    /// error.
+    static func failure(_ result: ProcessResult, tail: String, home: String = NSHomeDirectory()) -> UpdateFailure? {
         switch result {
         case .failure(let e):
             let code: Int32 = if case .notFound = e { 127 } else { 126 }
@@ -94,7 +95,7 @@ enum UpdateRunner {
                 case .signal(let s): code = 128 + s
                 }
             }
-            return UpdateFailure(exitCode: code, outputTail: tail(of: log, home: home))
+            return UpdateFailure(exitCode: code, outputTail: tail)
         }
     }
 

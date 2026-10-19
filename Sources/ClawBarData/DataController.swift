@@ -1,10 +1,11 @@
 import Foundation
 import ClawBarShared
 
-/// Owns every probe and the session registry, and folds their results into one `DataSnapshot`.
+/// Owns every probe and the session registry, and folds their results into one `DataSnapshot`. `DataEngine` decides;
+/// this runs its commands against processes, the network and disk, and feeds each answer back as an event.
 @MainActor
 public final class DataController {
-    public private(set) var snapshot: DataSnapshot = .empty
+    public var snapshot: DataSnapshot { engine.snapshot }
     /// Called after an async probe completion changed `snapshot`; never from inside the methods below.
     public var onChange: (@MainActor () -> Void)?
 
@@ -37,464 +38,165 @@ public final class DataController {
         }
     }
 
-    /// One probe's bookkeeping: cadence counts from the last attempt.
-    private struct Slot {
-        var lastTry: Date?
-        var running = false
-
-        func due(_ interval: Int, _ now: Date) -> Bool {
-            !running && Cadence.due(last: lastTry, interval: TimeInterval(interval), now: now)
-        }
-    }
-
-    private var config: Config
+    private var engine: DataEngine
     private let paths: AppPaths
     private let deps: Dependencies
     private let log: ErrorLog
     private let latchStore: LatchStore
-    private var latch: UsageLatch?
     private let historyStore: UsageHistoryStore
     private let weather: WeatherService
-
-    private var login: LoginEnvironment?
-    /// Login shell runs that finished; the claude probes wait for the first.
-    private var loginRuns = 0
-    private var loginRunning = false
-    private var claude: ClaudeLocator.Found?
-    private var lastLocate: Date?
-
-    private var usage = Slot()
-    private var account = Slot()
-    private var status = Slot()
-    private var version = Slot()
-    private var changelog = Slot()
-    private var versionAgain = false
-    /// After a clean `claude update`: the version it started from, for the next look to judge.
-    private var pendingVerify: String?
-    private var updating = false
-    private var stopped = false
     private var tasks: [Int: Task<Void, Never>] = [:]
     private var nextTask = 0
-    /// The last logged failure per source, so a dead endpoint logs once, not every interval.
-    private var failures: [String: String] = [:]
-
-    static let changelogRetry: TimeInterval = 600
-    /// Each run sources the user's rc files again, so a shell that never answers is not asked forever.
-    static let loginRunLimit = 4
 
     public convenience init(config: Config, paths: AppPaths) {
         self.init(config: config, paths: paths, deps: .live())
     }
 
     init(config: Config, paths: AppPaths, deps: Dependencies) {
-        self.config = config.clamped()
         self.paths = paths
         self.deps = deps
         log = ErrorLog(url: paths.errorLog)
         latchStore = LatchStore(url: paths.stateFile)
-        latch = latchStore.load()
         historyStore = UsageHistoryStore(url: paths.historyFile)
+        engine = DataEngine(
+            config: config, environment: deps.environment, home: deps.home,
+            latch: latchStore.load(), history: historyStore.load(now: deps.clock())
+        )
         weather = WeatherService(http: deps.http, clock: deps.clock, log: { _ in })
         weather.onUpdate = { [weak self] in self?.weatherChanged() }
-        weather.log = { [weak self] in self?.fail("weather", $0) }
-        snapshot.history = historyStore.load(now: deps.clock())
+        weather.log = { [weak self] in self?.complete(.weatherFailed($0)) }
     }
 
     // MARK: - Public API
 
     /// A reloaded config: new intervals, coordinates, claudePath and show flags take effect.
     public func apply(config new: Config) {
-        let old = config
-        config = new.clamped()
-        if config.claudePath != old.claudePath, resolved { locate(now: deps.clock()) }
+        perform(.configChanged(new), now: deps.clock())
     }
 
     /// The data tick: collect finished probes, start those whose interval has passed since their last attempt.
     public func tick(now: Date) {
-        guard !stopped else { return }
-        weather.tick(now: now, config: config)
-        snapshot.place = weather.place
-        startDue(now: now)
+        weather.tick(now: now, config: engine.config)
+        perform(.place(weather.place), now: now)
+        perform(.tick, now: now)
     }
 
     /// Re-reads the session registry synchronously.
     public func pollSessions(now: Date) {
-        guard !stopped, resolved else { return }
-        readSessions(now: now)
+        perform(.pollSessions, now: now)
     }
 
     /// Refresh now: start the usage probe unless one is running or the probe is latched.
     public func refreshNow() {
-        guard !stopped, resolved else { return }
-        let now = deps.clock()
-        if claude == nil { locate(now: now) }
-        guard latch == nil, !usage.running, claude != nil else { return }
-        startUsage(now: now)
+        perform(.refresh, now: deps.clock())
     }
 
     /// Runs a headless `claude update` that survives quitting.
     public func startClaudeUpdate() {
-        guard !stopped, !updating, let claude else { return }
-        updating = true
-        snapshot.version.updating = true
-        snapshot.version.updateFailure = nil
-        pendingVerify = nil
-        let from = snapshot.version.local, to = snapshot.version.latest
-        let spec = UpdateRunner.spec(claude: claude.path, environment: childEnvironment, home: deps.home, log: paths.updateLog)
-        let runner = deps.runner, logURL = paths.updateLog, home = deps.home
-        spawn { me in
-            var failure = UpdateRunner.failure(await runner.run(spec), log: logURL, home: home)
-            failure?.from = from
-            failure?.to = to
-            me.completing {
-                me.updating = false
-                me.snapshot.version.updating = false
-                me.snapshot.version.updateFailure = failure
-                if let failure {
-                    me.fail("update", "exit \(failure.exitCode.map(String.init) ?? "timeout"): \(failure.outputTail)")
-                } else {
-                    me.succeed("update")
-                    me.pendingVerify = from
-                }
-                // The version may have changed either way: look again now.
-                me.version.lastTry = nil
-                if me.version.running { me.versionAgain = true } else { me.startVersion(now: me.deps.clock()) }
-            }
-        }
+        perform(.startUpdate, now: deps.clock())
     }
 
     /// Stops every probe child except a running update.
     public func shutdown() {
-        guard !stopped else { return }
-        stopped = true
-        weather.shutdown()
-        for t in tasks.values { t.cancel() }
-        deps.runner.shutdown()
+        perform(.shutdown, now: deps.clock())
     }
 
-    // MARK: - Startup
+    // MARK: - Running the engine
 
-    /// The login shell, then claude's location again; the claude probes wait for the first answer.
-    private func runLoginShell(now: Date) {
-        lastLocate = now
-        loginRunning = true
-        let capture = deps.loginShell, runner = deps.runner, env = deps.environment, home = deps.home
-        spawn { me in
-            let login = await capture(runner, env, home)
-            me.completing {
-                me.loginRunning = false
-                me.loginRuns += 1
-                me.login = login
-                if login == nil { me.fail("login", "the login shell gave no answer") } else { me.succeed("login") }
-                let now = me.deps.clock()
-                me.locate(now: now)
-                me.readSessions(now: now)
-                me.startDue(now: now)
+    /// Runs the engine's commands for one event; a command answered at once goes straight back in. Nothing here fires
+    /// `onChange`.
+    private func perform(_ event: DataEvent, now: Date) {
+        for command in engine.handle(event, now: now) {
+            if let answer = execute(command, now: now) { perform(answer, now: now) }
+        }
+    }
+
+    /// An async completion: as `perform`, then `onChange` when the snapshot moved.
+    private func complete(_ event: DataEvent) {
+        let before = engine.snapshot
+        perform(event, now: deps.clock())
+        if engine.snapshot != before { onChange?() }
+    }
+
+    /// Runs one command. A lookup or save answers at once with its event; the rest answer through `complete`.
+    private func execute(_ command: DataCommand, now: Date) -> DataEvent? {
+        let runner = deps.runner, http = deps.http, home = deps.home
+        switch command {
+        case .locate(let configPath, let login):
+            let found = ClaudeLocator(home: home, candidates: deps.candidates).locate(configPath: configPath, login: login)
+            return .located(found, installHint: found.flatMap { UpdateRunner.installHint(claudePath: $0.path) })
+        case .readSessions(let directory):
+            let sessions = SessionRegistry(directory: directory, table: deps.table, readFile: deps.readFile)
+                .read(excluding: runner.childPIDs, now: now)
+            return .sessionsRead(sessions)
+        case .runLoginShell:
+            let capture = deps.loginShell, environment = deps.environment
+            spawn { .loginShell(await capture(runner, environment, home)) }
+        case .probeUsage(let claude, let environment):
+            let spec = UsageProbe.spec(claude: claude, environment: environment, home: home)
+            let clock = deps.clock, zone = deps.timeZone
+            spawn { .usage(UsageProbe.interpret(await runner.run(spec), now: clock(), timeZone: zone)) }
+        case .probeVersion(let claude, let environment, let configDirectory):
+            let spec = VersionProbe.spec(claude: claude, environment: environment, home: home)
+            let settings = URL(fileURLWithPath: configDirectory).appendingPathComponent("settings.json")
+            spawn {
+                let local = VersionProbe.local(await runner.run(spec))
+                let url = VersionProbe.latestURL(channel: VersionProbe.channel(settings: try? Data(contentsOf: settings)))
+                let body = try? await http.get(url, timeout: 15)
+                return .version(local: local, latest: body.flatMap { VersionProbe.latest(String(decoding: $0, as: UTF8.self)) })
             }
-        }
-    }
-
-    private func locate(now: Date) {
-        lastLocate = now
-        claude = ClaudeLocator(home: deps.home, candidates: deps.candidates).locate(configPath: config.claudePath, login: login)
-        if let claude {
-            snapshot.version.installHint = UpdateRunner.installHint(claudePath: claude.path)
-            if snapshot.usageIssue == .claudeNotFound { snapshot.usageIssue = nil }
-            succeed("locate")
-        } else {
-            snapshot.usageIssue = .claudeNotFound
-            snapshot.usageProbeCompleted = true
-            fail("locate", "claude not found")
-        }
-    }
-
-    private func startDue(now: Date) {
-        if config.showStatus, status.due(config.statusIntervalSeconds, now) { startStatus(now: now) }
-        // Not found: look again every usage interval, through a login shell that gave no answer yet, since one slowed
-        // down at login may be the only one that knows where.
-        if claude == nil, !loginRunning, Cadence.due(last: lastLocate, interval: TimeInterval(config.usageIntervalSeconds), now: now) {
-            if login == nil, loginRuns < Self.loginRunLimit { runLoginShell(now: now) } else { locate(now: now) }
-        }
-        guard resolved, claude != nil else { return }
-        if version.due(config.versionIntervalSeconds, now) { startVersion(now: now) }
-        if latch == nil, usage.due(config.usageIntervalSeconds, now) { startUsage(now: now) }
-        if config.showAccount, account.due(config.accountIntervalSeconds, now) { startAccount(now: now) }
-        startChangelogIfNeeded(now: now)
-    }
-
-    // MARK: - Probes
-
-    private func startUsage(now: Date) {
-        guard let claude else { return }
-        usage.lastTry = now
-        usage.running = true
-        let spec = UsageProbe.spec(claude: claude.path, environment: childEnvironment, home: deps.home)
-        let runner = deps.runner, clock = deps.clock, zone = deps.timeZone
-        spawn { me in
-            let report = UsageProbe.interpret(await runner.run(spec), now: clock(), timeZone: zone)
-            var cliVersion: String?
-            if case .issue(let issue) = report.outcome, issue.isLatched { cliVersion = await me.currentCLIVersion() }
-            me.completing {
-                me.usage.running = false
-                me.snapshot.usageProbeCompleted = true
-                switch report.outcome {
-                case .usage(let u):
-                    me.snapshot.usage = u
-                    me.snapshot.usageAt = clock()
-                    me.snapshot.usageIssue = nil
-                    me.succeed("usage")
-                    me.logUnread(report.unreadStamps)
-                    me.recordHistory(u, at: clock())
-                case .issue(.noLimits):
-                    // A login without a subscription: the old subscription's numbers no longer apply, its stats do.
-                    me.snapshot.usage = report.stats ?? UsageSnapshot()
-                    me.snapshot.usageAt = clock()
-                    me.snapshot.usageIssue = .noLimits
-                    me.succeed("usage")
-                case .issue(let issue):
-                    if issue == .claudeNotFound {
-                        me.claude = nil
-                        me.lastLocate = clock()
-                    }
-                    if let l = UsageLatch(version: cliVersion ?? "", issue: issue) {
-                        // Without a known version the latch holds for this run and is keyed once one is known.
-                        me.latch = l
-                        if !l.version.isEmpty { me.latchStore.save(l) }
-                    }
-                    me.snapshot.usageIssue = issue
-                    me.fail("usage", Self.describe(issue))
-                }
+        case .probeAccount(let claude, let environment):
+            let spec = AccountProbe.spec(claude: claude, environment: environment, home: home)
+            spawn { .account(AccountProbe.interpret(await runner.run(spec))) }
+        case .probeStatus:
+            spawn { .status((try? await http.get(AppInfo.statusSummary, timeout: 15)).flatMap(StatusProbe.parse)) }
+        case .fetchChangelog:
+            spawn { .changelog((try? await http.get(AppInfo.changelogRaw, timeout: 30)).map { String(decoding: $0, as: UTF8.self) }) }
+        case .runUpdate(let claude, let environment):
+            let logURL = paths.updateLog
+            let spec = UpdateRunner.spec(claude: claude, environment: environment, home: home, log: logURL)
+            spawn {
+                let result = await runner.run(spec)
+                let tail = UpdateRunner.tail(of: logURL, home: home)
+                return .update(UpdateRunner.failure(result, tail: tail, home: home), logTail: tail)
             }
+        case .saveLatch(let latch):
+            return .latchSaved(failure: Self.failure { try latchStore.save(latch) })
+        case .saveHistory(let samples):
+            return .historySaved(failure: Self.failure { try historyStore.save(samples) })
+        case .log(let line):
+            log.append(line, now: deps.clock(), timeZone: deps.timeZone)
+        case .cancelAll:
+            weather.shutdown()
+            for t in tasks.values { t.cancel() }
+            runner.shutdown()
         }
-    }
-
-    /// Reset stamps in a format the parser does not know, by shape; the next CLI change shows up here.
-    private func logUnread(_ stamps: [String]) {
-        var shapes: [String] = []
-        for s in stamps.map(UsageParser.shape) where !shapes.contains(s) { shapes.append(s) }
-        if shapes.isEmpty {
-            succeed("usage-stamp")
-        } else {
-            fail("usage-stamp", "no date in " + shapes.map { "\"\($0)\"" }.joined(separator: ", "))
-        }
-    }
-
-    /// Every good answer is a sample, whether or not the chart is shown, since nothing can fill in a missed day later.
-    private func recordHistory(_ u: UsageSnapshot, at now: Date) {
-        guard UsageHistoryStore.record(u, at: now, into: &snapshot.history) else { return }
-        do {
-            try historyStore.save(snapshot.history)
-            succeed("history")
-        } catch {
-            fail("history", error.localizedDescription)
-        }
-    }
-
-    /// The CLI version a latch is keyed by: the probed one, else a quick `claude --version`.
-    private func currentCLIVersion() async -> String? {
-        if let v = snapshot.version.local { return v }
-        guard let claude else { return nil }
-        let spec = VersionProbe.spec(claude: claude.path, environment: childEnvironment, home: deps.home)
-        return VersionProbe.local(await deps.runner.run(spec))
-    }
-
-    private func startVersion(now: Date) {
-        guard let claude else { return }
-        version.lastTry = now
-        version.running = true
-        // Only a look started after a clean update may judge it; one already running saw the old version.
-        let verifying = pendingVerify
-        pendingVerify = nil
-        let spec = VersionProbe.spec(claude: claude.path, environment: childEnvironment, home: deps.home)
-        let settings = URL(fileURLWithPath: configDirectory).appendingPathComponent("settings.json")
-        let runner = deps.runner, http = deps.http
-        spawn { me in
-            let local = VersionProbe.local(await runner.run(spec))
-            let url = VersionProbe.latestURL(channel: VersionProbe.channel(settings: try? Data(contentsOf: settings)))
-            let body = try? await http.get(url, timeout: 15)
-            let latest = body.flatMap { VersionProbe.latest(String(decoding: $0, as: UTF8.self)) }
-            me.completing {
-                me.version.running = false
-                if let local { me.snapshot.version.local = local }
-                if let latest { me.snapshot.version.latest = latest }
-                if local == nil || latest == nil {
-                    me.fail("version", local == nil ? "claude --version failed" : "no latest version from \(url.host ?? "")")
-                } else {
-                    me.succeed("version")
-                }
-                me.judgeUpdate(probed: local, startedFrom: verifying)
-                me.checkLatch()
-                if me.versionAgain {
-                    me.versionAgain = false
-                    me.startVersion(now: me.deps.clock())
-                }
-                me.startChangelogIfNeeded(now: me.deps.clock())
-            }
-        }
-    }
-
-    /// A failed update lasts while the versions it started from hold, as upstream's failed=<ver> does; a clean exit
-    /// that left the version where it was, with the update still out, is a failure too.
-    private func judgeUpdate(probed: String?, startedFrom: String?) {
-        let v = snapshot.version
-        if let f = v.updateFailure, !(v.updateAvailable && f.holds(local: v.local, latest: v.latest)) {
-            snapshot.version.updateFailure = nil
-        }
-        if let startedFrom, probed == startedFrom, v.updateAvailable {
-            snapshot.version.updateFailure = UpdateFailure(
-                exitCode: 0, outputTail: UpdateRunner.tail(of: paths.updateLog, home: deps.home), from: startedFrom, to: v.latest
-            )
-            fail("update", "exit 0, but Claude Code is still \(startedFrom)")
-        }
-    }
-
-    /// Holds a latch for the version it was seen with; any other version re-arms the usage probe at once.
-    private func checkLatch() {
-        guard var l = latch else { return }
-        if let v = snapshot.version.local, !l.holds(forVersion: v) {
-            if l.version.isEmpty {
-                l.version = v
-                latch = l
-                latchStore.save(l)
-            } else {
-                latch = nil
-                latchStore.save(nil)
-                if snapshot.usageIssue?.isLatched == true { snapshot.usageIssue = nil }
-                usage.lastTry = nil
-                if !usage.running, claude != nil { startUsage(now: deps.clock()) }
-                return
-            }
-        }
-        snapshot.usageIssue = l.issue
-        snapshot.usageProbeCompleted = true
-    }
-
-    private func startChangelogIfNeeded(now: Date) {
-        let v = snapshot.version
-        guard !stopped, v.updateAvailable, let local = v.local, let latest = v.latest, !changelog.running else { return }
-        if let c = v.changes, c.forVersion == latest, c.fromVersion == local { return }
-        guard Cadence.due(last: changelog.lastTry, interval: Self.changelogRetry, now: now) else { return }
-        changelog.lastTry = now
-        changelog.running = true
-        let http = deps.http
-        spawn { me in
-            let body = try? await http.get(AppInfo.changelogRaw, timeout: 30)
-            me.completing {
-                me.changelog.running = false
-                guard let body, let local = me.snapshot.version.local, let latest = me.snapshot.version.latest else {
-                    return me.fail("changelog", "download failed")
-                }
-                let items = ChangelogSlicer.slice(String(decoding: body, as: UTF8.self), after: local, upTo: latest)
-                me.snapshot.version.changes = ChangesExcerpt(forVersion: latest, fromVersion: local, items: items)
-                me.succeed("changelog")
-            }
-        }
-    }
-
-    private func startAccount(now: Date) {
-        guard let claude else { return }
-        account.lastTry = now
-        account.running = true
-        let spec = AccountProbe.spec(claude: claude.path, environment: childEnvironment, home: deps.home)
-        let runner = deps.runner
-        spawn { me in
-            let info = AccountProbe.interpret(await runner.run(spec))
-            me.completing {
-                me.account.running = false
-                if let info {
-                    me.snapshot.account = info
-                    me.succeed("account")
-                } else {
-                    me.fail("account", "claude auth status gave no answer")
-                }
-            }
-        }
-    }
-
-    private func startStatus(now: Date) {
-        status.lastTry = now
-        status.running = true
-        let http = deps.http, clock = deps.clock
-        spawn { me in
-            let body = try? await http.get(AppInfo.statusSummary, timeout: 15)
-            me.completing {
-                me.status.running = false
-                if let s = body.flatMap(StatusProbe.parse) {
-                    me.snapshot.status = s
-                    me.snapshot.statusAt = clock()
-                    me.succeed("status")
-                } else {
-                    me.fail("status", "no summary from \(AppInfo.statusSummary.host ?? "")")
-                }
-            }
-        }
-    }
-
-    private func readSessions(now: Date) {
-        guard config.showSessions || config.showMascot else { return }
-        let dir = SessionRegistry.directory(configDir: configDirectory, home: deps.home)
-        snapshot.sessions = SessionRegistry(directory: dir, table: deps.table, readFile: deps.readFile)
-            .read(excluding: deps.runner.childPIDs, now: now)
-        snapshot.sessionsRead = true
+        return nil
     }
 
     private func weatherChanged() {
-        completing {
-            snapshot.weather = weather.weather
-            snapshot.place = weather.place
-            succeed("weather")
+        complete(.weather(weather.weather, weather.place))
+    }
+
+    /// What `write` threw, described; nil when it went through.
+    private static func failure(_ write: () throws -> Void) -> String? {
+        do {
+            try write()
+            return nil
+        } catch {
+            return error.localizedDescription
         }
     }
 
-    // MARK: - Plumbing
-
-    private var resolved: Bool { loginRuns > 0 }
-
-    private var configDirectory: String {
-        ClaudeConfigDir.resolve(account: snapshot.account, login: login, environment: deps.environment, home: deps.home)
-    }
-
-    private var childEnvironment: [String: String] {
-        ChildEnv.make(inherited: deps.environment, login: login, claude: claude?.path)
-    }
-
-    /// Runs `body` on the main actor and forgets the task when it ends.
-    private func spawn(_ body: @escaping @MainActor (DataController) async -> Void) {
+    /// Runs `work` off the main actor, feeds its event back on it, and forgets the task when it ends.
+    private func spawn(_ work: @escaping @Sendable () async -> DataEvent) {
         let id = nextTask
         nextTask += 1
         tasks[id] = Task { [weak self] in
+            let event = await work()
             guard let self else { return }
-            await body(self)
+            self.complete(event)
             self.tasks[id] = nil
-        }
-    }
-
-    /// An async completion: applies `change` unless we stopped, and tells the app when the snapshot moved.
-    private func completing(_ change: () -> Void) {
-        guard !stopped else { return }
-        let before = snapshot
-        change()
-        if snapshot != before { onChange?() }
-    }
-
-    private func fail(_ source: String, _ message: String) {
-        guard failures[source] != message else { return }
-        failures[source] = message
-        log.append("\(source): \(message)", now: deps.clock(), timeZone: deps.timeZone)
-    }
-
-    private func succeed(_ source: String) { failures[source] = nil }
-
-    nonisolated static func describe(_ issue: UsageIssue) -> String {
-        switch issue {
-        case .claudeNotFound: "claude not found"
-        case .launchFailed(let s): s
-        case .timedOut: "timed out after 60 s"
-        case .probeFailed(let s): s
-        case .noLimits: "no plan limits in /usage"
-        case .flagRejected(let o): "claude rejected \(o); stopped until the CLI version changes"
-        case .modelReached(let turns, let cost, let tokens):
-            "/usage reached the model (\(turns) turns, $\(cost), \(tokens) tokens); stopped until the CLI version changes"
         }
     }
 }
