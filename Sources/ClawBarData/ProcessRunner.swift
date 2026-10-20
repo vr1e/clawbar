@@ -1,5 +1,5 @@
 import Foundation
-import Synchronization
+import os
 
 /// Runs child processes; tests of the controller stand a fake in for it.
 protocol ProcessRunning: Sendable {
@@ -19,7 +19,7 @@ final class ProcessRunner: ProcessRunning {
         var closed = false
     }
 
-    private let registry = Mutex(Registry())
+    private let registry = OSAllocatedUnfairLock(initialState: Registry())
 
     init() {}
 
@@ -180,13 +180,13 @@ private final class Child: Sendable {
     let pid: Int32
     private let cap: Int
     private let grace: TimeInterval
-    private let state: Mutex<State>
+    private let state: OSAllocatedUnfairLock<State>
 
     init(pid: Int32, cap: Int, grace: TimeInterval, capture: Bool, done: @escaping @Sendable (ProcessResult) -> Void) {
         self.pid = pid
         self.cap = cap
         self.grace = grace
-        state = Mutex(State(outOpen: capture, errOpen: capture, done: done))
+        state = OSAllocatedUnfairLock(initialState: State(outOpen: capture, errOpen: capture, done: done))
     }
 
     func drain(out: Int32, err: Int32) {

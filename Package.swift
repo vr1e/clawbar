@@ -12,7 +12,7 @@ let testSettings: [SwiftSetting] = FileManager.default.fileExists(atPath: testin
 // Shipped targets have no resources: Bundle.module breaks in the hand-assembled .app.
 let package = Package(
     name: "ClawBar",
-    platforms: [.macOS(.v15)],
+    platforms: [.macOS(.v14)],
     products: [
         .executable(name: "ClawBar", targets: ["ClawBar"]),
     ],

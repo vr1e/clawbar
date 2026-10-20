@@ -22,8 +22,8 @@ import ClawBarShared
         #expect(p["CFBundlePackageType"] as? String == "APPL")
     }
 
-    @Test func itIsAMenuBarAppForMacOS15AndLater() {
+    @Test func itIsAMenuBarAppForMacOS14AndLater() {
         #expect(Self.plist["LSUIElement"] as? Bool == true)
-        #expect(Self.plist["LSMinimumSystemVersion"] as? String == "15.0")
+        #expect(Self.plist["LSMinimumSystemVersion"] as? String == "14.0")
     }
 }

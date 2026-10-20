@@ -1,5 +1,5 @@
 import Foundation
-import Synchronization
+import os
 import Testing
 import ClawBarShared
 @testable import ClawBarData
@@ -8,7 +8,7 @@ struct HTTPFailure: Error {}
 
 /// Answers by host from a table the test can change; records every request.
 final class FakeHTTP: HTTPFetching {
-    private let state = Mutex<(answers: [String: Data?], urls: [URL])>(([:], []))
+    private let state = OSAllocatedUnfairLock<(answers: [String: Data?], urls: [URL])>(initialState: ([:], []))
     /// Between recording a request and answering it.
     private let latency: Duration
 
