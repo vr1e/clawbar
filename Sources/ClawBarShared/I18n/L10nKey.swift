@@ -102,6 +102,8 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case menuSmaller = "menu.smaller"
     case menuTopmost = "menu.topmost"
     case menuLogin = "menu.login"
+    /// Clawd beside the % in the menu bar.
+    case menuClawd = "menu.clawd"
     case menuConfig = "menu.config"
     case menuLanguage = "menu.language"
     /// The Show in widget submenu; its items are the original's Settings switches.

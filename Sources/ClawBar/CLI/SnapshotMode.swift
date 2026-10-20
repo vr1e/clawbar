@@ -201,16 +201,17 @@ enum SnapshotMode {
         return frame
     }
 
-    /// The menu bar item on a light and a dark bar, at 2 pixels per point.
+    /// The menu bar item on a light and a dark bar, at 2 pixels per point; `no-clawd` is the pill alone.
     static func writeStatusItems(to dir: URL) throws -> [URL] {
-        let items: [(name: String, text: String, color: RGBA)] = [
-            ("none", "--", Palette.dead), ("7", "7", Palette.ok), ("42", "42", Palette.ok), ("42-stale", "42", Palette.dead),
-            ("60", "60", Palette.warn), ("85", "85", Palette.crit), ("100", "100", Palette.crit),
+        let items: [(name: String, text: String, color: RGBA, mascot: Bool)] = [
+            ("none", "--", Palette.dead, true), ("7", "7", Palette.ok, true), ("42", "42", Palette.ok, true),
+            ("42-stale", "42", Palette.dead, true), ("60", "60", Palette.warn, true), ("85", "85", Palette.crit, true),
+            ("100", "100", Palette.crit, true), ("42-no-clawd", "42", Palette.ok, false), ("100-no-clawd", "100", Palette.crit, false),
         ]
         let bars: [(String, RGBA)] = [("light", RGBA("#FFF2F2F2")), ("dark", RGBA("#FF262626"))]
         var out: [URL] = []
-        for (name, text, color) in items {
-            let image = StatusItemImage.make(text: text, color: color)
+        for (name, text, color, mascot) in items {
+            let image = StatusItemImage.make(text: text, color: color, mascot: mascot)
             for (bar, background) in bars {
                 guard let cg = Imaging.image(image, pixelScale: 2, background: background, pad: 3) else { throw CLIError(message: "status item \(name)") }
                 let url = dir.appendingPathComponent("status-item-\(name)-\(bar).png")
@@ -254,19 +255,20 @@ enum SnapshotMode {
         let sections: [(String, String)] = [
             (
                 "Status menu, widget shown",
-                MenuEntry.dump(StatusMenu.entries(lang: lang, widgetVisible: true, topmost: false, launchAtLogin: true, shown: Set(WidgetBlock.allCases)))
+                MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: true))
             ),
             (
-                "Status menu, widget hidden, always on top, no Clawd or stats",
+                "Status menu, widget hidden, always on top, no Clawd in the menu bar or the widget, no stats",
                 MenuEntry.dump(StatusMenu.entries(
-                    lang: lang, widgetVisible: false, topmost: true, launchAtLogin: false, shown: [.sky, .status, .sessions, .account]
+                    config: Config(
+                        language: lang.rawValue, topmost: true, showStats: false, showMascot: false, launchAtLogin: false, menuBarMascot: false
+                    ),
+                    widgetVisible: false
                 ))
             ),
             (
                 "Status menu, session limit used up",
-                MenuEntry.dump(StatusMenu.entries(
-                    lang: lang, widgetVisible: true, topmost: false, launchAtLogin: true, shown: Set(WidgetBlock.allCases), limitReached: true
-                ))
+                MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: true, limitReached: true))
             ),
             ("Developer menu, live data", DevMenuBuilder.dump(DevMenu.build(dev: ClawdDevState(), sky: SkyDevState(), skyVisible: true, lang: lang))),
             (

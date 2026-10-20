@@ -134,6 +134,8 @@ public struct WidgetViewState: Sendable, Hashable {
     public var trayText: String
     public var trayColor: RGBA
     public var trayTooltip: String
+    /// Clawd beside the pill.
+    public var trayMascot: Bool
 
     public init(
         title: String = "CLAUDE USAGE",
@@ -187,7 +189,8 @@ public struct WidgetViewState: Sendable, Hashable {
         stampColor: RGBA = Palette.footer,
         trayText: String = "--",
         trayColor: RGBA = Palette.dead,
-        trayTooltip: String = ""
+        trayTooltip: String = "",
+        trayMascot: Bool = true
     ) {
         self.title = title
         self.detailsGlyph = detailsGlyph
@@ -241,5 +244,6 @@ public struct WidgetViewState: Sendable, Hashable {
         self.trayText = trayText
         self.trayColor = trayColor
         self.trayTooltip = trayTooltip
+        self.trayMascot = trayMascot
     }
 }

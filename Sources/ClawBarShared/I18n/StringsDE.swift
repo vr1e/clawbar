@@ -92,6 +92,7 @@ public enum StringsDE {
         .menuSmaller: .text("Kleiner"),
         .menuTopmost: .text("Immer im Vordergrund"),
         .menuLogin: .text("Beim Anmelden öffnen"),
+        .menuClawd: .text("Clawd in der Menüleiste"),
         .menuConfig: .text("config.json öffnen"),
         .menuLanguage: .text("Sprache"),
         .menuShown: .text("Im Widget zeigen"),

@@ -51,6 +51,7 @@ private struct Render {
     /// The percent row, the session bar, the reset line and the menu bar item.
     private func session(_ v: inout WidgetViewState) {
         sessionNumbers(&v)
+        v.trayMascot = cfg.menuBarMascot
         explain(data.usageIssue, &v)
         // The game only opens at the limit, so once it is gone the limit has reset.
         v.gameCaption = v.limitReached ? v.resetText : t(.gameBack)

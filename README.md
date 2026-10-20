@@ -47,8 +47,8 @@ To update, pull and run the last two commands again. `config.json` and ClawBar's
 ## Use
 
 - **Left-click** the menu bar item to show or hide the widget; **right-click** (or ctrl-click) it for the menu:
-  Refresh now, Larger, Smaller, Always on top, Launch at login, Open config.json, Show in widget (which blocks the
-  widget shows), Language, Quit.
+  Refresh now, Larger, Smaller, Always on top, Launch at login, Clawd in menu bar, Open config.json, Show in widget
+  (which blocks the widget shows), Language, Quit. Untick Clawd in both places for the numbers alone.
 - **Drag** the widget by anything but Clawd and the buttons. ▾ opens the details, – hides the widget, ✕ quits.
 - **Click** the status line to open status.claude.com, the version line to run `claude update` when one is out
   (otherwise it opens the changelog), and the ClawBar line to visit the original project.
@@ -86,6 +86,7 @@ the file is not valid JSON, ClawBar runs on the defaults and the widget's last-u
 | `left`, `top` | unset | widget position, saved when you move it |
 | `claudePath` | unset | a `claude` executable to use first |
 | `launchAtLogin` | `true` | open at login |
+| `menuBarMascot` | `true` | Clawd beside the % in the menu bar |
 
 ## What it reads and sends
 

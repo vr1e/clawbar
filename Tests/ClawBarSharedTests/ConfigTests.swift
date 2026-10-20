@@ -22,6 +22,7 @@ import ClawBarShared
         #expect(c.left == nil && c.top == nil)
         #expect(c.claudePath == nil)
         #expect(c.launchAtLogin == true)
+        #expect(c.menuBarMascot == true)
         #expect(c.lang == .en)
     }
 
@@ -108,8 +109,9 @@ import ClawBarShared
     }
 
     @Test func everyConfigKeyHasAStableJSONName() {
-        #expect(ConfigKey.allCases.count == 25)
+        #expect(ConfigKey.allCases.count == 26)
         #expect(ConfigKey.usageIntervalSeconds.rawValue == "usageIntervalSeconds")
         #expect(ConfigKey.launchAtLogin.rawValue == "launchAtLogin")
+        #expect(ConfigKey.menuBarMascot.rawValue == "menuBarMascot")
     }
 }
