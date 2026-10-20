@@ -8,13 +8,18 @@ struct HTTPFailure: Error {}
 
 /// Answers by host from a table the test can change; records every request.
 final class FakeHTTP: HTTPFetching {
-    private let state = OSAllocatedUnfairLock<(answers: [String: Data?], urls: [URL])>(initialState: ([:], []))
+    private struct State {
+        var answers: [String: Data?]
+        var urls: [URL] = []
+    }
+
+    private let state: OSAllocatedUnfairLock<State>
     /// Between recording a request and answering it.
     private let latency: Duration
 
     init(_ answers: [String: Data?] = [:], latency: Duration = .zero) {
         self.latency = latency
-        state.withLock { $0.answers = answers }
+        state = OSAllocatedUnfairLock(initialState: State(answers: answers))
     }
 
     /// nil data makes that host fail.
