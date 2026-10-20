@@ -28,8 +28,6 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private let loginItem: LoginItemController
     private let ipc = IPCListener()
     private let game = GameWindowController()
-    /// Whether Clawd Run opened over a used-up limit, so its caption can tell when the limit resets.
-    private var gameOpenedAtLimit = false
 
     private var dataTimer: Timer?
     private var sessionTimer: Timer?
@@ -80,7 +78,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         data.onChange = { [weak self] in self?.recompute() }
 
         game.lang = { [unowned self] in config.lang }
-        game.caption = { [unowned self] in gameCaption() }
+        game.caption = { [unowned self] in app.view.gameCaption }
         statusItem.onToggle = { [unowned self] in toggleWidget() }
         statusItem.menuProvider = { [unowned self] in statusMenu() }
 
@@ -141,15 +139,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     // MARK: Ticks
 
     private func repeating(_ seconds: Double, tolerance: Double? = nil, _ body: @escaping @MainActor () -> Void) -> Timer {
-        timer(seconds, repeats: true, tolerance: tolerance, body)
-    }
-
-    private func timer(_ seconds: Double, repeats: Bool, tolerance: Double? = nil, _ body: @escaping @MainActor () -> Void) -> Timer {
-        // .common keeps the ticks running while a menu is open, like WPF's dispatcher timers.
-        let t = Timer(timeInterval: seconds, repeats: repeats) { _ in MainActor.assumeIsolated { body() } }
-        t.tolerance = tolerance ?? seconds / 10
-        RunLoop.main.add(t, forMode: .common)
-        return t
+        Timer.onMain(every: seconds, tolerance: tolerance, body)
     }
 
     private func scheduleDataTimer() {
@@ -282,7 +272,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     private func scheduleSave() {
         saveTimer?.invalidate()
-        saveTimer = timer(0.5, repeats: false) { [unowned self] in savePosition() }
+        saveTimer = Timer.onMain(every: 0.5, repeats: false) { [unowned self] in savePosition() }
     }
 
     /// The top-left, WPF-style and rounded like the original's [math]::Round, written only when it moved.
@@ -371,7 +361,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
             case .none: break
             }
         case .appVersion: NSWorkspace.shared.open(app.view.appVersionURL)
-        case .play: openGame()
+        case .play: game.show()
         case .hearts, .percentRow, .number, .reset, .sessions, .account: break
         }
     }
@@ -424,7 +414,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .toggleTopmost: change { $0.topmost.toggle() }
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .openConfig: openConfig()
-        case .play: openGame()
+        case .play: game.show()
         case .language(let l): change { $0.language = l.rawValue }
         case .toggleBlock(let b): change { $0[keyPath: b.flag].toggle() }
         case .quit: NSApp.terminate(nil)
@@ -442,19 +432,6 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .quit: perform(StatusMenuAction.quit)
         case .lang(let l): perform(StatusMenuAction.language(l))
         }
-    }
-
-    // MARK: Clawd Run
-
-    private func openGame() {
-        if !game.isOpen { gameOpenedAtLimit = app.view.limitReached }
-        game.show()
-    }
-
-    /// The time until the limit resets while it lasts, then the news that it has.
-    private func gameCaption() -> String {
-        if app.view.limitReached { return app.view.resetText }
-        return gameOpenedAtLimit ? L10n.t(.gameBack, config.lang) : ""
     }
 
     /// Writes every key first when the file is missing, then opens it in TextEdit: .json often has no handler.

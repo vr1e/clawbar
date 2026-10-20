@@ -27,15 +27,18 @@ private func pass(
     return e.phase
 }
 
+private func texts(_ f: RunnerFrame) -> [String] {
+    f.ops.compactMap { op -> String? in
+        if case let .text(s, _, _, _, _, _, _) = op { return s }
+        return nil
+    }
+}
+
 private func stand(_ e: RunnerEngine) -> RunnerInput { RunnerInput() }
 private func duck(_ e: RunnerEngine) -> RunnerInput { RunnerInput(duck: true) }
 
-/// Jumps when the obstacle is close, holding the rise.
-private func jump(_ e: RunnerEngine) -> RunnerInput {
-    if e.airborne { return RunnerInput(jump: e.velocity < 0) }
-    guard let o = e.obstacles.first else { return RunnerInput() }
-    return RunnerInput(jump: o.x - (RunnerTuning.clawdX + 54) < e.speed * 6)
-}
+/// Jumps when the obstacle is close, holding the rise: the demo player, for the obstacles it jumps.
+private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
 
 @Suite struct RunnerEngineTests {
     @Test func aRoundWaitsForTheFirstJump() {
@@ -66,7 +69,7 @@ private func jump(_ e: RunnerEngine) -> RunnerInput {
         #expect(held > 80 && held < 95)
         #expect(tapped < held - 25)
         // The tallest cactus is 45 high; a held jump clears it with room.
-        #expect(held > Double(RunnerArt.usedHeight(RunnerArt.cactusLarge)) * RunnerTuning.px + 20)
+        #expect(held > RunnerArt.cactusLarge.usedHeight + 20)
     }
 
     @Test func aHeldKeyJumpsOnce() {
@@ -137,6 +140,43 @@ private func jump(_ e: RunnerEngine) -> RunnerInput {
         #expect(e.highScore == score)
     }
 
+    @Test func onlyARunningRoundPauses() {
+        let e = RunnerEngine(random: SeededRandomSource(seed: 1))
+        e.pause()
+        #expect(!e.paused)
+        e.step(RunnerInput(jump: true))
+        e.pause()
+        #expect(e.paused)
+        e.resume()
+        while e.phase == .running { e.step(RunnerInput()) }
+        e.pause()
+        #expect(!e.paused)
+    }
+
+    @Test func aPausedRoundStandsStillUnderItsNote() {
+        let e = running()
+        e.pause()
+        let before = e.frame(lang: .de, caption: "")
+        for _ in 0 ..< 60 { e.step(RunnerInput(jump: true)) }
+        #expect(e.frame(lang: .de, caption: "") == before)
+        #expect(texts(before).contains(L10n.t(.gamePaused, .de)))
+        e.resume()
+        e.step(RunnerInput())
+        #expect(e.frame(lang: .de, caption: "") != before)
+    }
+
+    @Test func aNewRoundStartsOverAndKeepsTheHighScore() {
+        let e = running(seed: 3)
+        while e.phase == .running { e.step(RunnerInput()) }
+        let high = e.highScore
+        e.newRound()
+        #expect(e.phase == .ready)
+        #expect(e.score == 0 && e.obstacles.isEmpty && !e.airborne)
+        #expect(e.highScore == high)
+        e.step(RunnerInput(jump: true))
+        #expect(e.phase == .running)
+    }
+
     @Test func aSeedReplaysTheSameRound() {
         func play() -> [RunnerFrame] {
             let e = RunnerEngine(random: SeededRandomSource(seed: 9))
@@ -150,17 +190,10 @@ private func jump(_ e: RunnerEngine) -> RunnerInput {
     }
 
     @Test func theFrameShowsWhatThePhaseAsksFor() {
-        func texts(_ f: RunnerFrame) -> [String] {
-            f.ops.compactMap { op -> String? in
-                if case let .text(s, _, _, _, _, _, _) = op { return s }
-                return nil
-            }
-        }
         let e = RunnerEngine(random: SeededRandomSource(seed: 3), highScore: 42)
         #expect(texts(e.frame(lang: .en, caption: "resets in 1h 05m")).contains("Press Space or click to jump"))
         #expect(texts(e.frame(lang: .en, caption: "resets in 1h 05m")).contains("resets in 1h 05m"))
         #expect(texts(e.frame(lang: .en, caption: "")).contains("HI 00042  00000"))
-        #expect(texts(e.frame(lang: .de, caption: "", paused: true)).contains(L10n.t(.gamePaused, .de)))
         e.step(RunnerInput(jump: true))
         while e.phase == .running { e.step(RunnerInput()) }
         #expect(texts(e.frame(lang: .de, caption: "")).contains("SPIEL VORBEI"))

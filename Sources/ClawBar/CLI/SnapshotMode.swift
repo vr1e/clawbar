@@ -241,25 +241,17 @@ enum SnapshotMode {
         let e = RunnerEngine(random: SeededRandomSource(seed: 2), highScore: 1234)
         var frames = [(name: "ready", frame: e.frame(lang: lang, caption: caption))]
         e.step(RunnerInput(jump: true))
-        // Bugs fly from speed 8.5, some 2500 ticks in; stop once one is well on screen.
-        for t in 0 ..< 6000 where e.phase == .running {
-            e.step(e.demoInput)
-            if t > 2500, bugOnScreen(e.frame(lang: lang, caption: "")) { break }
-        }
+        // Bugs fly from speed 8.5; this seed's first is in the left two thirds of the canvas by then.
+        for _ in 0 ..< 2558 { e.step(e.demoInput) }
         frames.append((name: "running", frame: e.frame(lang: lang, caption: caption)))
-        frames.append((name: "paused", frame: e.frame(lang: lang, caption: caption, paused: true)))
+        e.pause()
+        frames.append((name: "paused", frame: e.frame(lang: lang, caption: caption)))
+        e.resume()
         while e.phase == .running { e.step(RunnerInput()) }
-        for _ in 0 ..< RunnerTuning.restartDelayTicks { e.step(RunnerInput()) }
+        // A second on, past the restart delay, so the restart note shows.
+        for _ in 0 ..< Int(RunnerTuning.ticksPerSecond) { e.step(RunnerInput()) }
         frames.append((name: "over", frame: e.frame(lang: lang, caption: L10n.t(.gameBack, lang))))
         return frames
-    }
-
-    /// A bug drawn in the left two thirds of the canvas.
-    static func bugOnScreen(_ frame: RunnerFrame) -> Bool {
-        frame.ops.contains { op in
-            guard case let .rects(rects, color, _) = op, color == Palette.runnerBug else { return false }
-            return rects.contains { $0.minX < 400 }
-        }
     }
 
     /// The menu bar item's text, colour and tooltip in every state, since no PNG shows the tooltip.

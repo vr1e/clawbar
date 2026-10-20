@@ -182,20 +182,17 @@ private struct PlayButton: View {
     let text: String
     @Environment(\.uiScale) private var k
 
-    static let sprite = PixelArt.rects(PixelArt.clawdStanding, value: "#", px: 1, py: 1)
-    static let eyes = PixelArt.rects(PixelArt.clawdStanding, value: "o", px: 1, py: 1)
+    static let sprite: [DrawOp] = [
+        .rects(PixelArt.rects(PixelArt.clawdStanding, value: "#", px: 1, py: 1), Palette.clawdBody, opacity: 1),
+        .rects(PixelArt.rects(PixelArt.clawdStanding, value: "o", px: 1, py: 1), Palette.clawdEyes, opacity: 1),
+    ]
 
     var body: some View {
         let scale = k
         HStack(alignment: .center, spacing: 7 * k) {
             Canvas { ctx, _ in
                 ctx.scaleBy(x: scale, y: scale)
-                var shape = Path()
-                shape.addRects(Self.sprite)
-                ctx.fill(shape, with: .color(Color(rgba: Palette.clawdBody)))
-                var eyes = Path()
-                eyes.addRects(Self.eyes)
-                ctx.fill(eyes, with: .color(Color(rgba: Palette.clawdEyes)))
+                DrawOpRenderer.draw(Self.sprite, in: &ctx)
             }
             // The sprite's two empty bottom rows are left off, so Clawd centres on the label.
             .frame(width: 18 * k, height: 10 * k)

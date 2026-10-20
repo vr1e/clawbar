@@ -52,6 +52,8 @@ private struct Render {
     private func session(_ v: inout WidgetViewState) {
         sessionNumbers(&v)
         explain(data.usageIssue, &v)
+        // The game only opens at the limit, so once it is gone the limit has reset.
+        v.gameCaption = v.limitReached ? v.resetText : t(.gameBack)
         // With the widget hidden, the menu bar still tells that a session waits.
         if cfg.showSessions, let counts = sessionCounts() { v.trayTooltip += "\n" + counts.joined(separator: " · ") }
     }
@@ -90,7 +92,6 @@ private struct Render {
         v.trayColor = stale == nil ? color : Palette.dead
         v.trayTooltip = trayTooltip(pct, span: span, usage) + (stale.map { "\n" + $0 } ?? "")
         if pct >= 100 {
-            v.limitReached = true
             v.playText = t(.uiPlay)
             v.playTooltip = t(.uiPlayTip)
         }

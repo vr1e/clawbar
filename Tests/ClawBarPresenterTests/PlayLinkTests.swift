@@ -28,9 +28,15 @@ import ClawBarShared
         var notFound = sample { $0.sessionPercent = 100 }
         notFound.usageIssue = .claudeNotFound
         for data in [DataSnapshot(), noLimits, notFound] {
-            #expect(!render(data).limitReached)
-            #expect(render(data).playText.isEmpty)
+            let v = render(data)
+            #expect(!v.limitReached)
+            #expect(v.playText.isEmpty)
         }
+    }
+
+    @Test func theGameCaptionTellsWhenTheLimitResets() {
+        #expect(render(sample { $0.sessionPercent = 100 }).gameCaption.hasPrefix("resets in"))
+        #expect(render(sample { $0.sessionPercent = 40 }).gameCaption == "The limit has reset: back to work!")
     }
 
     @Test func theLinkIsGerman() {

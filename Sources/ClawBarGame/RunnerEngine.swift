@@ -7,10 +7,10 @@ import ClawBarShared
 public final class RunnerEngine {
     typealias T = RunnerTuning
 
-    enum Kind: CaseIterable {
+    enum Kind {
         case cactusSmall, cactusLarge, bug
 
-        var rows: [String] {
+        var sprite: Sprite {
             switch self {
             case .cactusSmall: RunnerArt.cactusSmall
             case .cactusLarge: RunnerArt.cactusLarge
@@ -32,12 +32,7 @@ public final class RunnerEngine {
         /// The room left after this one before the next appears.
         var gap: Double
 
-        var width: Double { Double(RunnerArt.width(kind.rows) * count) * T.px }
-    }
-
-    struct Cloud: Equatable {
-        var x: Double
-        var y: Double
+        var width: Double { kind.sprite.width * Double(count) }
     }
 
     /// The bottoms of a bug's three heights: jump the low one, duck or jump the middle one, run under the high one.
@@ -46,7 +41,9 @@ public final class RunnerEngine {
     private let random: RandomSource
     public private(set) var phase: RunnerPhase = .ready
     public private(set) var highScore: Int
-    public private(set) var speed = T.startSpeed
+    /// The window is in the background: a running round waits, since it would crash unseen.
+    public private(set) var paused = false
+    private(set) var speed = T.startSpeed
     /// Units run this round.
     private(set) var distance = 0.0
     /// How far Clawd's feet are above the ground.
@@ -55,7 +52,8 @@ public final class RunnerEngine {
     private(set) var velocity = 0.0
     private(set) var ducking = false
     private(set) var obstacles: [Obstacle] = []
-    private var clouds: [Cloud] = []
+    /// Each cloud's top-left.
+    private var clouds: [CGPoint] = []
     /// The ground's specks: x, and y below the ground line.
     private var specks: [CGPoint] = []
     private var jumpHeld = false
@@ -66,21 +64,17 @@ public final class RunnerEngine {
     public init(random: RandomSource, highScore: Int = 0) {
         self.random = random
         self.highScore = highScore
-        var x = 0.0
-        while x < T.width {
-            specks.append(CGPoint(x: x, y: 3 + Double(random.nextInt(6))))
-            x += 12 + Double(random.nextInt(40))
-        }
-        clouds = [Cloud(x: 120, y: 40), Cloud(x: 380, y: 25)]
+        layOutScenery()
     }
 
-    public var score: Int { Int(distance * T.scorePerUnit) }
+    var score: Int { Int(distance * T.scorePerUnit) }
 
     var airborne: Bool { lift > 0 || velocity < 0 }
 
     // MARK: Ticks
 
     public func step(_ input: RunnerInput) {
+        guard !paused else { return }
         let pressed = input.jump && !jumpHeld
         jumpHeld = input.jump
         ticks += 1
@@ -99,8 +93,33 @@ public final class RunnerEngine {
         }
     }
 
+    // MARK: Rounds
+
+    /// Only a running round pauses: one at the start or after a crash has nothing to lose.
+    public func pause() {
+        if phase == .running { paused = true }
+    }
+
+    public func resume() {
+        paused = false
+    }
+
+    /// Back to the start with fresh scenery; the high score stays.
+    public func newRound() {
+        clearCourse()
+        phase = .ready
+        paused = false
+        jumpHeld = false
+        ticks = 0
+        layOutScenery()
+    }
+
     private func restart() {
+        clearCourse()
         phase = .running
+    }
+
+    private func clearCourse() {
         speed = T.startSpeed
         distance = 0
         lift = 0
@@ -109,6 +128,16 @@ public final class RunnerEngine {
         obstacles = []
         overTicks = 0
         milestoneLeft = 0
+    }
+
+    private func layOutScenery() {
+        specks = []
+        var x = 0.0
+        while x < T.width {
+            specks.append(CGPoint(x: x, y: 3 + Double(random.nextInt(6))))
+            x += 12 + Double(random.nextInt(40))
+        }
+        clouds = [CGPoint(x: 120, y: 40), CGPoint(x: 380, y: 25)]
     }
 
     private func run(_ input: RunnerInput, pressed: Bool) {
@@ -151,9 +180,9 @@ public final class RunnerEngine {
             if specks[i].x < -2 { specks[i] = CGPoint(x: specks[i].x + T.width + 4, y: 3 + Double(random.nextInt(6))) }
         }
         for i in clouds.indices { clouds[i].x -= speed * 0.2 }
-        clouds.removeAll { $0.x + Double(RunnerArt.width(RunnerArt.cloud)) * T.px < 0 }
+        clouds.removeAll { $0.x + RunnerArt.cloud.width < 0 }
         if (clouds.last.map { $0.x < T.width - 150 } ?? true), random.nextDouble() < 0.01 {
-            clouds.append(Cloud(x: T.width, y: 15 + Double(random.nextInt(50))))
+            clouds.append(CGPoint(x: T.width, y: 15 + Double(random.nextInt(50))))
         }
     }
 
@@ -176,34 +205,33 @@ public final class RunnerEngine {
 
     // MARK: Shapes
 
-    var clawdRows: [String] {
+    var clawdSprite: Sprite {
         if phase == .over { return RunnerArt.clawdCrashed }
-        if phase == .ready || airborne { return PixelArt.clawdStanding }
+        if phase == .ready || airborne { return RunnerArt.clawdStanding }
         let even = (ticks / 6) % 2 == 0
         if ducking { return even ? RunnerArt.clawdDuckA : RunnerArt.clawdDuckB }
         return even ? RunnerArt.clawdRunA : RunnerArt.clawdRunB
     }
 
     /// The top-left of a sprite whose lowest drawn row sits on `bottom`.
-    private func origin(_ rows: [String], x: Double, bottom: Double) -> CGPoint {
-        CGPoint(x: x, y: bottom - Double(RunnerArt.usedHeight(rows)) * T.px)
+    private func origin(_ sprite: Sprite, x: Double, bottom: Double) -> CGPoint {
+        CGPoint(x: x, y: bottom - sprite.usedHeight)
     }
 
     func clawdRects(_ value: Character) -> [CGRect] {
-        let rows = clawdRows
-        return PixelArt.rects(rows, value: value, px: T.px, py: T.px, origin: origin(rows, x: T.clawdX, bottom: T.groundY - lift))
+        let sprite = clawdSprite
+        return sprite.rects(value, at: origin(sprite, x: T.clawdX, bottom: T.groundY - lift))
     }
 
-    func rows(of o: Obstacle) -> [String] {
-        guard o.kind == .bug else { return o.kind.rows }
+    func sprite(of o: Obstacle) -> Sprite {
+        guard o.kind == .bug else { return o.kind.sprite }
         return (ticks / 10) % 2 == 0 ? RunnerArt.bugA : RunnerArt.bugB
     }
 
-    func rects(of o: Obstacle) -> [CGRect] {
-        let rows = self.rows(of: o)
-        let w = Double(RunnerArt.width(rows)) * T.px
+    func rects(of o: Obstacle, _ value: Character = "#") -> [CGRect] {
+        let sprite = self.sprite(of: o)
         return (0 ..< o.count).flatMap { i in
-            PixelArt.rects(rows, value: "#", px: T.px, py: T.px, origin: origin(rows, x: o.x + Double(i) * w, bottom: o.bottom))
+            sprite.rects(value, at: origin(sprite, x: o.x + Double(i) * sprite.width, bottom: o.bottom))
         }
     }
 
@@ -222,55 +250,55 @@ public final class RunnerEngine {
     // MARK: Drawing
 
     /// The scene, back to front: clouds, ground, obstacles, Clawd, then the score and messages.
-    /// `caption` goes top left (the reset time); `paused` dims the round under a note.
-    public func frame(lang: Lang, caption: String, paused: Bool = false) -> RunnerFrame {
+    /// `caption` goes top left (the reset time); a paused round shows a note in place of the phase's.
+    public func frame(lang: Lang, caption: String) -> RunnerFrame {
         var ops: [DrawOp] = []
-        let cloudRects = clouds.flatMap { c in
-            PixelArt.rects(RunnerArt.cloud, value: "#", px: T.px, py: T.px, origin: CGPoint(x: c.x, y: c.y))
+        func fill(_ rects: [CGRect], _ color: RGBA) {
+            ops.append(.rects(rects, color, opacity: 1))
         }
-        ops.append(.rects(cloudRects, Palette.runnerCloud, opacity: 1))
+        func text(_ s: String, x: Double, y: Double, size: Double, weight: FontWeight = .regular, color: RGBA, anchor: TextAnchor) {
+            ops.append(.text(s, at: CGPoint(x: x, y: y), size: size, weight: weight, color: color, opacity: 1, anchor: anchor))
+        }
+        func message(_ key: L10nKey, y: Double, size: Double = 13, weight: FontWeight = .regular, color: RGBA = Palette.secondary) {
+            text(L10n.t(key, lang), x: T.width / 2, y: y, size: size, weight: weight, color: color, anchor: .top)
+        }
+
+        fill(clouds.flatMap { RunnerArt.cloud.rects("#", at: $0) }, Palette.runnerCloud)
         let ground = [CGRect(x: 0, y: T.groundY, width: T.width, height: 1)]
             + specks.map { CGRect(x: $0.x, y: T.groundY + $0.y, width: 2, height: 1) }
-        ops.append(.rects(ground, Palette.runnerGround, opacity: 1))
-        let cacti = obstacles.filter { $0.kind != .bug }.flatMap(rects(of:))
-        ops.append(.rects(cacti, Palette.runnerCactus, opacity: 1))
+        fill(ground, Palette.runnerGround)
         let bugs = obstacles.filter { $0.kind == .bug }
-        ops.append(.rects(bugs.flatMap(rects(of:)), Palette.runnerBug, opacity: 1))
-        ops.append(.rects(bugs.flatMap { o in
-            PixelArt.rects(rows(of: o), value: "o", px: T.px, py: T.px, origin: origin(rows(of: o), x: o.x, bottom: o.bottom))
-        }, Palette.clawdEyes, opacity: 1))
-        ops.append(.rects(clawdRects("#"), Palette.clawdBody, opacity: 1))
-        ops.append(.rects(clawdRects("o"), Palette.clawdEyes, opacity: 1))
+        fill(obstacles.filter { $0.kind != .bug }.flatMap { rects(of: $0) }, Palette.runnerCactus)
+        fill(bugs.flatMap { rects(of: $0) }, Palette.runnerBug)
+        fill(bugs.flatMap { rects(of: $0, "o") }, Palette.clawdEyes)
+        fill(clawdRects("#"), Palette.clawdBody)
+        fill(clawdRects("o"), Palette.clawdEyes)
 
         // The score blinks for a moment at every hundred, like the dinosaur's.
         let blinkOff = milestoneLeft > 0 && (milestoneLeft / 8) % 2 == 1
         var hud = highScore > 0 ? "HI \(Self.digits(highScore))  " : ""
         hud += blinkOff ? "     " : Self.digits(score)
-        ops.append(.text(hud, at: CGPoint(x: T.width - 12, y: 8), size: 12, weight: .semibold, color: Palette.secondary, opacity: 1, anchor: .topTrailing))
-        ops.append(.text(caption, at: CGPoint(x: 12, y: 8), size: 10, weight: .regular, color: Palette.muted, opacity: 1, anchor: .topLeading))
-        ops.append(.text(L10n.t(.gameHint, lang), at: CGPoint(x: 12, y: T.groundY + 9), size: 9, weight: .regular, color: Palette.footer, opacity: 1, anchor: .topLeading))
+        text(hud, x: T.width - 12, y: 8, size: 12, weight: .semibold, color: Palette.secondary, anchor: .topTrailing)
+        text(caption, x: 12, y: 8, size: 10, color: Palette.muted, anchor: .topLeading)
+        text(L10n.t(.gameHint, lang), x: 12, y: T.groundY + 9, size: 9, color: Palette.footer, anchor: .topLeading)
 
-        let mid = T.width / 2
-        switch phase {
-        case _ where paused:
-            ops.append(.text(L10n.t(.gamePaused, lang), at: CGPoint(x: mid, y: 44), size: 13, weight: .regular, color: Palette.secondary, opacity: 1, anchor: .top))
-        case .ready:
-            ops.append(.text(L10n.t(.gameStart, lang), at: CGPoint(x: mid, y: 44), size: 13, weight: .regular, color: Palette.secondary, opacity: 1, anchor: .top))
-        case .over:
-            ops.append(.text(L10n.t(.gameOver, lang), at: CGPoint(x: mid, y: 36), size: 16, weight: .semibold, color: Palette.secondary, opacity: 1, anchor: .top))
-            if overTicks >= T.restartDelayTicks {
-                ops.append(.text(L10n.t(.gameRestart, lang), at: CGPoint(x: mid, y: 62), size: 11, weight: .regular, color: Palette.muted, opacity: 1, anchor: .top))
+        if paused {
+            message(.gamePaused, y: 44)
+        } else {
+            switch phase {
+            case .ready: message(.gameStart, y: 44)
+            case .over:
+                message(.gameOver, y: 36, size: 16, weight: .semibold)
+                if overTicks >= T.restartDelayTicks { message(.gameRestart, y: 62, size: 11, color: Palette.muted) }
+            case .running: break
             }
-        case .running:
-            break
         }
-        return RunnerFrame(ops: ops, phase: phase, score: score, highScore: highScore)
+        return RunnerFrame(ops: ops)
     }
 
     /// Five digits, zero-padded, like the dinosaur's counter.
     static func digits(_ n: Int) -> String {
-        let s = String(min(n, 99_999))
-        return String(repeating: "0", count: max(0, 5 - s.count)) + s
+        String(format: "%05ld", min(n, 99_999))
     }
 
     // MARK: Demo
@@ -279,7 +307,7 @@ public final class RunnerEngine {
     /// run under a high one. Drives the snapshots, and shows in tests that every course can be cleared.
     public var demoInput: RunnerInput {
         if airborne { return RunnerInput(jump: velocity < 0) }
-        let clawdRight = T.clawdX + Double(RunnerArt.width(PixelArt.clawdStanding)) * T.px
+        let clawdRight = T.clawdX + RunnerArt.clawdStanding.width
         guard let next = obstacles.first(where: { $0.x + $0.width > T.clawdX }) else { return RunnerInput() }
         guard next.x - clawdRight < speed * 6 else { return RunnerInput() }
         if next.kind == .bug {

@@ -92,13 +92,12 @@ enum StatusMenu {
         let blocks = WidgetBlock.allCases.map { b in
             toggle(b.title, shown.contains(b), .toggleBlock(b), enabled: b != .sky || shown.contains(.mascot))
         }
-        var top: [Entry] = [
+        let play = limitReached ? [item(.menuPlay, .play)] : []
+        return [
             Entry(title: AppInfo.title, enabled: false),
             .separator,
             item(widgetVisible ? .menuHide : .menuShow, .toggleWidget),
-        ]
-        if limitReached { top.append(item(.menuPlay, .play)) }
-        top += [
+        ] + play + [
             item(.menuRefresh, .refresh),
             item(.menuBigger, .larger),
             item(.menuSmaller, .smaller),
@@ -110,7 +109,6 @@ enum StatusMenu {
             .separator,
             item(.menuQuit, .quit),
         ]
-        return top
     }
 }
 

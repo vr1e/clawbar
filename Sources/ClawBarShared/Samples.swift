@@ -60,6 +60,7 @@ extension WidgetViewState {
     public static let placeholder = WidgetViewState(
         detailsTooltip: "Details", hideTooltip: "Hide", exitTooltip: "Quit",
         resetText: "loading...",
+        gameCaption: "The limit has reset: back to work!",
         week: BarRow(label: "WEEK", value: "no data", fraction: 0, color: Palette.weekBar),
         sessionsText: "none running",
         statusText: "status: loading...", statusTooltip: "Open status.claude.com",
@@ -74,6 +75,7 @@ extension WidgetViewState {
         detailsTooltip: "Details", hideTooltip: "Hide", exitTooltip: "Quit",
         pctText: "34", pctColor: Palette.ok, sessionFraction: 0.34, sessionBarColor: Palette.ok,
         resetText: "resets in 2h 05m",
+        gameCaption: "The limit has reset: back to work!",
         week: BarRow(label: "WEEK", value: "59%  ·  4d 15h", fraction: 0.59, color: Palette.weekBar),
         modelWeeks: [BarRow(label: "FABLE · WEEK", value: "8%  ·  4d 15h", fraction: 0.08, color: Palette.modelWeekBar)],
         sessionsText: "2 sessions  ·  1 working  ·  1 waiting",

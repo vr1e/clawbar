@@ -38,40 +38,21 @@ extension GameView {
 }
 
 /// The window's content: hosts the canvas and takes every key and click itself, so SwiftUI never sees them.
-final class GameHostView: NSView {
-    let hosting: NSHostingView<GameView>
+final class GameHostView: HostView<GameView> {
     var onKey: (NSEvent, Bool) -> Void = { _, _ in }
     var onMouse: (Bool) -> Void = { _ in }
 
-    init(model: GameModel) {
-        hosting = NSHostingView(rootView: GameView(model: model))
-        super.init(frame: CGRect(x: 0, y: 0, width: RunnerTuning.width, height: RunnerTuning.height))
-        hosting.frame = bounds
-        hosting.autoresizingMask = [.width, .height]
-        addSubview(hosting)
+    convenience init(model: GameModel) {
+        self.init(rootView: GameView(model: model), size: CGSize(width: RunnerTuning.width, height: RunnerTuning.height))
     }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError("not used") }
 
     override var acceptsFirstResponder: Bool { true }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        frame.contains(point) ? self : nil
-    }
-
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     // Not passed on: the responder chain would beep at every key.
     override func keyDown(with event: NSEvent) { onKey(event, true) }
     override func keyUp(with event: NSEvent) { onKey(event, false) }
     override func mouseDown(with event: NSEvent) { onMouse(true) }
     override func mouseUp(with event: NSEvent) { onMouse(false) }
-
-    override func layout() {
-        super.layout()
-        hosting.frame = bounds
-    }
 }
 
 /// Clawd Run's window: opened from the card's link or the menu while the session limit is used up.
@@ -87,7 +68,7 @@ final class GameWindowController: NSObject, NSWindowDelegate {
     var caption: () -> String = { "" }
 
     private let model = GameModel()
-    private var engine = RunnerEngine(random: SystemRandomSource())
+    private let engine = RunnerEngine(random: SystemRandomSource())
     private var window: NSWindow?
     private var host: GameHostView?
     private var timer: Timer?
@@ -95,16 +76,13 @@ final class GameWindowController: NSObject, NSWindowDelegate {
     private var mouseHeld = false
     /// A press since the last step, so a tap shorter than a tick still jumps.
     private var pressedSinceStep = false
-    private var paused = false
     private var lastTime: TimeInterval = 0
     private var backlog: TimeInterval = 0
-
-    var isOpen: Bool { window?.isVisible ?? false }
 
     func show() {
         let w = window ?? makeWindow()
         window = w
-        tick(stepping: false)
+        render()
         // An accessory app only gets keys once it is active.
         NSApp.activate()
         w.makeKeyAndOrderFront(nil)
@@ -155,17 +133,12 @@ final class GameWindowController: NSObject, NSWindowDelegate {
 
     // MARK: Ticks
 
-    private func startTimer() {
-        guard timer == nil else { return }
+    /// 60 a second while the window is key; once a second behind other windows, so the caption keeps up.
+    private func startTimer(every interval: TimeInterval = 1 / RunnerTuning.ticksPerSecond) {
+        stopTimer()
         lastTime = ProcessInfo.processInfo.systemUptime
         backlog = 0
-        // .common keeps the game running while a menu is open, like the widget's ticks.
-        let t = Timer(timeInterval: 1 / RunnerTuning.ticksPerSecond, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.tick(stepping: true) }
-        }
-        t.tolerance = 0.002
-        RunLoop.main.add(t, forMode: .common)
-        timer = t
+        timer = Timer.onMain(every: interval) { [weak self] in self?.fire() }
     }
 
     private func stopTimer() {
@@ -173,32 +146,39 @@ final class GameWindowController: NSObject, NSWindowDelegate {
         timer = nil
     }
 
+    /// A close can resign key after `windowWillClose`, so a timer that outlives the window lets itself go.
+    private func fire() {
+        guard window?.isVisible == true else {
+            stopTimer()
+            return
+        }
+        tick()
+    }
+
     /// As many fixed steps as real time asks for, at most a few, so a stall does not fast-forward into a crash.
-    private func tick(stepping: Bool) {
+    private func tick() {
         let now = ProcessInfo.processInfo.systemUptime
         let dt = 1 / RunnerTuning.ticksPerSecond
         backlog += now - lastTime
         lastTime = now
-        if stepping, !paused {
-            var steps = 0
-            while backlog >= dt, steps < Self.maxStepsPerFire {
-                let jump = pressedSinceStep || mouseHeld || !held.isDisjoint(with: Self.jumpKeys)
-                engine.step(RunnerInput(jump: jump, duck: !held.isDisjoint(with: Self.duckKeys)))
-                pressedSinceStep = false
-                backlog -= dt
-                steps += 1
-            }
+        var steps = 0
+        while !engine.paused, backlog >= dt, steps < Self.maxStepsPerFire {
+            let jump = pressedSinceStep || mouseHeld || !held.isDisjoint(with: Self.jumpKeys)
+            engine.step(RunnerInput(jump: jump, duck: !held.isDisjoint(with: Self.duckKeys)))
+            pressedSinceStep = false
+            backlog -= dt
+            steps += 1
         }
-        if paused || fellBehind(backlog: backlog, dt: dt) { backlog = 0 }
-        let language = lang()
-        model.frame = engine.frame(lang: language, caption: caption(), paused: paused)
-        let title = L10n.t(.gameTitle, language)
-        if let window, window.title != title { window.title = title }
+        // Past what the steps can catch up, after a stall or a pause.
+        if engine.paused || backlog >= dt * Double(Self.maxStepsPerFire) { backlog = 0 }
+        render()
     }
 
-    /// Whether the backlog is past what the steps can catch up, after a stall or a pause.
-    private func fellBehind(backlog: TimeInterval, dt: TimeInterval) -> Bool {
-        backlog >= dt * Double(Self.maxStepsPerFire)
+    private func render() {
+        let language = lang()
+        model.frame = engine.frame(lang: language, caption: caption())
+        let title = L10n.t(.gameTitle, language)
+        if let window, window.title != title { window.title = title }
     }
 
     private func releaseKeys() {
@@ -210,22 +190,22 @@ final class GameWindowController: NSObject, NSWindowDelegate {
     // MARK: NSWindowDelegate
 
     func windowDidBecomeKey(_ notification: Notification) {
-        paused = false
-        lastTime = ProcessInfo.processInfo.systemUptime
-        backlog = 0
+        engine.resume()
+        startTimer()
     }
 
-    /// A round in the background would crash unseen, so it waits; key-ups go to the other window, so keys are let go.
+    /// Key-ups go to the other window, so keys are let go; a running round waits, drawn at once with its note.
     func windowDidResignKey(_ notification: Notification) {
-        paused = engine.phase == .running
         releaseKeys()
+        engine.pause()
+        startTimer(every: 1)
+        render()
     }
 
     /// Closing ends the round; the high score stays until ClawBar quits.
     func windowWillClose(_ notification: Notification) {
         stopTimer()
         releaseKeys()
-        paused = false
-        engine = RunnerEngine(random: SystemRandomSource(), highScore: engine.highScore)
+        engine.newRound()
     }
 }
