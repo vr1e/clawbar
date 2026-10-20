@@ -9,6 +9,7 @@ let testSettings: [SwiftSetting] = FileManager.default.fileExists(atPath: testin
     : []
 
 // Linking with only --sysroot stamps the deployment target as the SDK version; -isysroot lets clang read the real one.
+// SDKROOT is set by the xcrun shim behind /usr/bin/swift; scripts/build-app.sh fails when it was missing.
 let sdkLinkerSettings: [LinkerSetting] = ProcessInfo.processInfo.environment["SDKROOT"].map {
     [.unsafeFlags(["-Xclang-linker", "-isysroot", "-Xclang-linker", $0])]
 } ?? []

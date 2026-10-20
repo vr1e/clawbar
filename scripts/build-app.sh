@@ -17,6 +17,14 @@ done
 swift build -c release
 BIN="$(swift build -c release --show-bin-path)/ClawBar"
 
+# Package.swift links with -isysroot only when the xcrun shim sets SDKROOT; without it, sdk falls back to minos.
+read -r minos sdk < <(vtool -show-build "$BIN" \
+    | awk '$1 == "minos" { m = $2 } $1 == "sdk" { s = $2 } END { print m, s }')
+if [ "$sdk" = "$minos" ]; then
+    echo "ClawBar is stamped sdk $sdk, its deployment target: build with swift from the xcrun shim" >&2
+    exit 1
+fi
+
 APP="$ROOT/build/ClawBar.app"
 ICONSET="$ROOT/build/AppIcon.iconset"
 rm -rf "$APP" "$ICONSET"

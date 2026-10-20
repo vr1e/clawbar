@@ -29,8 +29,8 @@ costs no tokens, and ClawBar makes sure of that on every run.
 ## Install
 
 ClawBar needs macOS 14 or later and [Claude Code](https://claude.ai/code) installed and logged in. Building it takes
-a Swift 6.2 toolchain (Xcode or the Command Line Tools), which needs macOS 15.6 or later; on macOS 14, download the app
-from [Releases](https://github.com/vr1e/clawbar/releases) instead. To build it:
+a Swift 6.2 toolchain (Xcode or the Command Line Tools), which needs macOS 15.6 or later; on an older macOS, download
+the app from [Releases](https://github.com/vr1e/clawbar/releases) instead. To build it:
 
 ```sh
 git clone https://github.com/vr1e/clawbar && cd clawbar
