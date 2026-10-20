@@ -92,6 +92,7 @@ public enum StringsEN {
         .menuSmaller: .text("Smaller"),
         .menuTopmost: .text("Always on top"),
         .menuLogin: .text("Launch at login"),
+        .menuClawd: .text("Clawd in menu bar"),
         .menuConfig: .text("Open config.json"),
         .menuLanguage: .text("Language"),
         .menuShown: .text("Show in widget"),

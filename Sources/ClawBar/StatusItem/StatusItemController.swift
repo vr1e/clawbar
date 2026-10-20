@@ -21,8 +21,8 @@ final class StatusItemController: NSObject {
         }
     }
 
-    func update(text: String, color: RGBA, tooltip: String) {
-        let image = cache.image(text: text, color: color)
+    func update(text: String, color: RGBA, mascot: Bool, tooltip: String) {
+        let image = cache.image(text: text, color: color, mascot: mascot)
         if item.button?.image !== image { item.button?.image = image }
         if tooltip != self.tooltip {
             self.tooltip = tooltip

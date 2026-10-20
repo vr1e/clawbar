@@ -77,28 +77,41 @@ func close(_ a: RGBA, _ b: RGBA, tolerance: Int = 3) -> Bool {
 
 @Suite struct StatusItemImageTests {
     @Test func thePillKeepsOneWidthWhateverTheNumber() {
-        let images = ["--", "7", "42", "100"].map { StatusItemImage.make(text: $0, color: Palette.ok) }
+        let images = ["--", "7", "42", "100"].map { StatusItemImage.make(text: $0, color: Palette.ok, mascot: true) }
         #expect(Set(images.map { $0.size.width }).count == 1)
-        #expect(images.allSatisfy { $0.size == StatusItemImage.size })
+        #expect(images.allSatisfy { $0.size == StatusItemImage.size(mascot: true) })
         // "100" is the widest text and must still fit inside the pill with room to spare.
-        #expect(StatusItemImage.textWidth("100") + 4 <= StatusItemImage.pillRect.width)
+        #expect(StatusItemImage.textWidth("100") + 4 <= StatusItemImage.pillRect(mascot: true).width)
     }
 
     @Test func clawdStandsLeftOfThePillAtOnePointPerPixel() {
         #expect(StatusItemImage.clawdRect.size == CGSize(width: 18, height: 12))
-        #expect(StatusItemImage.clawdRect.maxX < StatusItemImage.pillRect.minX)
-        #expect(StatusItemImage.size.height <= 22)
+        #expect(StatusItemImage.clawdRect.maxX < StatusItemImage.pillRect(mascot: true).minX)
+        #expect(StatusItemImage.size(mascot: true).height <= 22)
+    }
+
+    @Test func withoutClawdThePillStandsAloneAtTheLeftEdge() {
+        let pill = StatusItemImage.pillRect(mascot: false)
+        #expect(pill.minX == 0)
+        #expect(pill.size == StatusItemImage.pillRect(mascot: true).size)
+        #expect(StatusItemImage.size(mascot: false) == CGSize(width: pill.maxX, height: StatusItemImage.height))
+        let image = StatusItemImage.make(text: "42", color: Palette.ok, mascot: false)
+        #expect(image.size == StatusItemImage.size(mascot: false))
+        let r = Raster(image)
+        #expect(close(r.color(atPoint: pill.minX + 3, pill.midY), Palette.ok))
+        let body = r.count(in: CGRect(origin: .zero, size: image.size)) { close($0, Palette.clawdBody) }
+        #expect(body == 0, "no Clawd anywhere")
     }
 
     @Test func colorsAreClawdsThePillsLevelAndBlackText() {
-        let image = StatusItemImage.make(text: "42", color: Palette.warn)
+        let image = StatusItemImage.make(text: "42", color: Palette.warn, mascot: true)
         #expect(!image.isTemplate)
         let r = Raster(image)
         let clawd = StatusItemImage.clawdRect
         // Row 4 column 1 is body, row 2 column 5 an eye (PixelArt.clawdStanding).
         #expect(close(r.color(atPoint: clawd.minX + 1.5, clawd.minY + 4.5), Palette.clawdBody))
         #expect(close(r.color(atPoint: clawd.minX + 5.5, clawd.minY + 2.5), Palette.clawdEyes))
-        let pill = StatusItemImage.pillRect
+        let pill = StatusItemImage.pillRect(mascot: true)
         #expect(close(r.color(atPoint: pill.minX + 3, pill.midY), Palette.warn))
         let dark = r.count(in: pill.insetBy(dx: 4, dy: 2)) { $0.a > 200 && Int($0.r) + Int($0.g) + Int($0.b) < 120 }
         #expect(dark > 10, "the digits are drawn in black")
@@ -106,23 +119,26 @@ func close(_ a: RGBA, _ b: RGBA, tolerance: Int = 3) -> Bool {
     }
 
     @Test func withoutDataThePillIsDeadGrey() {
-        let r = Raster(StatusItemImage.make(text: "--", color: Palette.dead))
-        let pill = StatusItemImage.pillRect
+        let r = Raster(StatusItemImage.make(text: "--", color: Palette.dead, mascot: true))
+        let pill = StatusItemImage.pillRect(mascot: true)
         #expect(close(r.color(atPoint: pill.minX + 3, pill.midY), Palette.dead))
     }
 
-    @Test func theImageIsRebuiltOnlyWhenTextOrColourChanges() {
+    @Test func theImageIsRebuiltOnlyWhenTextColourOrClawdChanges() {
         let cache = StatusItemImageCache()
-        let a = cache.image(text: "42", color: Palette.ok)
-        let b = cache.image(text: "42", color: Palette.ok)
+        let a = cache.image(text: "42", color: Palette.ok, mascot: true)
+        let b = cache.image(text: "42", color: Palette.ok, mascot: true)
         #expect(a === b)
         #expect(cache.builds == 1)
-        let c = cache.image(text: "43", color: Palette.ok)
+        let c = cache.image(text: "43", color: Palette.ok, mascot: true)
         #expect(c !== a)
-        let d = cache.image(text: "43", color: Palette.warn)
+        let d = cache.image(text: "43", color: Palette.warn, mascot: true)
         #expect(d !== c)
         #expect(cache.builds == 3)
-        _ = cache.image(text: "43", color: Palette.warn)
+        _ = cache.image(text: "43", color: Palette.warn, mascot: true)
         #expect(cache.builds == 3)
+        let e = cache.image(text: "43", color: Palette.warn, mascot: false)
+        #expect(e !== d)
+        #expect(cache.builds == 4)
     }
 }

@@ -46,6 +46,7 @@ struct StateDump {
         add("config.showMascot", config.showMascot)
         add("config.showSky", config.showSky)
         add("config.launchAtLogin", config.launchAtLogin)
+        add("config.menuBarMascot", config.menuBarMascot)
         add("loginItem.status", loginItemStatus)
         add("loginItem.installedApp", installedApp)
         let u = snapshot.usage

@@ -159,7 +159,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         )
         let view = WidgetPresenter.make(input)
         if view != app.view { app.view = view }
-        statusItem.update(text: view.trayText, color: view.trayColor, tooltip: view.trayTooltip)
+        statusItem.update(text: view.trayText, color: view.trayColor, mascot: config.menuBarMascot, tooltip: view.trayTooltip)
         game.update(caption: view.gameCaption, lang: config.lang)
         // Clawd waits for the first registry read, so he starts idle instead of burrowing.
         if config.showMascot, snapshot.sessionsRead {
@@ -395,7 +395,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private func statusMenu() -> NSMenu {
         let entries = StatusMenu.entries(
             lang: config.lang, widgetVisible: widgetVisible, topmost: config.topmost, launchAtLogin: config.launchAtLogin,
-            shown: WidgetBlock.shown(in: config), limitReached: app.view.limitReached
+            menuBarMascot: config.menuBarMascot, shown: WidgetBlock.shown(in: config), limitReached: app.view.limitReached
         )
         return MenuBuilder.menu(entries) { [unowned self] in perform($0) }
     }
@@ -408,6 +408,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .smaller: change { $0.scale = ScaleStep.smaller($0.scale) }
         case .toggleTopmost: change { $0.topmost.toggle() }
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
+        case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
         case .openConfig: openConfig()
         case .play: game.show()
         case .language(let l): change { $0.language = l.rawValue }

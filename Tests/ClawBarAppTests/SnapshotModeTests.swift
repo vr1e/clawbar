@@ -59,7 +59,7 @@ import ClawBarShared
             #expect(names.contains("sample-en-k\(k).png"))
             #expect(names.contains("sample-de-k\(k).png"))
         }
-        for text in ["none", "7", "42", "42-stale", "100"] {
+        for text in ["none", "7", "42", "42-stale", "100", "42-no-clawd", "100-no-clawd"] {
             #expect(names.contains("status-item-\(text)-light.png"))
             #expect(names.contains("status-item-\(text)-dark.png"))
         }
@@ -69,6 +69,7 @@ import ClawBarShared
         }
         let menus = try String(contentsOf: tmp.url.appendingPathComponent("menus-en.txt"), encoding: .utf8)
         #expect(menus.contains("Quit ClawBar"))
+        #expect(menus.contains("[x] Clawd in menu bar") && menus.contains("[ ] Clawd in menu bar"))
         #expect(menus.contains("Play Clawd Run…"))
         #expect(menus.contains("Developer menu"))
         #expect(names.contains("menu-bar-en.txt") && names.contains("menu-bar-de.txt"))

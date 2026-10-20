@@ -25,7 +25,7 @@ public enum ConfigKey: String, CaseIterable, Sendable {
     case weatherLat, weatherLon
     case refreshSeconds, usageIntervalSeconds, versionIntervalSeconds, statusIntervalSeconds
     case accountIntervalSeconds, weatherIntervalSeconds
-    case left, top, claudePath, launchAtLogin
+    case left, top, claudePath, launchAtLogin, menuBarMascot
 }
 
 /// config.json in memory. Values may be out of range until `clamped()`.
@@ -59,6 +59,8 @@ public struct Config: Sendable, Hashable {
     /// An explicit claude executable, tried before the usual install locations.
     public var claudePath: String?
     public var launchAtLogin: Bool
+    /// Clawd beside the session % in the menu bar; off leaves the pill alone.
+    public var menuBarMascot: Bool
 
     public init(
         language: String = "en",
@@ -85,7 +87,8 @@ public struct Config: Sendable, Hashable {
         left: Double? = nil,
         top: Double? = nil,
         claudePath: String? = nil,
-        launchAtLogin: Bool = true
+        launchAtLogin: Bool = true,
+        menuBarMascot: Bool = true
     ) {
         self.language = language
         self.scale = scale
@@ -112,6 +115,7 @@ public struct Config: Sendable, Hashable {
         self.top = top
         self.claudePath = claudePath
         self.launchAtLogin = launchAtLogin
+        self.menuBarMascot = menuBarMascot
     }
 
     public var lang: Lang { Lang(configValue: language) }

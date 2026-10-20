@@ -31,7 +31,7 @@ import ClawBarShared
         write("""
         {"showSky": "false", "topmost": "true", "showStats": 0, "refreshSeconds": "20", "scale": "1.4",
          "warnPercent": 70.5, "critPercent": "90", "weatherLat": "48.2", "weatherLon": 16.4, "left": 100, "top": "200",
-         "language": "DE", "claudePath": " /opt/tools/claude ", "launchAtLogin": false}
+         "language": "DE", "claudePath": " /opt/tools/claude ", "launchAtLogin": false, "menuBarMascot": "false"}
         """)
         let c = ConfigStore(paths: paths).load()
         #expect(c.showSky == false)
@@ -47,6 +47,7 @@ import ClawBarShared
         #expect(c.lang == .de)
         #expect(c.claudePath == "/opt/tools/claude")
         #expect(c.launchAtLogin == false)
+        #expect(c.menuBarMascot == false)
     }
 
     @Test func aBadKeyFallsBackToItsOwnDefaultOnly() {
