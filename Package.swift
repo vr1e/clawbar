@@ -8,6 +8,11 @@ let testSettings: [SwiftSetting] = FileManager.default.fileExists(atPath: testin
     ? [.unsafeFlags(["-plugin-path", testingPlugins])]
     : []
 
+// Linking with only --sysroot stamps the deployment target as the SDK version; -isysroot lets clang read the real one.
+let sdkLinkerSettings: [LinkerSetting] = ProcessInfo.processInfo.environment["SDKROOT"].map {
+    [.unsafeFlags(["-Xclang-linker", "-isysroot", "-Xclang-linker", $0])]
+} ?? []
+
 // One target per owner, so modules built in parallel never share internal names.
 // Shipped targets have no resources: Bundle.module breaks in the hand-assembled .app.
 let package = Package(
@@ -26,7 +31,8 @@ let package = Package(
         .executableTarget(
             name: "ClawBar",
             dependencies: ["ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarSky", "ClawBarGame"],
-            swiftSettings: [.defaultIsolation(MainActor.self)]
+            swiftSettings: [.defaultIsolation(MainActor.self)],
+            linkerSettings: sdkLinkerSettings
         ),
 
         .testTarget(name: "ClawBarSharedTests", dependencies: ["ClawBarShared"], swiftSettings: testSettings),
