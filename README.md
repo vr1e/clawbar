@@ -55,7 +55,8 @@ To update, pull and run the last two commands again. `config.json` and ClawBar's
   time of day or weather, or sit back and watch everything in turn.
 - **Play Clawd Run** while the session limit is used up: click the orange *Play Clawd Run while you wait* button
   under the reset time, or pick it from the menu. Space, ↑ or a click jumps (hold for higher), ↓ ducks, Esc closes.
-  The round pauses while the window is in the background, and the high score lasts until ClawBar quits.
+  The round pauses while the window is in the background and goes on at the next press; the high score lasts until
+  ClawBar quits.
 - Only one ClawBar runs at a time; opening it again simply brings the widget back.
 
 ## Configuration

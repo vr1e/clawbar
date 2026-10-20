@@ -45,10 +45,10 @@ public final class RunnerEngine {
     /// The bottoms of a bug's three heights: jump the low one, duck or jump the middle one, run under the high one.
     static let bugBottoms = [T.groundY - 3, T.groundY - 24, T.groundY - 48]
 
-    private let random: RandomSource
+    private let random: any RandomSource
     private(set) var phase = Phase.ready
     private(set) var highScore: Int
-    /// The window is in the background: a running round waits, since it would crash unseen.
+    /// The window went to the background: a running round waits for the next press, since it would crash unseen.
     private(set) var paused = false
     private(set) var speed = T.startSpeed
     /// Units run this round.
@@ -70,7 +70,7 @@ public final class RunnerEngine {
     private var overTicks = 0
     private var milestoneLeft = 0
 
-    public init(random: RandomSource, highScore: Int = 0) {
+    public init(random: any RandomSource, highScore: Int = 0) {
         self.random = random
         self.highScore = highScore
         layOutScenery()
@@ -83,7 +83,12 @@ public final class RunnerEngine {
     // MARK: Ticks
 
     public func step(_ input: RunnerInput) {
-        guard !paused else { return }
+        guard !paused else {
+            // The press that ends a pause only ends it, so coming back never jumps into a bug.
+            if input.jump { paused = false }
+            jumpHeld = input.jump
+            return
+        }
         let pressed = input.jump && !jumpHeld
         jumpHeld = input.jump
         ticks += 1
@@ -106,10 +111,6 @@ public final class RunnerEngine {
     /// Only a running round pauses: one at the start or after a crash has nothing to lose.
     public func pause() {
         if phase == .running { paused = true }
-    }
-
-    public func resume() {
-        paused = false
     }
 
     /// Back to the start with fresh scenery; the high score stays.
@@ -276,8 +277,8 @@ public final class RunnerEngine {
         fill(clawdRects("#"), Palette.clawdBody)
         fill(clawdRects("o"), Palette.clawdEyes)
 
-        // The score blinks for a moment at every hundred, like the dinosaur's.
-        let blinkOff = milestoneLeft > 0 && (milestoneLeft / 8) % 2 == 1
+        // The score blinks for a moment at every hundred, like the dinosaur's; a crash or a pause shows it steady.
+        let blinkOff = phase == .running && !paused && milestoneLeft > 0 && (milestoneLeft / 8) % 2 == 1
         var hud = highScore > 0 ? "HI \(Self.digits(highScore))  " : ""
         hud += blinkOff ? "     " : Self.digits(score)
         text(hud, x: T.width - 12, y: 8, size: 12, weight: .semibold, color: Palette.secondary, anchor: .topTrailing)
@@ -331,7 +332,7 @@ public final class RunnerEngine {
         frames.append((name: "running", frame: e.frame(lang: lang, caption: caption)))
         e.pause()
         frames.append((name: "paused", frame: e.frame(lang: lang, caption: caption)))
-        e.resume()
+        e.step(RunnerInput(jump: true))
         while e.phase == .running { e.step(RunnerInput()) }
         // A second on, past the restart delay, so the restart note shows.
         for _ in 0 ..< Int(T.ticksPerSecond) { e.step(RunnerInput()) }

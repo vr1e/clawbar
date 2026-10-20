@@ -173,8 +173,8 @@ final class GameWindowController: NSObject, NSWindowDelegate {
 
     // MARK: NSWindowDelegate
 
+    /// A paused round stays paused until the next press, which the engine takes.
     func windowDidBecomeKey(_ notification: Notification) {
-        engine.resume()
         startTimer()
     }
 

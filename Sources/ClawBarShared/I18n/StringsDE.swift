@@ -110,7 +110,7 @@ public enum StringsDE {
         .gameStart: .text("Leertaste oder Klick zum Springen"),
         .gameOver: .text("SPIEL VORBEI"),
         .gameRestart: .text("Leertaste oder Klick für eine neue Runde"),
-        .gamePaused: .text("Pause · klicken zum Weiterspielen"),
+        .gamePaused: .text("Pause · Leertaste oder Klick zum Weiterspielen"),
         .gameHint: .text("Leertaste/↑ springen · ↓ ducken · Esc schließen"),
         .gameBack: .text("Das Limit ist zurückgesetzt: zurück an die Arbeit!"),
 

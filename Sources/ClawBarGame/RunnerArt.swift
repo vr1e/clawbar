@@ -108,7 +108,6 @@ enum RunnerArt {
         "...#.#.#....",
     ]
 
-    /// A cloud for the background.
     static let cloud = Sprite([
         "....######....",
         "..##########..",

@@ -147,7 +147,7 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
         e.step(RunnerInput(jump: true))
         e.pause()
         #expect(e.paused)
-        e.resume()
+        e.step(RunnerInput(jump: true))
         while e.phase == .running { e.step(RunnerInput()) }
         e.pause()
         #expect(!e.paused)
@@ -157,12 +157,34 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
         let e = running()
         e.pause()
         let before = e.frame(lang: .de, caption: "")
-        for _ in 0 ..< 60 { e.step(RunnerInput(jump: true)) }
+        for _ in 0 ..< 60 { e.step(RunnerInput(duck: true)) }
         #expect(e.frame(lang: .de, caption: "") == before)
         #expect(texts(before).contains(L10n.t(.gamePaused, .de)))
-        e.resume()
+    }
+
+    @Test func aPressEndsAPauseWithoutJumping() {
+        let e = running()
+        e.pause()
+        let distance = e.distance
+        e.step(RunnerInput(jump: true))
+        #expect(!e.paused && e.distance == distance)
+        e.step(RunnerInput(jump: true))
+        #expect(e.distance > distance)
+        #expect(!e.airborne)
+    }
+
+    @Test func theScoreStaysSteadyOnceTheRoundStops() {
+        let e = running()
+        while e.score < 100 { e.step(e.demoInput) }
+        // The blink starts dark, so this frame would show no score.
+        e.pause()
+        #expect(texts(e.frame(lang: .en, caption: "")).contains(RunnerEngine.digits(e.score)))
+        e.step(RunnerInput(jump: true))
+        e.place(.cactusLarge, x: RunnerTuning.clawdX + e.speed, bottom: RunnerTuning.groundY - e.lift)
         e.step(RunnerInput())
-        #expect(e.frame(lang: .de, caption: "") != before)
+        #expect(e.phase == .over)
+        let score = RunnerEngine.digits(e.score)
+        #expect(texts(e.frame(lang: .en, caption: "")).contains("HI \(score)  \(score)"))
     }
 
     @Test func aNewRoundStartsOverAndKeepsTheHighScore() {

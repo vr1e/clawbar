@@ -110,7 +110,7 @@ public enum StringsEN {
         .gameStart: .text("Press Space or click to jump"),
         .gameOver: .text("GAME OVER"),
         .gameRestart: .text("Space or click to run again"),
-        .gamePaused: .text("Paused · click to go on"),
+        .gamePaused: .text("Paused · Space or click to go on"),
         .gameHint: .text("Space/↑ jump · ↓ duck · Esc close"),
         .gameBack: .text("The limit has reset: back to work!"),
 
