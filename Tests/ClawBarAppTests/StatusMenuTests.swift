@@ -10,8 +10,12 @@ import ClawBarShared
         entries.map { $0.isSeparator ? "---" : $0.title }
     }
 
+    private func entries(_ config: Config = Config(), widgetVisible: Bool = true, limitReached: Bool = false) -> [StatusMenu.Entry] {
+        StatusMenu.entries(config: config, widgetVisible: widgetVisible, limitReached: limitReached)
+    }
+
     @Test func englishTitlesInTheOriginalsOrder() {
-        let e = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false, menuBarMascot: false, shown: all)
+        let e = entries()
         #expect(titles(e) == [
             "ClawBar v\(AppInfo.version)", "---", "Hide widget", "Refresh now", "Larger", "Smaller", "Always on top",
             "Launch at login", "Clawd in menu bar", "Open config.json", "Show in widget", "Language", "---", "Quit ClawBar",
@@ -24,24 +28,24 @@ import ClawBarShared
     }
 
     @Test func aUsedUpLimitAddsClawdRunAfterTheWidgetToggle() {
-        let base = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false, menuBarMascot: false, shown: all)
-        let e = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false, menuBarMascot: false, shown: all, limitReached: true)
+        let base = entries()
+        let e = entries(limitReached: true)
         #expect(e.count == base.count + 1)
         #expect(e[3].title == "Play Clawd Run…")
         #expect(e[3].action == .play && e[3].enabled)
         #expect(titles(Array(e[..<3]) + Array(e[4...])) == titles(base))
-        let de = StatusMenu.entries(lang: .de, widgetVisible: true, topmost: false, launchAtLogin: false, menuBarMascot: false, shown: all, limitReached: true)
+        let de = entries(Config(language: "de"), limitReached: true)
         #expect(de[3].title == L10n.t(.menuPlay, .de))
     }
 
     @Test func theToggleSaysShowWhileTheWidgetIsHidden() {
-        let e = StatusMenu.entries(lang: .en, widgetVisible: false, topmost: false, launchAtLogin: false, menuBarMascot: false, shown: all)
+        let e = entries(widgetVisible: false)
         #expect(e[2].title == "Show widget")
         #expect(e[2].action == .toggleWidget)
     }
 
     @Test func germanTitlesComeFromTheGermanTableAndLanguageNamesStayNative() {
-        let e = StatusMenu.entries(lang: .de, widgetVisible: true, topmost: false, launchAtLogin: false, menuBarMascot: false, shown: all)
+        let e = entries(Config(language: "de"))
         let keys: [L10nKey] = [
             .menuHide, .menuRefresh, .menuBigger, .menuSmaller, .menuTopmost, .menuLogin, .menuClawd, .menuConfig, .menuShown,
             .menuLanguage,
@@ -54,17 +58,16 @@ import ClawBarShared
     }
 
     @Test func checkMarksFollowTheSettings() {
-        let off = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false, menuBarMascot: false, shown: all)
-        #expect(!off[6].checked && !off[7].checked && !off[8].checked)
+        let off = entries(Config(launchAtLogin: false, menuBarMascot: false))
+        #expect(off.filter(\.checked).isEmpty)
         #expect(off[11].children.map(\.checked) == [true, false])
-        let on = StatusMenu.entries(lang: .de, widgetVisible: true, topmost: true, launchAtLogin: true, menuBarMascot: true, shown: all)
-        #expect(on[6].checked && on[7].checked && on[8].checked)
+        let on = entries(Config(language: "de", topmost: true))
+        #expect(on.filter(\.checked).map(\.action) == [.toggleTopmost, .toggleLaunchAtLogin, .toggleMenuBarMascot])
         #expect(on[11].children.map(\.checked) == [false, true])
-        #expect(on.filter { !$0.isSeparator && ![on[6].title, on[7].title, on[8].title].contains($0.title) }.allSatisfy { !$0.checked })
     }
 
     @Test func onlyTheHeaderIsDisabledAndEveryItemHasItsAction() {
-        let e = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false, menuBarMascot: false, shown: all)
+        let e = entries()
         #expect(!e[0].enabled && e[0].action == nil)
         #expect(e.dropFirst().filter { !$0.isSeparator }.allSatisfy { $0.enabled })
         #expect(e.compactMap(\.action) == [
@@ -75,7 +78,7 @@ import ClawBarShared
     }
 
     @Test func theNSMenuMirrorsTheModelAndRoutesClicks() throws {
-        let e = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: true, launchAtLogin: false, menuBarMascot: false, shown: all)
+        let e = entries(Config(topmost: true, launchAtLogin: false))
         var got: [StatusMenuAction] = []
         let menu = MenuBuilder.menu(e) { got.append($0) }
         #expect(!menu.autoenablesItems)
@@ -100,11 +103,11 @@ import ClawBarShared
         var config = Config()
         config.showStats = false
         config.showAccount = false
-        let e = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false, menuBarMascot: false, shown: WidgetBlock.shown(in: config))
+        let e = entries(config)
         #expect(e[10].children.map(\.checked) == [true, true, true, true, false, false])
         #expect(e[10].children.allSatisfy { $0.checkable && $0.enabled })
         config.showMascot = false
-        let noClawd = StatusMenu.entries(lang: .en, widgetVisible: true, topmost: false, launchAtLogin: false, menuBarMascot: false, shown: WidgetBlock.shown(in: config))
+        let noClawd = entries(config)
         #expect(noClawd[10].children.map(\.checked) == [false, true, true, true, false, false])
         #expect(noClawd[10].children.map(\.enabled) == [true, false, true, true, true, true])
     }
@@ -118,7 +121,7 @@ import ClawBarShared
     }
 
     @Test func theTextDumpShowsChecksAndDisabledItems() {
-        let e = StatusMenu.entries(lang: .en, widgetVisible: false, topmost: true, launchAtLogin: false, menuBarMascot: false, shown: all)
+        let e = entries(Config(topmost: true, launchAtLogin: false, menuBarMascot: false), widgetVisible: false)
         let dump = MenuEntry.dump(e)
         #expect(dump.contains("ClawBar v\(AppInfo.version)  (disabled)"))
         #expect(dump.contains("[x] Always on top"))

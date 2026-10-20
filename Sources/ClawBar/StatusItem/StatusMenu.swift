@@ -76,10 +76,9 @@ enum StatusMenu {
 
     /// The menu bar item's menu, rebuilt on every open so titles follow the language and checks the settings.
     /// A used-up session limit adds Clawd Run after the widget toggle.
-    static func entries(
-        lang: Lang, widgetVisible: Bool, topmost: Bool, launchAtLogin: Bool, menuBarMascot: Bool, shown: Set<WidgetBlock>,
-        limitReached: Bool = false
-    ) -> [Entry] {
+    static func entries(config: Config, widgetVisible: Bool, limitReached: Bool = false) -> [Entry] {
+        let lang = config.lang
+        let shown = WidgetBlock.shown(in: config)
         func item(_ key: L10nKey, _ action: StatusMenuAction) -> Entry {
             Entry(title: L10n.t(key, lang), action: action)
         }
@@ -102,9 +101,9 @@ enum StatusMenu {
             item(.menuRefresh, .refresh),
             item(.menuBigger, .larger),
             item(.menuSmaller, .smaller),
-            toggle(.menuTopmost, topmost, .toggleTopmost),
-            toggle(.menuLogin, launchAtLogin, .toggleLaunchAtLogin),
-            toggle(.menuClawd, menuBarMascot, .toggleMenuBarMascot),
+            toggle(.menuTopmost, config.topmost, .toggleTopmost),
+            toggle(.menuLogin, config.launchAtLogin, .toggleLaunchAtLogin),
+            toggle(.menuClawd, config.menuBarMascot, .toggleMenuBarMascot),
             item(.menuConfig, .openConfig),
             Entry(title: L10n.t(.menuShown, lang), children: blocks),
             Entry(title: L10n.t(.menuLanguage, lang), children: languages),

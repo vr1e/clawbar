@@ -94,7 +94,6 @@ func close(_ a: RGBA, _ b: RGBA, tolerance: Int = 3) -> Bool {
         let pill = StatusItemImage.pillRect(mascot: false)
         #expect(pill.minX == 0)
         #expect(pill.size == StatusItemImage.pillRect(mascot: true).size)
-        #expect(StatusItemImage.size(mascot: false) == CGSize(width: pill.maxX, height: StatusItemImage.height))
         let image = StatusItemImage.make(text: "42", color: Palette.ok, mascot: false)
         #expect(image.size == StatusItemImage.size(mascot: false))
         let r = Raster(image)

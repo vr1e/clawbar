@@ -35,11 +35,12 @@ enum StatusItemImage {
     }
 
     private static func draw(text: String, color: RGBA, mascot: Bool, in ctx: CGContext) {
-        let inks = mascot ? [(Character("#"), Palette.clawdBody), (Character("o"), Palette.clawdEyes)] : []
-        for (value, ink) in inks {
-            ctx.setFillColor(cgColor(ink))
-            for r in PixelArt.rects(PixelArt.clawdStanding, value: value, px: 1, py: 1, origin: clawdRect.origin) {
-                ctx.fill(flipped(r))
+        if mascot {
+            for (value, ink) in [(Character("#"), Palette.clawdBody), (Character("o"), Palette.clawdEyes)] {
+                ctx.setFillColor(cgColor(ink))
+                for r in PixelArt.rects(PixelArt.clawdStanding, value: value, px: 1, py: 1, origin: clawdRect.origin) {
+                    ctx.fill(flipped(r))
+                }
             }
         }
         let pill = flipped(pillRect(mascot: mascot))
@@ -75,7 +76,7 @@ final class StatusItemImageCache {
     private var current: NSImage?
 
     func image(text: String, color: RGBA, mascot: Bool) -> NSImage {
-        if let current, let key, key.text == text, key.color == color, key.mascot == mascot { return current }
+        if let current, let key, key == (text, color, mascot) { return current }
         let image = StatusItemImage.make(text: text, color: color, mascot: mascot)
         builds += 1
         key = (text, color, mascot)

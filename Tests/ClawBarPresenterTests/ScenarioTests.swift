@@ -302,9 +302,10 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         config.expanded = true
         config.showStats = false
         config.showSessions = false
+        config.menuBarMascot = false
         let v = render(config: config)
         #expect(v.detailsGlyph == "▴" && v.detailsExpanded)
-        #expect(!v.statsVisible && !v.sessionsVisible)
+        #expect(!v.statsVisible && !v.sessionsVisible && !v.trayMascot)
         // Hiding a block changes nothing else, but hidden sessions leave the menu bar too.
         var expected = WidgetViewState.sample
         expected.detailsGlyph = "▴"
@@ -312,6 +313,7 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         expected.statsVisible = false
         expected.sessionsVisible = false
         expected.trayTooltip = "34% of session · 2h 05m\nweek 59% · Fable 8%"
+        expected.trayMascot = false
         #expect(differences(v, expected) == [])
     }
 

@@ -255,23 +255,20 @@ enum SnapshotMode {
         let sections: [(String, String)] = [
             (
                 "Status menu, widget shown",
-                MenuEntry.dump(StatusMenu.entries(
-                    lang: lang, widgetVisible: true, topmost: false, launchAtLogin: true, menuBarMascot: true, shown: Set(WidgetBlock.allCases)
-                ))
+                MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: true))
             ),
             (
                 "Status menu, widget hidden, always on top, no Clawd in the menu bar or the widget, no stats",
                 MenuEntry.dump(StatusMenu.entries(
-                    lang: lang, widgetVisible: false, topmost: true, launchAtLogin: false, menuBarMascot: false,
-                    shown: [.sky, .status, .sessions, .account]
+                    config: Config(
+                        language: lang.rawValue, topmost: true, showStats: false, showMascot: false, launchAtLogin: false, menuBarMascot: false
+                    ),
+                    widgetVisible: false
                 ))
             ),
             (
                 "Status menu, session limit used up",
-                MenuEntry.dump(StatusMenu.entries(
-                    lang: lang, widgetVisible: true, topmost: false, launchAtLogin: true, menuBarMascot: true, shown: Set(WidgetBlock.allCases),
-                    limitReached: true
-                ))
+                MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: true, limitReached: true))
             ),
             ("Developer menu, live data", DevMenuBuilder.dump(DevMenu.build(dev: ClawdDevState(), sky: SkyDevState(), skyVisible: true, lang: lang))),
             (
