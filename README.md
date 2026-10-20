@@ -35,10 +35,10 @@ the app from [Releases](https://github.com/vr1e/clawbar/releases) instead. To bu
 ```sh
 git clone https://github.com/vr1e/clawbar && cd clawbar
 scripts/build-app.sh --install
-open ~/Applications/ClawBar.app
+open /Applications/ClawBar.app
 ```
 
-The script builds a release binary, wraps it in an ad-hoc-signed `ClawBar.app` and copies it to `~/Applications`,
+The script builds a release binary, wraps it in an ad-hoc-signed `ClawBar.app` and copies it to `/Applications`,
 quitting a running copy first. ClawBar registers itself to open at login; untick **Launch at login** in its menu if
 you would rather it waited to be asked.
 
@@ -109,7 +109,7 @@ Everything ClawBar touches, so you know there is nothing else:
 
 ## Command line
 
-`~/Applications/ClawBar.app/Contents/MacOS/ClawBar` takes one mode:
+`/Applications/ClawBar.app/Contents/MacOS/ClawBar` takes one mode:
 
 | Mode | Does |
 |---|---|
