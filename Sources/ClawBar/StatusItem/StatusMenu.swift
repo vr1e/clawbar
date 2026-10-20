@@ -3,6 +3,8 @@ import ClawBarShared
 
 enum StatusMenuAction: Hashable {
     case toggleWidget, refresh, larger, smaller, toggleTopmost, toggleLaunchAtLogin, openConfig, quit
+    /// Opens Clawd Run; offered only while the session limit is used up.
+    case play
     case language(Lang)
     case toggleBlock(WidgetBlock)
 }
@@ -73,7 +75,10 @@ enum StatusMenu {
     typealias Entry = MenuEntry<StatusMenuAction>
 
     /// The menu bar item's menu, rebuilt on every open so titles follow the language and checks the settings.
-    static func entries(lang: Lang, widgetVisible: Bool, topmost: Bool, launchAtLogin: Bool, shown: Set<WidgetBlock>) -> [Entry] {
+    /// A used-up session limit adds Clawd Run after the widget toggle.
+    static func entries(
+        lang: Lang, widgetVisible: Bool, topmost: Bool, launchAtLogin: Bool, shown: Set<WidgetBlock>, limitReached: Bool = false
+    ) -> [Entry] {
         func item(_ key: L10nKey, _ action: StatusMenuAction) -> Entry {
             Entry(title: L10n.t(key, lang), action: action)
         }
@@ -87,10 +92,12 @@ enum StatusMenu {
         let blocks = WidgetBlock.allCases.map { b in
             toggle(b.title, shown.contains(b), .toggleBlock(b), enabled: b != .sky || shown.contains(.mascot))
         }
+        let play = limitReached ? [item(.menuPlay, .play)] : []
         return [
             Entry(title: AppInfo.title, enabled: false),
             .separator,
             item(widgetVisible ? .menuHide : .menuShow, .toggleWidget),
+        ] + play + [
             item(.menuRefresh, .refresh),
             item(.menuBigger, .larger),
             item(.menuSmaller, .smaller),

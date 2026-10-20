@@ -19,36 +19,15 @@ struct WidgetRootView: View {
 
 /// The panel's content view: hosts the card and takes every hit itself, so tooltips and the cursor live on one
 /// view SwiftUI never manages. The panel routes clicks before views see them; the card has no gestures.
-final class CardHostView: NSView {
-    let hosting: NSHostingView<WidgetRootView>
-
-    init(root: WidgetRootView) {
-        hosting = NSHostingView(rootView: root)
+final class CardHostView: HostView<WidgetRootView> {
+    convenience init(root: WidgetRootView) {
+        // A real size from the start, so the first layout pass measures the card.
+        self.init(rootView: root, size: CGSize(width: CardView.width, height: 300))
         // The window follows the card's measured size; SwiftUI must not resize it on its own.
         hosting.sizingOptions = []
-        // A real size from the start, so the first layout pass measures the card.
-        super.init(frame: CGRect(x: 0, y: 0, width: CardView.width, height: 300))
-        hosting.frame = bounds
-        hosting.autoresizingMask = [.width, .height]
-        addSubview(hosting)
     }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError("not used") }
 
     override var isFlipped: Bool { true }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        frame.contains(point) ? self : nil
-    }
-
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    override func layout() {
-        super.layout()
-        hosting.frame = bounds
-    }
-
 }
 
 enum TooltipID: Hashable {

@@ -12,6 +12,10 @@ public enum TextAnchor: String, Sendable, CaseIterable {
     case bottomLeading
     /// Bottom centre: the bubble's 12-wide centred box.
     case bottom
+    /// Top right: Clawd Run's score.
+    case topTrailing
+    /// Top centre: Clawd Run's messages.
+    case top
 }
 
 public struct GradientStop: Sendable, Equatable {

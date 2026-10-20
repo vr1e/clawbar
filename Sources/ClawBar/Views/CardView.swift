@@ -24,7 +24,12 @@ struct CardView: View {
             WText(v.resetText.isEmpty ? " " : v.resetText, 11, color: v.resetColor, wraps: true)
                 .frame(width: Self.content * k, alignment: .leading)
                 .publish(.reset, to: layout)
-                .padding(.bottom, 9 * k)
+                .padding(.bottom, (v.limitReached ? 6 : 9) * k)
+            if v.limitReached {
+                PlayButton(text: v.playText)
+                    .publish(.play, to: layout)
+                    .padding(.bottom, 10 * k)
+            }
             BarLabelRow(row: v.week)
                 .padding(.bottom, 4 * k)
             Bar(fraction: v.week.fraction, color: v.week.color, height: 4, radius: 2)
@@ -169,6 +174,38 @@ private struct Bar: View {
                 .frame(width: f * CardView.content * k)
         }
         .frame(width: CardView.content * k, height: height * k)
+    }
+}
+
+/// Clawd Run's button, the width of the bars: a pixel Clawd and the label in his orange on a faint tint of it.
+private struct PlayButton: View {
+    let text: String
+    @Environment(\.uiScale) private var k
+
+    static let sprite: [DrawOp] = [
+        .rects(PixelArt.rects(PixelArt.clawdStanding, value: "#", px: 1, py: 1), Palette.clawdBody, opacity: 1),
+        .rects(PixelArt.rects(PixelArt.clawdStanding, value: "o", px: 1, py: 1), Palette.clawdEyes, opacity: 1),
+    ]
+
+    var body: some View {
+        let scale = k
+        HStack(alignment: .center, spacing: 7 * k) {
+            Canvas { ctx, _ in
+                ctx.scaleBy(x: scale, y: scale)
+                DrawOpRenderer.draw(Self.sprite, in: &ctx)
+            }
+            // The sprite's two empty bottom rows are left off, so Clawd centres on the label.
+            .frame(width: 18 * k, height: 10 * k)
+            WText(text, 10.5, weight: .semibold, color: Palette.clawdBody)
+        }
+        .frame(width: CardView.content * k, height: 24 * k)
+        .background {
+            let shape = RoundedRectangle(cornerRadius: 6 * k)
+            ZStack {
+                shape.fill(Color(rgba: Palette.clawdBody).opacity(0.14))
+                shape.strokeBorder(Color(rgba: Palette.clawdBody).opacity(0.5), lineWidth: 1 * k)
+            }
+        }
     }
 }
 

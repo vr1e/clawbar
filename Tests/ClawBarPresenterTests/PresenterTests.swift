@@ -18,6 +18,7 @@ import ClawBarShared
             detailsTooltip: "Details ein-/ausblenden", hideTooltip: "Ausblenden", exitTooltip: "Beenden",
             pctText: "34", pctColor: Palette.ok, sessionFraction: 0.34, sessionBarColor: Palette.ok,
             resetText: "wird in 2h 05min zurückgesetzt",
+            gameCaption: "Das Limit ist zurückgesetzt: zurück an die Arbeit!",
             week: BarRow(label: "WOCHE", value: "59%  ·  4d 15h", fraction: 0.59, color: Palette.weekBar),
             modelWeeks: [BarRow(label: "FABLE · WOCHE", value: "8%  ·  4d 15h", fraction: 0.08, color: Palette.modelWeekBar)],
             sessionsLabel: "SITZUNGEN",

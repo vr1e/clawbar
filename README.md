@@ -16,6 +16,8 @@ later releases.
 - **Clawd** lives by your numbers. He works while a session is busy, hops up with a "?" when one waits for you,
   wanders and dozes when things are quiet, and burrows in to sleep when nothing runs. Near the limit he sweats; at
   100% he lies belly-up. Three hearts show how much of the session is left, and a click gets you a trick.
+- **Clawd Run:** once the session limit is used up, the widget and the menu offer a game to pass the wait, after the
+  Chrome dinosaur's: Clawd jumps cacti and ducks under bugs while the corner counts down to the reset.
 - **The sky** behind him keeps your real time of day and your real weather: the sun and the moon on their true
   course, the moon in its true phase, stars, clouds, fog, rain, snow and the odd thunderstorm. Hover it for the
   weather, the sun times and the moon.
@@ -51,6 +53,10 @@ To update, pull and run the last two commands again. `config.json` and ClawBar's
   (otherwise it opens the changelog), and the ClawBar line to visit the original project.
 - **Right-click Clawd or the sky** for the developer menu: force a mood, play any animation, set the hearts, pick a
   time of day or weather, or sit back and watch everything in turn.
+- **Play Clawd Run** while the session limit is used up: click the orange *Play Clawd Run while you wait* button
+  under the reset time, or pick it from the menu. Space, ↑ or a click jumps (hold for higher), ↓ ducks, Esc closes.
+  The round pauses while the window is in the background and goes on at the next press; the high score lasts until
+  ClawBar quits.
 - Only one ClawBar runs at a time; opening it again simply brings the widget back.
 
 ## Configuration
@@ -184,6 +190,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   saved position lies on a display that is gone.
 - Clawd picks his walks inside his play area instead of heading for the edge, and the bars span exactly the
   widget's width.
+- Clawd Run, the game for a used-up session limit, is ClawBar's own; the original has nothing like it.
 
 ## Development
 
@@ -195,7 +202,8 @@ swift test
 
 The package has one target per concern: `ClawBarShared` (every type the others share, and the English and German
 string tables), `ClawBarData` (probes, sessions, config, weather), `ClawBarPresenter` (every display rule),
-`ClawBarClawd`, `ClawBarSky` and the `ClawBar` app. `AGENTS.md` lists the toolchain quirks and rules.
+`ClawBarClawd`, `ClawBarSky`, `ClawBarGame` (Clawd Run) and the `ClawBar` app. `AGENTS.md` lists the toolchain quirks
+and rules.
 
 `CLAWBAR_HOME=<dir>` runs ClawBar on that folder instead of Application Support, so a build can run next to the
 installed app. Each folder has its own single copy, `--command` and `--dump-state` reach the copy on the same

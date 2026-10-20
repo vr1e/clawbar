@@ -74,6 +74,15 @@ public struct WidgetViewState: Sendable, Hashable {
     public var resetColor: RGBA
     public var resetTooltip: String
 
+    // Clawd Run
+    /// The session limit is used up: the card and the menu offer the game.
+    public var limitReached: Bool
+    /// The button under the reset line, shown while the limit is reached.
+    public var playText: String
+    public var playTooltip: String
+    /// The game's corner: the time until the limit resets while it lasts, then the news that it has.
+    public var gameCaption: String
+
     // Week and model weeks
     public var week: BarRow
     public var modelWeeks: [BarRow]
@@ -139,6 +148,10 @@ public struct WidgetViewState: Sendable, Hashable {
         resetText: String = "",
         resetColor: RGBA = Palette.secondary,
         resetTooltip: String = "",
+        limitReached: Bool = false,
+        playText: String = "",
+        playTooltip: String = "",
+        gameCaption: String = "",
         week: BarRow = BarRow(label: "WEEK", value: "", fraction: 0, color: Palette.weekBar),
         modelWeeks: [BarRow] = [],
         sessionsVisible: Bool = true,
@@ -188,6 +201,10 @@ public struct WidgetViewState: Sendable, Hashable {
         self.resetText = resetText
         self.resetColor = resetColor
         self.resetTooltip = resetTooltip
+        self.limitReached = limitReached
+        self.playText = playText
+        self.playTooltip = playTooltip
+        self.gameCaption = gameCaption
         self.week = week
         self.modelWeeks = modelWeeks
         self.sessionsVisible = sessionsVisible

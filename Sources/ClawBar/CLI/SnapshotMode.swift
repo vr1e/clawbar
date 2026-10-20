@@ -2,6 +2,7 @@ import AppKit
 import CoreGraphics
 import Foundation
 import ClawBarClawd
+import ClawBarGame
 import ClawBarPresenter
 import ClawBarShared
 import ClawBarSky
@@ -107,7 +108,7 @@ enum SnapshotCases {
 }
 
 /// `--snapshot <dir>`: the card in every state, EN and DE, at k 1.0, 1.2 and 2.0; the menu bar item, and its text and
-/// tooltip in every state; both menus.
+/// tooltip in every state; both menus; Clawd Run's screens.
 enum SnapshotMode {
     static let scales = [1.0, 1.2, 2.0]
     static let backdrop = RGBA(r: 13, g: 17, b: 23)
@@ -139,6 +140,7 @@ enum SnapshotMode {
             }
         }
         out += try writeStatusItems(to: dir)
+        out += try writeGame(to: dir)
         for lang in Lang.allCases {
             let url = dir.appendingPathComponent("menus-\(lang.rawValue).txt")
             try menuDump(lang: lang).write(to: url, atomically: true, encoding: .utf8)
@@ -219,6 +221,24 @@ enum SnapshotMode {
         return out
     }
 
+    /// Clawd Run's showcase at 2 pixels per point, captioned as the presenter does at the limit and after the reset.
+    static func writeGame(to dir: URL) throws -> [URL] {
+        var limit = SnapshotCase(name: "limit")
+        limit.data.usage?.sessionPercent = 100
+        var out: [URL] = []
+        for lang in Lang.allCases {
+            let caption = view(for: limit, lang: lang).gameCaption
+            let back = view(for: SnapshotCase(name: "sample"), lang: lang).gameCaption
+            for (name, frame) in RunnerEngine.showcase(lang: lang, caption: caption, back: back) {
+                guard let image = GameRenderer.render(frame) else { throw CLIError(message: "rendering game-\(name) failed") }
+                let url = dir.appendingPathComponent("game-\(name)-\(lang.rawValue).png")
+                try Imaging.writePNG(image, to: url)
+                out.append(url)
+            }
+        }
+        return out
+    }
+
     /// The menu bar item's text, colour and tooltip in every state, since no PNG shows the tooltip.
     static func menuBarDump(lang: Lang) -> String {
         let states = SnapshotCases.all().map { c in
@@ -240,6 +260,12 @@ enum SnapshotMode {
                 "Status menu, widget hidden, always on top, no Clawd or stats",
                 MenuEntry.dump(StatusMenu.entries(
                     lang: lang, widgetVisible: false, topmost: true, launchAtLogin: false, shown: [.sky, .status, .sessions, .account]
+                ))
+            ),
+            (
+                "Status menu, session limit used up",
+                MenuEntry.dump(StatusMenu.entries(
+                    lang: lang, widgetVisible: true, topmost: false, launchAtLogin: true, shown: Set(WidgetBlock.allCases), limitReached: true
                 ))
             ),
             ("Developer menu, live data", DevMenuBuilder.dump(DevMenu.build(dev: ClawdDevState(), sky: SkyDevState(), skyVisible: true, lang: lang))),

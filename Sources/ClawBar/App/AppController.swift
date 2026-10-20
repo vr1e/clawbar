@@ -27,6 +27,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private let statusItem = StatusItemController()
     private let loginItem: LoginItemController
     private let ipc = IPCListener()
+    private let game = GameWindowController()
 
     private var dataTimer: Timer?
     private var sessionTimer: Timer?
@@ -97,7 +98,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         recompute(now: now)
         showWidget()
         scheduleDataTimer()
-        sessionTimer = repeating(2) { [unowned self] in
+        sessionTimer = Timer.onMain(every: 2) { [unowned self] in
             let now = Date()
             data.pollSessions(now: now)
             recompute(now: now)
@@ -107,6 +108,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     func stop() {
         for t in [dataTimer, sessionTimer, animationTimer, saveTimer] { t?.invalidate() }
+        game.close()
         observers.forEach { NotificationCenter.default.removeObserver($0) }
         ipc.stop()
         savePosition()
@@ -134,21 +136,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     // MARK: Ticks
 
-    private func repeating(_ seconds: Double, tolerance: Double? = nil, _ body: @escaping @MainActor () -> Void) -> Timer {
-        timer(seconds, repeats: true, tolerance: tolerance, body)
-    }
-
-    private func timer(_ seconds: Double, repeats: Bool, tolerance: Double? = nil, _ body: @escaping @MainActor () -> Void) -> Timer {
-        // .common keeps the ticks running while a menu is open, like WPF's dispatcher timers.
-        let t = Timer(timeInterval: seconds, repeats: repeats) { _ in MainActor.assumeIsolated { body() } }
-        t.tolerance = tolerance ?? seconds / 10
-        RunLoop.main.add(t, forMode: .common)
-        return t
-    }
-
     private func scheduleDataTimer() {
         dataTimer?.invalidate()
-        dataTimer = repeating(Double(config.refreshSeconds)) { [unowned self] in dataTick() }
+        dataTimer = Timer.onMain(every: Double(config.refreshSeconds)) { [unowned self] in dataTick() }
     }
 
     /// update.ps1's Update-Widget: live config, the probes on their cadence, then everything rendered.
@@ -170,6 +160,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         let view = WidgetPresenter.make(input)
         if view != app.view { app.view = view }
         statusItem.update(text: view.trayText, color: view.trayColor, tooltip: view.trayTooltip)
+        game.update(caption: view.gameCaption, lang: config.lang)
         // Clawd waits for the first registry read, so he starts idle instead of burrowing.
         if config.showMascot, snapshot.sessionsRead {
             clawd.apply(ClawdDataInput(snapshot, critPercent: config.critPercent), now: now)
@@ -190,7 +181,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         guard animationTimer == nil || ms != animationInterval else { return }
         animationTimer?.invalidate()
         animationInterval = ms
-        animationTimer = repeating(Double(ms) / 1000, tolerance: 0.004) { [unowned self] in animationTick() }
+        animationTimer = Timer.onMain(every: Double(ms) / 1000, tolerance: 0.004) { [unowned self] in animationTick() }
     }
 
     private func animationTick() {
@@ -276,7 +267,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     private func scheduleSave() {
         saveTimer?.invalidate()
-        saveTimer = timer(0.5, repeats: false) { [unowned self] in savePosition() }
+        saveTimer = Timer.onMain(after: 0.5) { [unowned self] in savePosition() }
     }
 
     /// The top-left, WPF-style and rounded like the original's [math]::Round, written only when it moved.
@@ -365,6 +356,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
             case .none: break
             }
         case .appVersion: NSWorkspace.shared.open(app.view.appVersionURL)
+        case .play: game.show()
         case .hearts, .percentRow, .number, .reset, .sessions, .account: break
         }
     }
@@ -403,7 +395,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private func statusMenu() -> NSMenu {
         let entries = StatusMenu.entries(
             lang: config.lang, widgetVisible: widgetVisible, topmost: config.topmost, launchAtLogin: config.launchAtLogin,
-            shown: WidgetBlock.shown(in: config)
+            shown: WidgetBlock.shown(in: config), limitReached: app.view.limitReached
         )
         return MenuBuilder.menu(entries) { [unowned self] in perform($0) }
     }
@@ -417,6 +409,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .toggleTopmost: change { $0.topmost.toggle() }
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .openConfig: openConfig()
+        case .play: game.show()
         case .language(let l): change { $0.language = l.rawValue }
         case .toggleBlock(let b): change { $0[keyPath: b.flag].toggle() }
         case .quit: NSApp.terminate(nil)

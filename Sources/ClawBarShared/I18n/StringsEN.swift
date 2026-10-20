@@ -102,6 +102,17 @@ public enum StringsEN {
         .setShowAccount: .text("Plan and account"),
         .setShowStats: .text("Last 24 hours and 7 days (details)"),
         .menuQuit: .text("Quit ClawBar"),
+        .menuPlay: .text("Play Clawd Run…"),
+
+        .uiPlay: .text("Play Clawd Run while you wait"),
+        .uiPlayTip: .text("The session limit is used up. Jump over the bugs with Clawd until it resets."),
+        .gameTitle: .text("Clawd Run"),
+        .gameStart: .text("Press Space or click to jump"),
+        .gameOver: .text("GAME OVER"),
+        .gameRestart: .text("Space or click to run again"),
+        .gamePaused: .text("Paused · Space or click to go on"),
+        .gameHint: .text("Space/↑ jump · ↓ duck · Esc close"),
+        .gameBack: .text("The limit has reset: back to work!"),
 
         .health6: .text("full of energy"),
         .health5: .text("fine"),
