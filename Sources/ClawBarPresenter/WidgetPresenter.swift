@@ -91,7 +91,8 @@ private struct Render {
         v.trayText = String(pct)
         v.trayColor = stale == nil ? color : Palette.dead
         v.trayTooltip = trayTooltip(pct, span: span, usage) + (stale.map { "\n" + $0 } ?? "")
-        if pct >= 100 {
+        v.limitReached = pct >= 100
+        if v.limitReached {
             v.playText = t(.uiPlay)
             v.playTooltip = t(.uiPlayTip)
         }

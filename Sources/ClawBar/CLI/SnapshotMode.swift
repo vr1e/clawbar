@@ -221,37 +221,22 @@ enum SnapshotMode {
         return out
     }
 
-    /// Clawd Run at the start, mid-round with a bug about, paused and after a crash, at 2 pixels per point.
+    /// Clawd Run's showcase at 2 pixels per point, captioned as the presenter does at the limit and after the reset.
     static func writeGame(to dir: URL) throws -> [URL] {
+        var limit = SnapshotCase(name: "limit")
+        limit.data.usage?.sessionPercent = 100
         var out: [URL] = []
         for lang in Lang.allCases {
-            for (name, frame) in gameFrames(lang: lang) {
-                guard let image = GameView.image(frame) else { throw CLIError(message: "rendering game-\(name) failed") }
+            let caption = view(for: limit, lang: lang).gameCaption
+            let back = view(for: SnapshotCase(name: "sample"), lang: lang).gameCaption
+            for (name, frame) in RunnerEngine.showcase(lang: lang, caption: caption, back: back) {
+                guard let image = GameRenderer.render(frame) else { throw CLIError(message: "rendering game-\(name) failed") }
                 let url = dir.appendingPathComponent("game-\(name)-\(lang.rawValue).png")
                 try Imaging.writePNG(image, to: url)
                 out.append(url)
             }
         }
         return out
-    }
-
-    /// A seeded round played by the engine's demo player, so every run draws the same screens.
-    static func gameFrames(lang: Lang) -> [(name: String, frame: RunnerFrame)] {
-        let caption = L10n.t(.resetIn, lang, "1h 12m")
-        let e = RunnerEngine(random: SeededRandomSource(seed: 2), highScore: 1234)
-        var frames = [(name: "ready", frame: e.frame(lang: lang, caption: caption))]
-        e.step(RunnerInput(jump: true))
-        // Bugs fly from speed 8.5; this seed's first is in the left two thirds of the canvas by then.
-        for _ in 0 ..< 2558 { e.step(e.demoInput) }
-        frames.append((name: "running", frame: e.frame(lang: lang, caption: caption)))
-        e.pause()
-        frames.append((name: "paused", frame: e.frame(lang: lang, caption: caption)))
-        e.resume()
-        while e.phase == .running { e.step(RunnerInput()) }
-        // A second on, past the restart delay, so the restart note shows.
-        for _ in 0 ..< Int(RunnerTuning.ticksPerSecond) { e.step(RunnerInput()) }
-        frames.append((name: "over", frame: e.frame(lang: lang, caption: L10n.t(.gameBack, lang))))
-        return frames
     }
 
     /// The menu bar item's text, colour and tooltip in every state, since no PNG shows the tooltip.

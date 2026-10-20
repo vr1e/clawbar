@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Observation
 import SwiftUI
 import ClawBarGame
@@ -26,17 +27,6 @@ struct GameView: View {
     }
 }
 
-extension GameView {
-    /// One frame at its base size, `pixelScale` pixels per point, for `--snapshot`.
-    static func image(_ frame: RunnerFrame, pixelScale: Double = 2) -> CGImage? {
-        let model = GameModel()
-        model.frame = frame
-        let renderer = ImageRenderer(content: GameView(model: model).frame(width: RunnerTuning.width, height: RunnerTuning.height))
-        renderer.scale = pixelScale
-        return renderer.cgImage
-    }
-}
-
 /// The window's content: hosts the canvas and takes every key and click itself, so SwiftUI never sees them.
 final class GameHostView: HostView<GameView> {
     var onKey: (NSEvent, Bool) -> Void = { _, _ in }
@@ -55,22 +45,19 @@ final class GameHostView: HostView<GameView> {
     override func mouseUp(with event: NSEvent) { onMouse(false) }
 }
 
-/// Clawd Run's window: opened from the card's link or the menu while the session limit is used up.
-/// Steps the engine in fixed ticks off the real clock, and pauses the round while the window is in the background.
+/// Clawd Run's window: opened from the card's button or the menu while the session limit is used up.
+/// Steps the engine in fixed ticks off the real clock while the window is key; behind other windows the round waits.
 final class GameWindowController: NSObject, NSWindowDelegate {
-    static let jumpKeys: Set<UInt16> = [49, 126, 13] // Space, ↑, W
-    static let duckKeys: Set<UInt16> = [125, 1] // ↓, S
-    static let escape: UInt16 = 53
+    static let jumpKeys = Set([kVK_Space, kVK_UpArrow, kVK_ANSI_W].map(UInt16.init))
+    static let duckKeys = Set([kVK_DownArrow, kVK_ANSI_S].map(UInt16.init))
+    static let escape = UInt16(kVK_Escape)
     static let maxStepsPerFire = 4
 
-    /// Read every tick, so a language switch or a reset shows at once.
-    var lang: () -> Lang = { .en }
-    var caption: () -> String = { "" }
-
+    private var lang = Lang.en
+    private var caption = ""
     private let model = GameModel()
     private let engine = RunnerEngine(random: SystemRandomSource())
     private var window: NSWindow?
-    private var host: GameHostView?
     private var timer: Timer?
     private var held: Set<UInt16> = []
     private var mouseHeld = false
@@ -79,6 +66,15 @@ final class GameWindowController: NSObject, NSWindowDelegate {
     private var lastTime: TimeInterval = 0
     private var backlog: TimeInterval = 0
 
+    /// The corner's caption and the language from each new view state, so a reset or a language switch shows at once.
+    func update(caption: String, lang: Lang) {
+        guard caption != self.caption || lang != self.lang else { return }
+        self.caption = caption
+        self.lang = lang
+        render()
+    }
+
+    /// Becoming key starts the ticks.
     func show() {
         let w = window ?? makeWindow()
         window = w
@@ -86,8 +82,7 @@ final class GameWindowController: NSObject, NSWindowDelegate {
         // An accessory app only gets keys once it is active.
         NSApp.activate()
         w.makeKeyAndOrderFront(nil)
-        if let host { w.makeFirstResponder(host) }
-        startTimer()
+        w.makeFirstResponder(w.contentView)
     }
 
     func close() {
@@ -101,12 +96,12 @@ final class GameWindowController: NSObject, NSWindowDelegate {
             mouseHeld = down
             if down { pressedSinceStep = true }
         }
-        self.host = host
         let w = NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: RunnerTuning.width, height: RunnerTuning.height),
             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false
         )
-        w.title = L10n.t(.gameTitle, lang())
+        // A proper name, the same in both languages.
+        w.title = L10n.t(.gameTitle, lang)
         w.contentView = host
         w.contentAspectRatio = CGSize(width: RunnerTuning.width, height: RunnerTuning.height)
         w.contentMinSize = CGSize(width: RunnerTuning.width / 2, height: RunnerTuning.height / 2)
@@ -133,26 +128,16 @@ final class GameWindowController: NSObject, NSWindowDelegate {
 
     // MARK: Ticks
 
-    /// 60 a second while the window is key; once a second behind other windows, so the caption keeps up.
-    private func startTimer(every interval: TimeInterval = 1 / RunnerTuning.ticksPerSecond) {
+    private func startTimer() {
         stopTimer()
         lastTime = ProcessInfo.processInfo.systemUptime
         backlog = 0
-        timer = Timer.onMain(every: interval) { [weak self] in self?.fire() }
+        timer = Timer.onMain(every: 1 / RunnerTuning.ticksPerSecond) { [weak self] in self?.tick() }
     }
 
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
-    }
-
-    /// A close can resign key after `windowWillClose`, so a timer that outlives the window lets itself go.
-    private func fire() {
-        guard window?.isVisible == true else {
-            stopTimer()
-            return
-        }
-        tick()
     }
 
     /// As many fixed steps as real time asks for, at most a few, so a stall does not fast-forward into a crash.
@@ -162,23 +147,22 @@ final class GameWindowController: NSObject, NSWindowDelegate {
         backlog += now - lastTime
         lastTime = now
         var steps = 0
-        while !engine.paused, backlog >= dt, steps < Self.maxStepsPerFire {
+        while backlog >= dt, steps < Self.maxStepsPerFire {
             let jump = pressedSinceStep || mouseHeld || !held.isDisjoint(with: Self.jumpKeys)
             engine.step(RunnerInput(jump: jump, duck: !held.isDisjoint(with: Self.duckKeys)))
             pressedSinceStep = false
             backlog -= dt
             steps += 1
         }
-        // Past what the steps can catch up, after a stall or a pause.
-        if engine.paused || backlog >= dt * Double(Self.maxStepsPerFire) { backlog = 0 }
+        // Past what the steps can catch up, after a stall.
+        if backlog >= dt * Double(Self.maxStepsPerFire) { backlog = 0 }
         render()
     }
 
+    /// Only a changed frame is published, so a still screen is not redrawn every tick.
     private func render() {
-        let language = lang()
-        model.frame = engine.frame(lang: language, caption: caption())
-        let title = L10n.t(.gameTitle, language)
-        if let window, window.title != title { window.title = title }
+        let frame = engine.frame(lang: lang, caption: caption)
+        if frame != model.frame { model.frame = frame }
     }
 
     private func releaseKeys() {
@@ -196,9 +180,9 @@ final class GameWindowController: NSObject, NSWindowDelegate {
 
     /// Key-ups go to the other window, so keys are let go; a running round waits, drawn at once with its note.
     func windowDidResignKey(_ notification: Notification) {
+        stopTimer()
         releaseKeys()
         engine.pause()
-        startTimer(every: 1)
         render()
     }
 

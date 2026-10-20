@@ -77,8 +77,6 @@ final class AppController: NSObject, WidgetPanelDelegate {
         layout.onRectsChange = { [unowned self] in scheduleTooltipRefresh() }
         data.onChange = { [weak self] in self?.recompute() }
 
-        game.lang = { [unowned self] in config.lang }
-        game.caption = { [unowned self] in app.view.gameCaption }
         statusItem.onToggle = { [unowned self] in toggleWidget() }
         statusItem.menuProvider = { [unowned self] in statusMenu() }
 
@@ -100,7 +98,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         recompute(now: now)
         showWidget()
         scheduleDataTimer()
-        sessionTimer = repeating(2) { [unowned self] in
+        sessionTimer = Timer.onMain(every: 2) { [unowned self] in
             let now = Date()
             data.pollSessions(now: now)
             recompute(now: now)
@@ -138,13 +136,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     // MARK: Ticks
 
-    private func repeating(_ seconds: Double, tolerance: Double? = nil, _ body: @escaping @MainActor () -> Void) -> Timer {
-        Timer.onMain(every: seconds, tolerance: tolerance, body)
-    }
-
     private func scheduleDataTimer() {
         dataTimer?.invalidate()
-        dataTimer = repeating(Double(config.refreshSeconds)) { [unowned self] in dataTick() }
+        dataTimer = Timer.onMain(every: Double(config.refreshSeconds)) { [unowned self] in dataTick() }
     }
 
     /// update.ps1's Update-Widget: live config, the probes on their cadence, then everything rendered.
@@ -166,6 +160,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         let view = WidgetPresenter.make(input)
         if view != app.view { app.view = view }
         statusItem.update(text: view.trayText, color: view.trayColor, tooltip: view.trayTooltip)
+        game.update(caption: view.gameCaption, lang: config.lang)
         // Clawd waits for the first registry read, so he starts idle instead of burrowing.
         if config.showMascot, snapshot.sessionsRead {
             clawd.apply(ClawdDataInput(snapshot, critPercent: config.critPercent), now: now)
@@ -186,7 +181,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         guard animationTimer == nil || ms != animationInterval else { return }
         animationTimer?.invalidate()
         animationInterval = ms
-        animationTimer = repeating(Double(ms) / 1000, tolerance: 0.004) { [unowned self] in animationTick() }
+        animationTimer = Timer.onMain(every: Double(ms) / 1000, tolerance: 0.004) { [unowned self] in animationTick() }
     }
 
     private func animationTick() {
@@ -272,7 +267,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     private func scheduleSave() {
         saveTimer?.invalidate()
-        saveTimer = Timer.onMain(every: 0.5, repeats: false) { [unowned self] in savePosition() }
+        saveTimer = Timer.onMain(after: 0.5) { [unowned self] in savePosition() }
     }
 
     /// The top-left, WPF-style and rounded like the original's [math]::Round, written only when it moved.

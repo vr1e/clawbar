@@ -24,8 +24,8 @@ struct CardView: View {
             WText(v.resetText.isEmpty ? " " : v.resetText, 11, color: v.resetColor, wraps: true)
                 .frame(width: Self.content * k, alignment: .leading)
                 .publish(.reset, to: layout)
-                .padding(.bottom, (v.playText.isEmpty ? 9 : 6) * k)
-            if !v.playText.isEmpty {
+                .padding(.bottom, (v.limitReached ? 6 : 9) * k)
+            if v.limitReached {
                 PlayButton(text: v.playText)
                     .publish(.play, to: layout)
                     .padding(.bottom, 10 * k)

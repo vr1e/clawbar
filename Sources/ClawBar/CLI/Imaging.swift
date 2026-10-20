@@ -36,6 +36,18 @@ enum CardRenderer {
     }
 }
 
+/// Clawd Run drawn offscreen, for snapshots.
+enum GameRenderer {
+    /// One frame at the canvas's base size, `pixelScale` pixels per point.
+    static func render(_ frame: RunnerFrame, pixelScale: Double = 2) -> CGImage? {
+        let model = GameModel()
+        model.frame = frame
+        let renderer = ImageRenderer(content: GameView(model: model).frame(width: RunnerTuning.width, height: RunnerTuning.height))
+        renderer.scale = pixelScale
+        return renderer.cgImage
+    }
+}
+
 enum Imaging {
     static let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
 

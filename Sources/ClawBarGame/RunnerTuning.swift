@@ -32,10 +32,3 @@ extension RunnerTuning {
     /// so landing never comes too late to jump the next one.
     static let minGapTicks = 36.0
 }
-
-extension Palette {
-    static let runnerCloud = RGBA("#FF2E2E35")
-    static let runnerGround = RGBA("#FF6B7280")
-    static let runnerCactus = RGBA("#FF8B8B94")
-    static let runnerBug = RGBA("#FFA78BFA")
-}

@@ -1,14 +1,5 @@
 import CoreGraphics
 
-/// Where a round of Clawd Run is.
-public enum RunnerPhase: String, Sendable, CaseIterable {
-    /// Clawd stands at the start until the first jump.
-    case ready
-    case running
-    /// Clawd hit something; a jump after `RunnerTuning.restartDelayTicks` starts again.
-    case over
-}
-
 /// The keys held during one tick. The engine finds the presses itself, so a held key jumps once.
 public struct RunnerInput: Sendable, Hashable {
     /// Space, ↑ or a mouse button.

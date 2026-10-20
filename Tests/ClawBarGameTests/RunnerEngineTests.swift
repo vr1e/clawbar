@@ -15,7 +15,7 @@ private func running(seed: UInt64 = 1) -> RunnerEngine {
 /// Places one obstacle 160 ahead and plays it with `policy` until it has passed Clawd or he hit it.
 private func pass(
     _ kind: RunnerEngine.Kind, bottom: Double = RunnerTuning.groundY, policy: (RunnerEngine) -> RunnerInput
-) -> RunnerPhase {
+) -> RunnerEngine.Phase {
     let e = running()
     e.place(kind, x: RunnerTuning.clawdX + 160, bottom: bottom)
     var ticks = 0
@@ -206,6 +206,19 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
         #expect(RunnerEngine.digits(0) == "00000")
         #expect(RunnerEngine.digits(1234) == "01234")
         #expect(RunnerEngine.digits(123_456) == "99999")
+    }
+
+    @Test func theShowcaseShowsEachScreenWithABugMidRound() {
+        let frames = RunnerEngine.showcase(lang: .en, caption: "resets in 1h 12m", back: "back")
+        #expect(frames.map(\.name) == ["ready", "running", "paused", "over"])
+        let bugs = frames[1].frame.ops.contains { op in
+            if case let .rects(rects, color, _) = op { return color == RunnerArt.bugColor && !rects.isEmpty }
+            return false
+        }
+        #expect(bugs)
+        #expect(texts(frames[2].frame).contains(L10n.t(.gamePaused, .en)))
+        #expect(texts(frames[3].frame).contains(L10n.t(.gameRestart, .en)))
+        #expect(texts(frames[3].frame).contains("back"))
     }
 
     @Test func everySpriteStaysOnTheCanvas() {

@@ -7,6 +7,15 @@ import ClawBarShared
 public final class RunnerEngine {
     typealias T = RunnerTuning
 
+    /// Where a round is.
+    enum Phase {
+        /// Clawd stands at the start until the first jump.
+        case ready
+        case running
+        /// Clawd hit something; a jump after `RunnerTuning.restartDelayTicks` starts again.
+        case over
+    }
+
     enum Kind {
         case cactusSmall, cactusLarge, bug
 
@@ -29,8 +38,6 @@ public final class RunnerEngine {
         var x: Double
         /// The bottom edge, from the top; cacti stand on the ground line.
         var bottom: Double
-        /// The room left after this one before the next appears.
-        var gap: Double
 
         var width: Double { kind.sprite.width * Double(count) }
     }
@@ -39,10 +46,10 @@ public final class RunnerEngine {
     static let bugBottoms = [T.groundY - 3, T.groundY - 24, T.groundY - 48]
 
     private let random: RandomSource
-    public private(set) var phase: RunnerPhase = .ready
-    public private(set) var highScore: Int
+    private(set) var phase = Phase.ready
+    private(set) var highScore: Int
     /// The window is in the background: a running round waits, since it would crash unseen.
-    public private(set) var paused = false
+    private(set) var paused = false
     private(set) var speed = T.startSpeed
     /// Units run this round.
     private(set) var distance = 0.0
@@ -52,6 +59,8 @@ public final class RunnerEngine {
     private(set) var velocity = 0.0
     private(set) var ducking = false
     private(set) var obstacles: [Obstacle] = []
+    /// The room the newest obstacle leaves before the next appears.
+    private var nextGap = 0.0
     /// Each cloud's top-left.
     private var clouds: [CGPoint] = []
     /// The ground's specks: x, and y below the ground line.
@@ -80,7 +89,6 @@ public final class RunnerEngine {
         ticks += 1
         switch phase {
         case .ready:
-            ducking = false
             if pressed {
                 phase = .running
                 velocity = T.jumpVelocity
@@ -126,7 +134,6 @@ public final class RunnerEngine {
         velocity = 0
         ducking = false
         obstacles = []
-        overTicks = 0
         milestoneLeft = 0
     }
 
@@ -189,17 +196,17 @@ public final class RunnerEngine {
     /// A new obstacle at the right edge once the last one has left its gap; none for the first stretch.
     private func spawn() {
         guard distance > 400 else { return }
-        if let last = obstacles.last, last.x + last.width + last.gap > T.width { return }
+        if let last = obstacles.last, last.x + last.width + nextGap > T.width { return }
         let bug = speed >= T.bugSpeed && random.nextDouble() < 0.25
         let kind: Kind = bug ? .bug : random.nextInt(2) == 0 ? .cactusSmall : .cactusLarge
         let maxGroup = speed < 7.5 ? 1 : speed < 10 ? 2 : 3
         let count = bug ? 1 : 1 + random.nextInt(maxGroup)
         let bottom = bug ? Self.bugBottoms[random.nextInt(Self.bugBottoms.count)] : T.groundY
-        var o = Obstacle(kind: kind, count: count, x: T.width, bottom: bottom, gap: 0)
+        let o = Obstacle(kind: kind, count: count, x: T.width, bottom: bottom)
         // The dinosaur's rule: the faster and wider, the more room after it, up to half as much again at random;
         // never less than a full jump needs.
         let gap = max((o.width * speed + kind.minGap * 0.6).rounded(), (speed * T.minGapTicks).rounded())
-        o.gap = gap + Double(random.nextInt(Int(gap / 2) + 1))
+        nextGap = gap + Double(random.nextInt(Int(gap / 2) + 1))
         obstacles.append(o)
     }
 
@@ -237,14 +244,9 @@ public final class RunnerEngine {
 
     /// Pixel against pixel, each rect shrunk a little, so only a real touch ends the round.
     func hit() -> Bool {
-        let clawd = (clawdRects("#") + clawdRects("o")).map { $0.insetBy(dx: T.hitInset, dy: T.hitInset) }
-        let box = clawd.reduce(CGRect.null) { $0.union($1) }
-        for o in obstacles where o.x < box.maxX && o.x + o.width > box.minX {
-            for r in rects(of: o).map({ $0.insetBy(dx: T.hitInset, dy: T.hitInset) }) where r.intersects(box) {
-                if clawd.contains(where: { $0.intersects(r) }) { return true }
-            }
-        }
-        return false
+        func shrunk(_ rects: [CGRect]) -> [CGRect] { rects.map { $0.insetBy(dx: T.hitInset, dy: T.hitInset) } }
+        let clawd = shrunk(clawdRects("#") + clawdRects("o"))
+        return shrunk(obstacles.flatMap { rects(of: $0) }).contains { r in clawd.contains { $0.intersects(r) } }
     }
 
     // MARK: Drawing
@@ -263,13 +265,13 @@ public final class RunnerEngine {
             text(L10n.t(key, lang), x: T.width / 2, y: y, size: size, weight: weight, color: color, anchor: .top)
         }
 
-        fill(clouds.flatMap { RunnerArt.cloud.rects("#", at: $0) }, Palette.runnerCloud)
+        fill(clouds.flatMap { RunnerArt.cloud.rects("#", at: $0) }, RunnerArt.cloudColor)
         let ground = [CGRect(x: 0, y: T.groundY, width: T.width, height: 1)]
             + specks.map { CGRect(x: $0.x, y: T.groundY + $0.y, width: 2, height: 1) }
-        fill(ground, Palette.runnerGround)
+        fill(ground, RunnerArt.groundColor)
         let bugs = obstacles.filter { $0.kind == .bug }
-        fill(obstacles.filter { $0.kind != .bug }.flatMap { rects(of: $0) }, Palette.runnerCactus)
-        fill(bugs.flatMap { rects(of: $0) }, Palette.runnerBug)
+        fill(obstacles.filter { $0.kind != .bug }.flatMap { rects(of: $0) }, RunnerArt.cactusColor)
+        fill(bugs.flatMap { rects(of: $0) }, RunnerArt.bugColor)
         fill(bugs.flatMap { rects(of: $0, "o") }, Palette.clawdEyes)
         fill(clawdRects("#"), Palette.clawdBody)
         fill(clawdRects("o"), Palette.clawdEyes)
@@ -304,8 +306,8 @@ public final class RunnerEngine {
     // MARK: Demo
 
     /// What a fair player presses now: jump what comes into reach and hold the rise, duck under a middle bug,
-    /// run under a high one. Drives the snapshots, and shows in tests that every course can be cleared.
-    public var demoInput: RunnerInput {
+    /// run under a high one. Drives the showcase, and shows in tests that every course can be cleared.
+    var demoInput: RunnerInput {
         if airborne { return RunnerInput(jump: velocity < 0) }
         let clawdRight = T.clawdX + RunnerArt.clawdStanding.width
         guard let next = obstacles.first(where: { $0.x + $0.width > T.clawdX }) else { return RunnerInput() }
@@ -317,10 +319,31 @@ public final class RunnerEngine {
         return RunnerInput(jump: true)
     }
 
+    /// The screens `--snapshot` draws, from one seeded round of the demo player so every run draws the same: the start,
+    /// mid-round with a bug in view, paused, and after a crash with `back` in the corner.
+    public static func showcase(lang: Lang, caption: String, back: String) -> [(name: String, frame: RunnerFrame)] {
+        let e = RunnerEngine(random: SeededRandomSource(seed: 2), highScore: 1234)
+        var frames = [(name: "ready", frame: e.frame(lang: lang, caption: caption))]
+        e.step(RunnerInput(jump: true))
+        while e.phase == .running, !e.obstacles.contains(where: { $0.kind == .bug && $0.x < T.width / 2 }) {
+            e.step(e.demoInput)
+        }
+        frames.append((name: "running", frame: e.frame(lang: lang, caption: caption)))
+        e.pause()
+        frames.append((name: "paused", frame: e.frame(lang: lang, caption: caption)))
+        e.resume()
+        while e.phase == .running { e.step(RunnerInput()) }
+        // A second on, past the restart delay, so the restart note shows.
+        for _ in 0 ..< Int(T.ticksPerSecond) { e.step(RunnerInput()) }
+        frames.append((name: "over", frame: e.frame(lang: lang, caption: back)))
+        return frames
+    }
+
     // MARK: Tests
 
-    /// Puts an obstacle on the course, for tests that need one at a known place.
-    func place(_ kind: Kind, x: Double, bottom: Double = RunnerTuning.groundY, count: Int = 1) {
-        obstacles.append(Obstacle(kind: kind, count: count, x: x, bottom: bottom, gap: T.width))
+    /// Puts an obstacle on the course with the whole canvas after it, for tests that need one at a known place.
+    func place(_ kind: Kind, x: Double, bottom: Double) {
+        obstacles.append(Obstacle(kind: kind, count: 1, x: x, bottom: bottom))
+        nextGap = T.width
     }
 }

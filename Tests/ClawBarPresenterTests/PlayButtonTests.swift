@@ -4,7 +4,7 @@ import ClawBarPresenter
 import ClawBarShared
 
 /// Clawd Run is offered only while the session limit is used up.
-@Suite struct PlayLinkTests {
+@Suite struct PlayButtonTests {
     @Test(arguments: [100, 101])
     func aUsedUpLimitOffersTheGame(pct: Int) {
         let v = render(sample { $0.sessionPercent = pct })
@@ -39,7 +39,7 @@ import ClawBarShared
         #expect(render(sample { $0.sessionPercent = 40 }).gameCaption == "The limit has reset: back to work!")
     }
 
-    @Test func theLinkIsGerman() {
+    @Test func theButtonIsGerman() {
         let v = render(sample { $0.sessionPercent = 100 }, lang: .de)
         #expect(v.playText == "Clawd Run spielen, bis es weitergeht")
     }

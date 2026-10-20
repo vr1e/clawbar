@@ -38,23 +38,16 @@ enum RunnerArt {
     ]))
 
     /// Ducking: squashed to six rows and stretched forward.
-    static let clawdDuckA = Sprite([
-        "...################.",
-        "...##o##########o##.",
-        "#####################",
-        "#####################",
-        "...################.",
-        "...#.#..........#.#.",
-    ])
+    static let clawdDuckA = Sprite(duckBody + ["...#.#..........#.#."])
+    static let clawdDuckB = Sprite(duckBody + ["....#.#........#.#.."])
 
-    static let clawdDuckB = Sprite([
+    private static let duckBody = [
         "...################.",
         "...##o##########o##.",
         "#####################",
         "#####################",
         "...################.",
-        "....#.#........#.#..",
-    ])
+    ]
 
     /// After a crash: the eyes squeezed shut.
     static let clawdCrashed = Sprite(standing(replacing: 2 ... 3, with: [
@@ -99,22 +92,21 @@ enum RunnerArt {
         "......##....",
         ".....####...",
         "..##..##....",
-        ".#o#######..",
-        ".##########.",
-        "..########..",
-        "...#.#.#....",
-    ])
+    ] + bugBody)
 
     /// Wings swept back.
     static let bugB = Sprite([
         "............",
         "............",
         "..##...####.",
+    ] + bugBody)
+
+    private static let bugBody = [
         ".#o#######..",
         ".##########.",
         "..########..",
         "...#.#.#....",
-    ])
+    ]
 
     /// A cloud for the background.
     static let cloud = Sprite([
@@ -123,6 +115,11 @@ enum RunnerArt {
         "##############",
         ".############.",
     ])
+
+    static let cloudColor = RGBA("#FF2E2E35")
+    static let groundColor = RGBA("#FF6B7280")
+    static let cactusColor = RGBA("#FF8B8B94")
+    static let bugColor = RGBA("#FFA78BFA")
 
     /// Clawd standing with some rows swapped, so every pose keeps the fixture's body.
     private static func standing(replacing rows: ClosedRange<Int>, with replacement: [String]) -> [String] {

@@ -23,7 +23,7 @@ struct WidgetHitMap {
         layout: LayoutModel, view: WidgetViewState, spriteRect: CGRect, scale k: Double, mascotVisible: Bool, skyVisible: Bool
     ) -> WidgetHitMap {
         var ids: [HitID] = [.details, .hide, .exit]
-        if !view.playText.isEmpty { ids.append(.play) }
+        if view.limitReached { ids.append(.play) }
         if view.statusVisible { ids.append(.status) }
         if view.detailsExpanded { ids += view.versionText.isEmpty ? [.appVersion] : [.version, .appVersion] }
         var map = WidgetHitMap()
