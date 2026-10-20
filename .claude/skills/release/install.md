@@ -1,6 +1,6 @@
 ## Install
 
-Requires macOS 15 or later on Apple silicon, and [Claude Code](https://claude.ai/code) installed and logged in.
+Requires macOS 14 or later on Apple silicon, and [Claude Code](https://claude.ai/code) installed and logged in.
 
 1. Download `ClawBar-{version}-arm64.zip` and unzip it.
 2. Move `ClawBar.app` to `~/Applications` (or `/Applications`). When updating, quit the running ClawBar from its menu first and replace the old app.

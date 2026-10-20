@@ -1,12 +1,12 @@
 import Foundation
-import Synchronization
+import os
 import Testing
 import ClawBarShared
 @testable import ClawBarData
 
 /// Records every file the registry opens.
 final class ReadSpy: Sendable {
-    private let opened = Mutex<[String]>([])
+    private let opened = OSAllocatedUnfairLock<[String]>(initialState: [])
 
     var names: [String] { opened.withLock { $0.map { ($0 as NSString).lastPathComponent } } }
 

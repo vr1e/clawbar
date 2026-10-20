@@ -1,5 +1,5 @@
 import Foundation
-import Synchronization
+import os
 import ClawBarShared
 @testable import ClawBarData
 
@@ -20,7 +20,7 @@ final class FakeRunner: ProcessRunning {
         var shutdowns = 0
     }
 
-    private let state = Mutex(State())
+    private let state = OSAllocatedUnfairLock(initialState: State())
 
     static func kind(_ s: ProcessSpec) -> Kind {
         switch s.arguments.first {
