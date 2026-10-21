@@ -19,6 +19,8 @@ enum JSONFile {
 
     /// Key-sorted and atomic (temp file + rename), creating the folder when needed; pretty unless told otherwise.
     static func write(_ object: [String: Any], to url: URL, pretty: Bool = true) throws {
+        // JSONSerialization does not throw on a NaN or a non-JSON type: it raises an exception that ends the app.
+        guard JSONSerialization.isValidJSONObject(object) else { throw NotJSON(url: url) }
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         var options: JSONSerialization.WritingOptions = [.sortedKeys, .withoutEscapingSlashes]
         if pretty { options.insert(.prettyPrinted) }
@@ -26,4 +28,9 @@ enum JSONFile {
         data.append(0x0A)
         try data.write(to: url, options: .atomic)
     }
+}
+
+struct NotJSON: Error, CustomStringConvertible {
+    var url: URL
+    var description: String { "a value for \(url.lastPathComponent) is not valid JSON; not writing it" }
 }

@@ -66,12 +66,20 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
 }
 
 @Suite struct MenuBarTests {
-    @Test func theTooltipListsTheSessionTheWeekAndEveryModelWeek() {
+    @Test func everyLimitGetsALineWithTheTimeLeftAndTheClockTimeOfItsReset() {
         let d = sample {
-            $0.modelWeeks = [ModelWeek(name: "Sonnet", percent: 23), ModelWeek(name: "Fable", percent: 8)]
+            $0.modelWeeks = [ModelWeek(name: "Sonnet", percent: 23), ModelWeek(name: "Fable", percent: 8, reset: Samples.now.plus(days: 1))]
         }
-        #expect(render(d).trayTooltip == "34% of session · 2h 05m\nweek 59% · Sonnet 23% · Fable 8%" + sessionsLine)
-        #expect(render(d, lang: .de).trayTooltip == "Sitzung 34% · 2h 05min\nWoche 59% · Sonnet 23% · Fable 8%" + sessionsLineDE)
+        #expect(render(d).trayTooltip
+            == "34% of session · 2h 05m (16:10)\nweek 59% · 4d 15h (Thu 06:00)\nSonnet 23%\nFable 8% · 1d 0h (tomorrow 14:05)" + sessionsLine)
+        #expect(render(d, lang: .de).trayTooltip
+            == "Sitzung 34% · 2h 05min (16:10)\nWoche 59% · 4d 15h (Do. 06:00)\nSonnet 23%\nFable 8% · 1d 0h (morgen 14:05)" + sessionsLineDE)
+    }
+
+    @Test func aResetAWeekOutNamesItsDay() {
+        let d = sample { $0.weekReset = Samples.now.plus(days: 7, minutes: -5) }
+        #expect(render(d).trayTooltip.contains("\nweek 59% · 6d 23h (Sat 24 14:00)\n"))
+        #expect(render(d, lang: .de).trayTooltip.contains("\nWoche 59% · 6d 23h (Sa. 24. 14:00)\n"))
     }
 
     @Test func partsThatAreMissingAreLeftOut() {
@@ -82,7 +90,10 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         }
         #expect(render(d).trayTooltip == "34% of session" + sessionsLine)
         let closed = sample { $0.sessionReset = Samples.now.plus(minutes: -5) }
-        #expect(render(closed).trayTooltip == "34% of session\nweek 59% · Fable 8%" + sessionsLine)
+        #expect(render(closed).trayTooltip == "34% of session\nweek 59% · 4d 15h (Thu 06:00)\nFable 8% · 4d 15h (Thu 06:00)" + sessionsLine)
+        // A latched probe keeps a week whose reset has passed; it shows no stale clock time.
+        let weekOver = sample { $0.weekReset = Samples.now.plus(minutes: -5) }
+        #expect(render(weekOver).trayTooltip.contains("\nweek 59%\nFable 8%"))
     }
 
     @Test func theTooltipIsNotCutAt63Characters() {
@@ -94,7 +105,7 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         }
         let tip = render(d).trayTooltip
         #expect(tip.count > 63)
-        #expect(tip.contains("· Haiku 2%\n"))
+        #expect(tip.contains("\nHaiku 2%\n"))
     }
 
     @Test func staleNumbersGreyThePillAndSayWhenTheyAreFrom() {
@@ -103,8 +114,8 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         #expect(fresh.trayColor == Palette.ok && !fresh.trayTooltip.contains("stale"))
         let stale = render(now: Samples.now.plus(seconds: 211 - 25))
         #expect(stale.trayText == "34" && stale.trayColor == Palette.dead)
-        #expect(stale.trayTooltip.hasSuffix("\nweek 59% · Fable 8%\nstale · 14:04:35" + sessionsLine))
-        #expect(render(lang: .de, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix("\nWoche 59% · Fable 8%\nveraltet · 14:04:35" + sessionsLineDE))
+        #expect(stale.trayTooltip.hasSuffix("\nFable 8% · 4d 15h (Thu 06:00)\nstale · 14:04:35" + sessionsLine))
+        #expect(render(lang: .de, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix("\nFable 8% · 4d 14h (Do. 06:00)\nveraltet · 14:04:35" + sessionsLineDE))
         // The widget keeps its level colours; its stamp already says stale.
         #expect(stale.pctColor == Palette.ok)
     }
@@ -112,7 +123,7 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
     @Test func theStaleLineComesBeforeAnIssueLine() {
         let d = sample(data: { $0.usageIssue = .flagRejected("--output-format") })
         let tip = render(d, now: Samples.now.plus(hours: 1)).trayTooltip
-        #expect(tip.contains("\nweek 59% · Fable 8%\nstale · 14:04:35\n"))
+        #expect(tip.contains("\nFable 8% · 4d 14h (Thu 06:00)\nstale · 14:04:35\n"))
     }
 
     @Test func theSessionsLineComesLastAndOnlyWithSessionsShown() {
@@ -120,7 +131,7 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         #expect(render(d, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix(
             "\nstale · 14:04:35\nclaude rejects --output-format\nChecks paused until Claude Code updates" + sessionsLine
         ))
-        let limitsOnly = "34% of session · 2h 05m\nweek 59% · Fable 8%"
+        let limitsOnly = "34% of session · 2h 05m (16:10)\nweek 59% · 4d 15h (Thu 06:00)\nFable 8% · 4d 15h (Thu 06:00)"
         #expect(render(sample(data: { $0.sessions = [] })).trayTooltip == limitsOnly)
         var hidden = Config()
         hidden.showSessions = false
@@ -312,7 +323,7 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         expected.detailsExpanded = true
         expected.statsVisible = false
         expected.sessionsVisible = false
-        expected.trayTooltip = "34% of session · 2h 05m\nweek 59% · Fable 8%"
+        expected.trayTooltip = "34% of session · 2h 05m (16:10)\nweek 59% · 4d 15h (Thu 06:00)\nFable 8% · 4d 15h (Thu 06:00)"
         expected.trayMascot = false
         #expect(differences(v, expected) == [])
     }

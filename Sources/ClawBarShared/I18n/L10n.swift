@@ -6,6 +6,12 @@ public enum L10nValue: Sendable, Equatable {
     case forms([String])
 }
 
+/// What a `{n}` placeholder can show; an optional is no argument, so it never renders as "Optional(…)".
+public protocol L10nArg {}
+extension Int: L10nArg {}
+extension Double: L10nArg {}
+extension String: L10nArg {}
+
 /// Runtime-switchable strings: the language comes with every call, never from the system locale.
 public enum L10n {
     public static func table(_ lang: Lang) -> [L10nKey: L10nValue] {
@@ -21,7 +27,7 @@ public enum L10n {
     }
 
     /// The translated text with `{n}` / `{n:00}` placeholders filled; the raw key when no table has it.
-    public static func t(_ k: L10nKey, _ lang: Lang, _ args: Any...) -> String {
+    public static func t(_ k: L10nKey, _ lang: Lang, _ args: any L10nArg...) -> String {
         switch value(k, lang) {
         case .text(let s): format(s, args)
         case .forms(let f): format(f.last ?? k.rawValue, args)
@@ -53,6 +59,9 @@ public enum L10n {
     /// The moon's name for 0...7, from the new moon round to the waning crescent.
     public static func moonName(_ n: Int, _ lang: Lang) -> String { named("sky.moonNames.\(n)", lang) }
 
+    /// The short weekday name for 0...6, from Sunday.
+    public static func weekday(_ n: Int, _ lang: Lang) -> String { named("wd.\(n)", lang) }
+
     /// The health tier name for 0...6 halves; values outside are clamped.
     public static func health(_ halves: Int, _ lang: Lang) -> String {
         named("health.\(min(6, max(0, halves)))", lang)
@@ -70,7 +79,7 @@ public enum L10n {
     }
 
     /// The .NET composite format subset the strings use: `{0}`, and `{1:00}` for zero padding.
-    public static func format(_ template: String, _ args: [Any]) -> String {
+    public static func format(_ template: String, _ args: [any L10nArg]) -> String {
         guard template.contains("{") else { return template }
         var out = ""
         var i = template.startIndex
@@ -99,13 +108,10 @@ public enum L10n {
         return out
     }
 
-    private static func render(_ arg: Any, pad: Int) -> String {
+    private static func render(_ arg: any L10nArg, pad: Int) -> String {
         let s: String
         switch arg {
         case let v as Int: s = String(v)
-        case let v as Int32: s = String(v)
-        case let v as Int64: s = String(v)
-        case let v as UInt8: s = String(v)
         case let v as Double:
             if pad > 0 || (v.rounded() == v && abs(v) < 1e15) {
                 s = String(Int(v.rounded(.toNearestOrEven)))

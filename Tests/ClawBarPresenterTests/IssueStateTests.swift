@@ -52,7 +52,7 @@ import ClawBarShared
         #expect(v.resetText == text && v.resetColor == Palette.crit && v.resetTooltip == text)
         // The last numbers stay up, as with any stale probe; the menu bar says why they no longer move.
         #expect(v.pctText == "34" && v.trayText == "34" && v.trayColor == Palette.ok)
-        #expect(v.trayTooltip == "34% of session · 2h 05m\nweek 59% · Fable 8%\n" + text)
+        #expect(v.trayTooltip == "34% of session · 2h 05m (16:10)\nweek 59% · 4d 15h (Thu 06:00)\nFable 8% · 4d 15h (Thu 06:00)\n" + text)
         let none = issue(.flagRejected("--no-session-persistence"))
         #expect(none.pctText == "--" && none.resetText == text)
         #expect(none.trayTooltip == "ClawBar: no data\n" + text)

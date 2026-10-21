@@ -22,7 +22,7 @@ import ClawBarShared
             "widget.topLeft: 1178, 33", "loginItem.status: enabled", "usage.session: 34", "usage.week: 59",
             "usage.modelWeeks: Fable 8", "sessions: 2 (busy 1, waiting 1), read: true", "status.indicator: none",
             "view.pct: 34", "view.tray: 34", "config.scale: 1.20",
-            "view.trayTooltip: 34% of session · 2h 05m\\nweek 59% · Fable 8%\\n2 sessions · 1 working · 1 waiting",
+            "view.trayTooltip: 34% of session · 2h 05m (16:10)\\nweek 59% · 4d 15h (Thu 06:00)\\nFable 8% · 4d 15h (Thu 06:00)\\n2 sessions · 1 working · 1 waiting",
         ] {
             #expect(text.contains(line + "\n"), "\(line)")
         }

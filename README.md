@@ -136,7 +136,7 @@ Everything ClawBar touches, so you know there is nothing else:
 ## Differences from the original
 
 <!-- parity-table: begin; generated from a private feature map, so edits here are overwritten -->
-ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.15.1.
+ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.18.0.
 *Ported differently* has its gist in the notes and its details in the bullets below.
 
 | Feature | In ClawBar | Notes |
@@ -149,7 +149,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Account and plan | ✅ Ported | |
 | Claude Code version and update | ✅ Ported differently | The update runs in the background and explains a failure. |
 | Widget window | ✅ Ported differently | On every Space, and opens at login by itself. |
-| Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit. Not yet: Reset times as clock times in the tooltip; A shorter menu with Settings. |
+| Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit with its reset. Not yet: A shorter menu with Settings. |
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
 | 7-day history | ✅ Ported | Not yet: Chart of the session and week limits; The week's top projects. |
@@ -163,9 +163,11 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 
 - A menu bar item replaces the tray icon; the default size is 1.2, which suits Retina points. Its menu adds always
   on top and launch at login, and a Show in widget submenu stands in for the original's Settings window.
-- The menu bar item's tooltip lists every limit, each model's week included, where the tray's stops at 63
-  characters. Stale numbers turn the item grey, and its tooltip says when they are from. Its last line counts the
-  sessions, so a waiting one shows with the widget hidden.
+- The menu bar item's tooltip gives every limit a line of its own, each model's week included, with the time left
+  and the clock time of its reset: `34% of session · 2h 05m (16:10)`. The original's tray stops at 63 characters and
+  shows clock times (since 1.5.3) only in place of the countdowns, behind a setting. Stale numbers turn the item grey,
+  and its tooltip says when they are from. Its last line counts the sessions, so a waiting one shows with the widget
+  hidden.
 - The usage probe runs Claude Code in safe mode with JSON output, stops for good (until the next Claude Code
   version) if it ever reaches the model or a flag is rejected, and says so on the widget.
 - `/usage` parsing also reads the reset stamps Claude Code 2.1.302 prints (with *at*, a year, or a time only),

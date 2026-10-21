@@ -105,6 +105,15 @@ enum SnapshotCases {
 
         return list
     }
+
+    /// States only the menu bar tooltip tells apart from the sample, so they get no PNG.
+    static func tooltipOnly() -> [SnapshotCase] {
+        var tomorrow = SnapshotCase(name: "reset-tomorrow")
+        tomorrow.data.usage?.sessionReset = Date(timeIntervalSince1970: 1_792_276_200)
+        var weekOut = SnapshotCase(name: "reset-week-out")
+        weekOut.data.usage?.weekReset = Samples.now.addingTimeInterval(7 * 86400 - 300)
+        return [tomorrow, weekOut]
+    }
 }
 
 /// `--snapshot <dir>`: the card in every state, EN and DE, at k 1.0, 1.2 and 2.0; the menu bar item, and its text and
@@ -242,7 +251,7 @@ enum SnapshotMode {
 
     /// The menu bar item's text, colour and tooltip in every state, since no PNG shows the tooltip.
     static func menuBarDump(lang: Lang) -> String {
-        let states = SnapshotCases.all().map { c in
+        let states = (SnapshotCases.all() + SnapshotCases.tooltipOnly()).map { c in
             let v = view(for: c, lang: lang)
             let level = Level.allCases.first { $0.color == v.trayColor }?.rawValue ?? v.trayColor.hex
             return "\(c.name): \(v.trayText) (\(level))\n  " + v.trayTooltip.replacingOccurrences(of: "\n", with: "\n  ")
