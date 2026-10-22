@@ -14,6 +14,8 @@ struct SnapshotCase {
     var data = DataSnapshot.sample
     var tickError = false
     var skyDev = SkyDevState()
+    /// False for a state that only its menu bar tooltip shows, so it gets no PNG.
+    var card = true
 }
 
 /// Every presenter state the data contract can express, all at `Samples.now` in Berlin.
@@ -102,6 +104,14 @@ enum SnapshotCases {
         add("night") { $0.skyDev = SkyDevState(phase: .night, weatherCode: 0) }
         add("storm") { $0.skyDev = SkyDevState(phase: .dusk, weatherCode: 95) }
         add("snow") { $0.skyDev = SkyDevState(phase: .day, weatherCode: 73) }
+        add("reset-tomorrow") {
+            $0.card = false
+            $0.data.usage?.sessionReset = now.addingTimeInterval(10 * 3600 + 25 * 60)
+        }
+        add("reset-week-out") {
+            $0.card = false
+            $0.data.usage?.weekReset = now.addingTimeInterval(7 * 86400 - 300)
+        }
 
         return list
     }
@@ -127,7 +137,7 @@ enum SnapshotMode {
     static func write(to dir: URL) throws -> [URL] {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         var out: [URL] = []
-        for c in SnapshotCases.all() {
+        for c in SnapshotCases.all() where c.card {
             for lang in Lang.allCases {
                 for k in scales {
                     guard let card = renderCard(c, lang: lang, scale: k), let image = Imaging.onBackdrop(card, pad: 24, color: backdrop) else {

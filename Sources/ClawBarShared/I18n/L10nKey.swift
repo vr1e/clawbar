@@ -35,6 +35,18 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case trayNoData = "tray.noData"
     case traySession = "tray.session"
     case trayWeek = "tray.week"
+    /// A reset on the next calendar day; {0} is its HH:mm.
+    case clockTomorrow = "clock.tmrw"
+    /// A reset a week or more out: {0} weekday, {1} day of the month, {2} HH:mm.
+    case clockDate = "clock.date"
+    /// Short weekday names from Sunday, for reset clock times.
+    case wd0 = "wd.0"
+    case wd1 = "wd.1"
+    case wd2 = "wd.2"
+    case wd3 = "wd.3"
+    case wd4 = "wd.4"
+    case wd5 = "wd.5"
+    case wd6 = "wd.6"
 
     case sessNone = "sess.none"
     case sessBusy = "sess.busy"

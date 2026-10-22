@@ -32,6 +32,16 @@ public enum StringsDE {
         .trayNoData: .text("ClawBar: keine Daten"),
         .traySession: .text("Sitzung {0}%"),
         .trayWeek: .text("Woche {0}%"),
+        .clockTomorrow: .text("morgen {0}"),
+        .clockDate: .text("{0} {1}. {2}"),
+        // macOS's own short forms in German, with the period.
+        .wd0: .text("So."),
+        .wd1: .text("Mo."),
+        .wd2: .text("Di."),
+        .wd3: .text("Mi."),
+        .wd4: .text("Do."),
+        .wd5: .text("Fr."),
+        .wd6: .text("Sa."),
 
         // Words that read right for any count; "in Arbeit" would push 19 sessions past the row's 236 pt.
         .sessNone: .text("keine offen"),

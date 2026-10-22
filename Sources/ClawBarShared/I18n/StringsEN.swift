@@ -32,6 +32,16 @@ public enum StringsEN {
         .trayNoData: .text("ClawBar: no data"),
         .traySession: .text("{0}% of session"),
         .trayWeek: .text("week {0}%"),
+        // The original's 'tmrw' only saved room for the tray's 63 characters.
+        .clockTomorrow: .text("tomorrow {0}"),
+        .clockDate: .text("{0} {1} {2}"),
+        .wd0: .text("Sun"),
+        .wd1: .text("Mon"),
+        .wd2: .text("Tue"),
+        .wd3: .text("Wed"),
+        .wd4: .text("Thu"),
+        .wd5: .text("Fri"),
+        .wd6: .text("Sat"),
 
         .sessNone: .text("none running"),
         .sessBusy: .text("{0} working"),

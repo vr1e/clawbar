@@ -92,7 +92,7 @@ extension WidgetViewState {
         accountText: "Max  ·  user@example.com", accountTooltip: "Max  ·  user@example.com",
         stampText: "14:04:35",
         trayText: "34", trayColor: Palette.ok,
-        trayTooltip: "34% of session · 2h 05m\nweek 59% · Fable 8%\n2 sessions · 1 working · 1 waiting"
+        trayTooltip: "34% of session · 2h 05m (16:10)\nweek 59% · 4d 15h (Thu 06:00)\nFable 8% · 4d 15h (Thu 06:00)\n2 sessions · 1 working · 1 waiting"
     )
 }
 

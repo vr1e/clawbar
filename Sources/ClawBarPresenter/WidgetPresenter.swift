@@ -91,7 +91,7 @@ private struct Render {
         let stale = data.usageAt.flatMap(staleStamp)
         v.trayText = String(pct)
         v.trayColor = stale == nil ? color : Palette.dead
-        v.trayTooltip = trayTooltip(pct, span: span, usage) + (stale.map { "\n" + $0 } ?? "")
+        v.trayTooltip = trayTooltip(pct, usage) + (stale.map { "\n" + $0 } ?? "")
         v.limitReached = pct >= 100
         if v.limitReached {
             v.playText = t(.uiPlay)
@@ -137,15 +137,18 @@ private struct Render {
         return lang == .de ? s.replacingOccurrences(of: ".", with: ",") : s
     }
 
-    /// Session % and span, then the week and each model week; no 63-character cap on macOS.
-    private func trayTooltip(_ pct: Int, span: String?, _ usage: UsageSnapshot) -> String {
-        var tip = t(.traySession, pct)
-        if let span { tip += " · \(span)" }
-        var parts: [String] = []
-        if let week = usage.weekPercent { parts.append(t(.trayWeek, week)) }
-        parts += usage.modelWeeks.map { "\($0.name) \($0.percent)%" }
-        if !parts.isEmpty { tip += "\n" + parts.joined(separator: " · ") }
-        return tip
+    /// The session, the week and each model week on lines of their own; no 63-character cap on macOS.
+    private func trayTooltip(_ pct: Int, _ usage: UsageSnapshot) -> String {
+        var lines = [trayLimit(t(.traySession, pct), usage.sessionReset)]
+        if let week = usage.weekPercent { lines.append(trayLimit(t(.trayWeek, week), usage.weekReset)) }
+        lines += usage.modelWeeks.map { trayLimit("\($0.name) \($0.percent)%", $0.reset) }
+        return lines.joined(separator: "\n")
+    }
+
+    /// `week 59% · 4d 15h (Thu 06:00)` while the reset lies ahead, else the label alone.
+    private func trayLimit(_ label: String, _ reset: Date?) -> String {
+        guard let reset, let span = Span.text(until: reset, now: now, lang: lang) else { return label }
+        return "\(label) · \(span) (\(ResetClock.text(reset, now: now, timeZone: input.timeZone, lang: lang)))"
     }
 
     private func weeks(_ v: inout WidgetViewState) {
@@ -350,7 +353,7 @@ private struct Render {
     // MARK: Helpers
 
     /// L10n.t in this render's language; its variadic arguments cannot be forwarded, so the template is filled here.
-    private func t(_ key: L10nKey, _ args: Any...) -> String { L10n.format(L10n.t(key, lang), args) }
+    private func t(_ key: L10nKey, _ args: any L10nArg...) -> String { L10n.format(L10n.t(key, lang), args) }
 
     /// A bar's share of the content width; past 100% the bar is simply full.
     private func fraction(_ pct: Int) -> Double { Double(min(100, max(0, pct))) / 100 }
