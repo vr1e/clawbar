@@ -6,8 +6,7 @@ public enum HistoryReadout {
     /// The cursor `x` base units into `chart`, read from the samples the chart drew.
     public static func hover(x: Double, chart: HistoryView, input: PresenterInput) -> HistoryHover {
         let x = min(HistoryView.width, max(0, x))
-        // The original's [int] cast rounds half to even.
-        let minute = chart.start + Int((Double(chart.end - chart.start) * x / HistoryView.width).rounded(.toNearestOrEven))
+        let minute = HistoryChart.Box(start: chart.start, end: chart.end).minute(at: x)
         return HistoryHover(x: x, caption: caption(minute: minute, input: input))
     }
 

@@ -37,7 +37,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private var observers: [NSObjectProtocol] = []
     private var widgetVisible = false
     private var occluded = false
-    private var tooltipRefreshPending = false
+    private var regionRefreshPending = false
     /// Card space, while the pointer is over the widget.
     private var pointer: CGPoint?
 
@@ -76,7 +76,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
                 }
             }
         }
-        layout.onRectsChange = { [unowned self] in scheduleTooltipRefresh() }
+        layout.onRectsChange = { [unowned self] in scheduleRegionRefresh() }
         data.onChange = { [weak self] in self?.recompute() }
 
         statusItem.onToggle = { [unowned self] in toggleWidget() }
@@ -157,8 +157,6 @@ final class AppController: NSObject, WidgetPanelDelegate {
         let snapshot = input.data
         let view = WidgetPresenter.make(input)
         if view != app.view { app.view = view }
-        // A sample that arrives under a resting pointer updates its readout.
-        updateHistoryHover(now: now)
         statusItem.update(text: view.trayText, color: view.trayColor, mascot: view.trayMascot, tooltip: view.trayTooltip)
         game.update(caption: view.gameCaption, lang: config.lang)
         // Clawd waits for the first registry read, so he starts idle instead of burrowing.
@@ -166,7 +164,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
             clawd.apply(ClawdDataInput(snapshot, critPercent: config.critPercent), now: now)
         }
         syncAnimation()
-        scheduleTooltipRefresh()
+        scheduleRegionRefresh()
     }
 
     private func presenterInput(now: Date) -> PresenterInput {
@@ -178,10 +176,10 @@ final class AppController: NSObject, WidgetPanelDelegate {
     }
 
     /// The chart's readout under the pointer, or the legend again once it is off the chart.
-    private func updateHistoryHover(now: Date) {
+    private func updateHistoryHover() {
         var hover: HistoryHover?
         if let p = pointer, let chart = app.view.history, let x = hitMap().chartX(at: p) {
-            hover = HistoryReadout.hover(x: x, chart: chart, input: presenterInput(now: now))
+            hover = HistoryReadout.hover(x: x, chart: chart, input: presenterInput(now: Date()))
         }
         if hover != app.historyHover { app.historyHover = hover }
     }
@@ -223,7 +221,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         if app.skyVisible {
             animation.publish(sky.step(size: CGSize(width: CardView.content, height: PlayArea.height), inputs: skyInputs(now: now)))
         }
-        if animation.hearts.visible != heartsVisibleBefore { scheduleTooltipRefresh() }
+        if animation.hearts.visible != heartsVisibleBefore { scheduleRegionRefresh() }
         if clawd.tickMilliseconds != animationInterval { syncAnimation() }
     }
 
@@ -314,14 +312,12 @@ final class AppController: NSObject, WidgetPanelDelegate {
         // The occlusion notification corrects this once the window server has placed the panel.
         occluded = false
         syncAnimation()
-        scheduleTooltipRefresh()
+        scheduleRegionRefresh()
     }
 
     private func hideWidget() {
         panel.orderOut(nil)
         widgetVisible = false
-        // A widget hidden under the pointer gets no exit event.
-        pointerLeft()
         syncAnimation()
     }
 
@@ -329,13 +325,16 @@ final class AppController: NSObject, WidgetPanelDelegate {
         widgetVisible ? hideWidget() : showWidget()
     }
 
-    private func scheduleTooltipRefresh() {
-        guard !tooltipRefreshPending else { return }
-        tooltipRefreshPending = true
+    /// The tooltip regions and the chart's readout, once SwiftUI has published the rects they read.
+    private func scheduleRegionRefresh() {
+        guard !regionRefreshPending else { return }
+        regionRefreshPending = true
         DispatchQueue.main.async {
             MainActor.assumeIsolated {
-                self.tooltipRefreshPending = false
+                self.regionRefreshPending = false
                 self.refreshTooltips()
+                // The chart can move or close under a resting pointer.
+                self.updateHistoryHover()
             }
         }
     }
@@ -392,12 +391,12 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     func pointerMoved(to p: CGPoint) {
         pointer = p
-        updateHistoryHover(now: Date())
+        updateHistoryHover()
     }
 
     func pointerLeft() {
         pointer = nil
-        if app.historyHover != nil { app.historyHover = nil }
+        updateHistoryHover()
     }
 
     /// The sky's two developer overrides are the app's; everything else is Clawd's.

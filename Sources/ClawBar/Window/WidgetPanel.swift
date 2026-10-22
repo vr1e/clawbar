@@ -157,6 +157,12 @@ final class WidgetPanel: NSPanel {
         widgetDelegate?.pointerLeft()
     }
 
+    /// A panel ordered out from under the pointer gets no exit event.
+    override func orderOut(_ sender: Any?) {
+        super.orderOut(sender)
+        widgetDelegate?.pointerLeft()
+    }
+
     /// Window coordinates to card space: points with the origin at the card's top-left.
     func cardPoint(_ windowPoint: CGPoint) -> CGPoint {
         guard let view = contentView else { return windowPoint }

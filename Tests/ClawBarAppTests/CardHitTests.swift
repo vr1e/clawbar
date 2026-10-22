@@ -135,7 +135,7 @@ final class LaidOutCard {
     @Test func theChartReadsOutItsXAndStillDragsTheWindow() throws {
         var v = WidgetViewState.sample
         v.detailsExpanded = true
-        v.history = HistoryView(label: "LIMITS · 7 DAYS", start: 0, end: 10080)
+        v.history = HistoryView(label: "LIMITS · 7 DAYS")
         let card = LaidOutCard(v)
         let chart = try card.rect(.history)
         #expect(abs(chart.width - 236 * card.k) < 0.01 && abs(chart.height - 44 * card.k) < 0.01)

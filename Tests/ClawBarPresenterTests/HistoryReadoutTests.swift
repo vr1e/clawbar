@@ -63,18 +63,18 @@ import ClawBarShared
         #expect(hover.caption == "Sat 12:05  ·  no data")
     }
 
-    /// Across the sample week, each x reads the last sample at or before its minute, as a linear search finds it.
-    @Test func everyPointOfTheWeekReadsItsSample() throws {
+    /// Across the sample week, each minute reads the last sample at or before it, as a linear search finds it.
+    @Test func everyMinuteOfTheWeekReadsItsSample() {
         let i = input(Samples.history)
-        let chart = try #require(WidgetPresenter.make(i).history)
-        for x in stride(from: 0.0, through: 236, by: 0.37) {
-            let minute = chart.start + Int((Double(chart.end - chart.start) * x / 236).rounded(.toNearestOrEven))
-            let caption = HistoryReadout.hover(x: x, chart: chart, input: i).caption
+        // Steps of 3 meet every offset from the 5-minute samples.
+        for minute in stride(from: Self.m - 7 * 1440, through: Self.m, by: 3) {
+            // A chart starting at the minute reads it exactly at its left edge.
+            let caption = HistoryReadout.hover(x: 0, chart: HistoryView(label: "", start: minute, end: minute + 236), input: i).caption
             guard let s = Samples.history.last(where: { $0.minute <= minute }), minute - s.minute <= 20 else {
-                #expect(caption.hasSuffix("no data"), "x \(x)")
+                #expect(caption.hasSuffix("no data"), "minute \(minute)")
                 continue
             }
-            #expect(caption.hasSuffix("  ·  5h \(s.session ?? -1)%  ·  week \(s.week ?? -1)%"), "x \(x)")
+            #expect(caption.hasSuffix("  ·  5h \(s.session ?? -1)%  ·  week \(s.week ?? -1)%"), "minute \(minute)")
         }
     }
 }

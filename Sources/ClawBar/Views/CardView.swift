@@ -372,9 +372,8 @@ private struct HistoryCaption: View {
     @Environment(\.uiScale) private var k
 
     var body: some View {
-        if let hover = app.historyHover {
-            WText(hover.caption, 10, color: Palette.muted, truncates: true)
-        } else if h.caption.isEmpty {
+        let text = app.historyHover?.caption ?? h.caption
+        if text.isEmpty {
             HStack(alignment: .top, spacing: 0) {
                 legend(h.sessionName, HistoryChartView.sessionColor)
                 // Four spaces of 10-pt text between the entries, as Set-HistLegend pads them.
@@ -382,7 +381,7 @@ private struct HistoryCaption: View {
                     .padding(.leading, 11 * k)
             }
         } else {
-            WText(h.caption, 10, color: Palette.muted, truncates: true)
+            WText(text, 10, color: Palette.muted, truncates: true)
         }
     }
 

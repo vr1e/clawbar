@@ -199,11 +199,12 @@ enum SnapshotMode {
 
     /// The card at 2 pixels per point, with Clawd and the sky after a few seeded ticks.
     static func renderCard(_ c: SnapshotCase, lang: Lang, scale k: Double) -> CGImage? {
-        let view = view(for: c, lang: lang)
+        let input = input(for: c, lang: lang)
+        let view = WidgetPresenter.make(input)
         let layout = LayoutModel()
         var scene = CardRenderer.Scene(view: view, mascotVisible: c.config.showMascot, skyVisible: c.config.showMascot && c.config.showSky)
         if let x = c.hoverX, let chart = view.history {
-            scene.historyHover = HistoryReadout.hover(x: x, chart: chart, input: input(for: c, lang: lang))
+            scene.historyHover = HistoryReadout.hover(x: x, chart: chart, input: input)
         }
         // A first pass measures the number, which sets the play area Clawd walks in.
         _ = CardRenderer.render(scene, scale: k, layout: layout)
