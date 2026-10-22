@@ -13,6 +13,10 @@ public enum StringsDE {
         .uiOpenStatus: .text("status.claude.com öffnen"),
         .uiDay: .text("LETZTE 24 STUNDEN · DIESER MAC"),
         .uiWeek7: .text("LETZTE 7 TAGE"),
+        .uiHist: .text("LIMITS · 7 TAGE"),
+        .histSession: .text("5 Std."),
+        .histWeek: .text("Woche"),
+        .histEmpty: .text("der Verlauf beginnt jetzt"),
         .uiPortOf: .text("macOS-Portierung von clawd-usage-winwidget {0}, mit einigen Funktionen späterer Versionen (MIT)"),
 
         .spanD: .text("{0}d {1}h"),
@@ -112,6 +116,7 @@ public enum StringsDE {
         .setShowSessions: .text("Laufende Sitzungen"),
         .setShowAccount: .text("Plan und Konto"),
         .setShowStats: .text("Letzte 24 Stunden und 7 Tage (Details)"),
+        .setShowHistory: .text("7-Tage-Verlauf (Details)"),
         .menuQuit: .text("ClawBar beenden"),
         .menuPlay: .text("Clawd Run spielen …"),
 

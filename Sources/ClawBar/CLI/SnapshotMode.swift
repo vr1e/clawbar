@@ -34,6 +34,10 @@ enum SnapshotCases {
             c.data.usageProbeCompleted = true
             c.data.usageIssue = issue
         }
+        func chart(_ c: inout SnapshotCase) {
+            c.config.expanded = true
+            c.config.showHistory = true
+        }
         func failedUpdate(_ c: inout SnapshotCase, _ failure: UpdateFailure) {
             c.config.expanded = true
             c.data.version = VersionState(local: "2.1.300", latest: "2.1.302", updateFailure: failure, installHint: .homebrew)
@@ -101,6 +105,16 @@ enum SnapshotCases {
         }
         add("no-mascot") { $0.config.showMascot = false }
         add("no-sky") { $0.config.showSky = false }
+        add("history") {
+            chart(&$0)
+            $0.data.history = Samples.history
+        }
+        add("history-empty") { chart(&$0) }
+        add("history-no-limits") {
+            chart(&$0)
+            $0.data.usage = UsageSnapshot(day: DataSnapshot.sample.usage?.day, week7: DataSnapshot.sample.usage?.week7)
+            $0.data.usageIssue = .noLimits
+        }
         add("night") { $0.skyDev = SkyDevState(phase: .night, weatherCode: 0) }
         add("storm") { $0.skyDev = SkyDevState(phase: .dusk, weatherCode: 95) }
         add("snow") { $0.skyDev = SkyDevState(phase: .day, weatherCode: 73) }

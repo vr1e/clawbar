@@ -18,6 +18,7 @@ import ClawBarShared
         #expect(c.topmost == false)
         #expect(c.expanded == false)
         #expect(c.showStats && c.showStatus && c.showSessions && c.showAccount && c.showMascot && c.showSky)
+        #expect(c.showHistory == false)
         #expect(c.weatherLat == nil && c.weatherLon == nil)
         #expect(c.left == nil && c.top == nil)
         #expect(c.claudePath == nil)
@@ -109,7 +110,8 @@ import ClawBarShared
     }
 
     @Test func everyConfigKeyHasAStableJSONName() {
-        #expect(ConfigKey.allCases.count == 26)
+        #expect(ConfigKey.allCases.count == 27)
+        #expect(ConfigKey.showHistory.rawValue == "showHistory")
         #expect(ConfigKey.usageIntervalSeconds.rawValue == "usageIntervalSeconds")
         #expect(ConfigKey.launchAtLogin.rawValue == "launchAtLogin")
         #expect(ConfigKey.menuBarMascot.rawValue == "menuBarMascot")

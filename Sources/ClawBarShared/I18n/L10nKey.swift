@@ -13,6 +13,12 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case uiOpenStatus = "ui.openStatus"
     case uiDay = "ui.day"
     case uiWeek7 = "ui.week7"
+    /// The 7-day chart's label, then its legend's names for the session and the week line.
+    case uiHist = "ui.hist"
+    case histSession = "hist.session"
+    case histWeek = "hist.week"
+    /// The chart's caption while its week holds no sample yet.
+    case histEmpty = "hist.empty"
     /// Tooltip of the ClawBar version line; {0} is the original's version.
     case uiPortOf = "ui.portOf"
 
@@ -126,6 +132,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case setShowSessions = "set.showSessions"
     case setShowAccount = "set.showAccount"
     case setShowStats = "set.showStats"
+    case setShowHistory = "set.showHistory"
     case menuQuit = "menu.quit"
     /// Shown only while the session limit is used up.
     case menuPlay = "menu.play"

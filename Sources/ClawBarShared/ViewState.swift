@@ -44,6 +44,73 @@ public struct BarRow: Sendable, Hashable {
     }
 }
 
+/// A point in the 7-day chart's box, in base units: x from the left, y down from the top.
+public struct ChartPoint: Sendable, Hashable {
+    public var x: Double
+    public var y: Double
+
+    public init(x: Double, y: Double) {
+        self.x = x
+        self.y = y
+    }
+}
+
+/// A weekday under the 7-day chart, centred between the midnights at `from` and `to`.
+public struct ChartDay: Sendable, Hashable {
+    public var text: String
+    public var from: Double
+    public var to: Double
+
+    public init(text: String, from: Double, to: Double) {
+        self.text = text
+        self.from = from
+        self.to = to
+    }
+}
+
+/// One entry of the chart's legend: a dash in the line's colour, then its name.
+public struct ChartLegendItem: Sendable, Hashable {
+    public var text: String
+    public var color: RGBA
+
+    public init(text: String, color: RGBA) {
+        self.text = text
+        self.color = color
+    }
+}
+
+/// The details' chart of the session and week limits over the last 7 days.
+public struct HistoryView: Sendable, Hashable {
+    /// The chart's box in base units: the bars' width, and widget.xaml's 44.
+    public static let width = 236.0
+    public static let height = 44.0
+
+    /// LIMITS · 7 DAYS.
+    public var label: String
+    /// Runs of samples without a gap, each a line of its own; a lone sample is a 1-wide stub.
+    public var sessionRuns: [[ChartPoint]]
+    public var weekRuns: [[ChartPoint]]
+    /// The x of each midnight inside the week.
+    public var dayTicks: [Double]
+    public var days: [ChartDay]
+    /// Empty while the caption says why the chart is empty.
+    public var legend: [ChartLegendItem]
+    public var caption: String
+
+    public init(
+        label: String, sessionRuns: [[ChartPoint]] = [], weekRuns: [[ChartPoint]] = [], dayTicks: [Double] = [],
+        days: [ChartDay] = [], legend: [ChartLegendItem] = [], caption: String = ""
+    ) {
+        self.label = label
+        self.sessionRuns = sessionRuns
+        self.weekRuns = weekRuns
+        self.dayTicks = dayTicks
+        self.days = days
+        self.legend = legend
+        self.caption = caption
+    }
+}
+
 /// What clicking the Claude Code version line does.
 public enum VersionAction: Sendable, Hashable {
     case none
@@ -113,6 +180,8 @@ public struct WidgetViewState: Sendable, Hashable {
     public var week7Label: String
     public var week7Main: String
     public var week7Extra: String
+    /// The 7-day chart; nil unless it is switched on and the details are open.
+    public var history: HistoryView?
     public var versionText: String
     public var versionColor: RGBA
     public var versionTooltip: String
@@ -175,6 +244,7 @@ public struct WidgetViewState: Sendable, Hashable {
         week7Label: String = "",
         week7Main: String = "",
         week7Extra: String = "",
+        history: HistoryView? = nil,
         versionText: String = "",
         versionColor: RGBA = Palette.muted,
         versionTooltip: String = "",
@@ -229,6 +299,7 @@ public struct WidgetViewState: Sendable, Hashable {
         self.week7Label = week7Label
         self.week7Main = week7Main
         self.week7Extra = week7Extra
+        self.history = history
         self.versionText = versionText
         self.versionColor = versionColor
         self.versionTooltip = versionTooltip

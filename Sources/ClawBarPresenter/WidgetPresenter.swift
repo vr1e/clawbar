@@ -249,6 +249,7 @@ private struct Render {
         v.week7Label = t(.uiWeek7)
         (v.dayMain, v.dayExtra) = period(data.usage?.day)
         (v.week7Main, v.week7Extra) = period(data.usage?.week7)
+        v.history = cfg.showHistory && cfg.expanded ? HistoryChart.view(input, config: cfg, lang: lang) : nil
         v.appVersionText = "\(AppInfo.name) v\(input.appVersion)"
         v.appVersionTooltip = t(.uiPortOf, AppInfo.originalVersion)
         v.appVersionURL = AppInfo.originalRepo

@@ -50,7 +50,7 @@ import ClawBarShared
 
     @Test(arguments: Lang.allCases)
     func rowLabelsAreUpperCase(lang: Lang) {
-        for key in [L10nKey.uiWeek, .uiModelWeek, .uiSessions, .uiDay, .uiWeek7] {
+        for key in [L10nKey.uiWeek, .uiModelWeek, .uiSessions, .uiDay, .uiWeek7, .uiHist] {
             let s = L10n.t(key, lang)
             #expect(s == s.uppercased(), "\(lang) \(key.rawValue): \(s)")
         }

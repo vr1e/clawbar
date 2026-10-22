@@ -11,7 +11,7 @@ enum StatusMenuAction: Hashable {
 
 /// The widget's switchable blocks, in the original Settings window's order.
 enum WidgetBlock: CaseIterable, Hashable {
-    case mascot, sky, status, sessions, account, stats
+    case mascot, sky, status, sessions, account, stats, history
 
     var title: L10nKey {
         switch self {
@@ -21,6 +21,7 @@ enum WidgetBlock: CaseIterable, Hashable {
         case .sessions: .setShowSessions
         case .account: .setShowAccount
         case .stats: .setShowStats
+        case .history: .setShowHistory
         }
     }
 
@@ -32,6 +33,7 @@ enum WidgetBlock: CaseIterable, Hashable {
         case .sessions: \.showSessions
         case .account: \.showAccount
         case .stats: \.showStats
+        case .history: \.showHistory
         }
     }
 

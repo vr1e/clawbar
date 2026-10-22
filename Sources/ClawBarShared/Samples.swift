@@ -7,6 +7,61 @@ public enum Samples {
     public static let now = Date(timeIntervalSince1970: 1_792_238_700)
     public static let timeZone = TimeZone(identifier: "Europe/Berlin")!
     public static let home = "/Users/example"
+
+    /// A week of samples every 5 minutes up to `now`, Berlin time: a 5-hour window each morning and weekday afternoon,
+    /// the week rising with them, resetting Thursday 06:00 and ending at the sample's 34% and 59%; asleep Tue–Wed night.
+    public static let history: [UsageSample] = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        func minute(_ unix: TimeInterval) -> Int { UsageSample.minute(of: Date(timeIntervalSince1970: unix)) }
+        let end = UsageSample.minute(of: now)
+        // Thursday 2026-10-15 06:00, a week before the sample's reset; Tuesday 23:40 to Wednesday 07:40.
+        let weekReset = minute(1_792_036_800)
+        let asleep = minute(1_791_927_600) ..< minute(1_791_956_400)
+        // Each weekday's windows from Sunday: the local minute it opens and the percent each minute of work adds.
+        // Saturday's opens at 11:10 to reach 34% at 14:05; Tuesday morning hits the limit.
+        let morning = 9 * 60 + 10, afternoon = 14 * 60 + 20, late = 11 * 60 + 10
+        let windows: [[(start: Int, rate: Double)]] = [
+            [(late, 0.15)],
+            [(morning, 0.30), (afternoon, 0.24)],
+            [(morning, 0.42), (afternoon, 0.30)],
+            [(morning, 0.25), (afternoon, 0.20)],
+            [(morning, 0.33), (afternoon, 0.26)],
+            [(morning, 0.20), (afternoon, 0.16)],
+            [(late, 34.0 / 175)],
+        ]
+        func session(_ minute: Int) -> Int {
+            let c = calendar.dateComponents([.weekday, .hour, .minute], from: UsageSample(minute: minute).date)
+            let local = (c.hour ?? 0) * 60 + (c.minute ?? 0)
+            for w in windows[(c.weekday ?? 1) - 1] {
+                let into = local - w.start
+                // Four hours of work, then the number stays until the window resets an hour later.
+                if (0 ..< 300).contains(into) { return Int(min(100, w.rate * Double(min(into, 240))).rounded(.toNearestOrEven)) }
+            }
+            return 0
+        }
+        let minutes = stride(from: end - 7 * 1440, through: end, by: 5).filter { !asleep.contains($0) }
+        let sessions = minutes.map(session)
+        // The week grows by what the session spends: from 41% to 78% before its reset, then from 0 to 59%.
+        var spent = (before: 0.0, after: 0.0)
+        for i in 1 ..< minutes.count where sessions[i] > sessions[i - 1] {
+            let rise = Double(sessions[i] - sessions[i - 1])
+            if minutes[i] < weekReset { spent.before += rise } else { spent.after += rise }
+        }
+        var week = 41.0
+        return minutes.indices.map { i in
+            if i > 0 {
+                let rise = Double(max(0, sessions[i] - sessions[i - 1]))
+                if minutes[i] < weekReset {
+                    week += rise * 37 / spent.before
+                } else {
+                    if minutes[i - 1] < weekReset { week = 0 }
+                    week += rise * 59 / spent.after
+                }
+            }
+            return UsageSample(minute: minutes[i], session: sessions[i], week: Int(week.rounded(.toNearestOrEven)))
+        }
+    }()
 }
 
 extension DataSnapshot {

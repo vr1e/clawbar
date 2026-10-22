@@ -76,6 +76,7 @@ the file is not valid JSON, ClawBar runs on the defaults and the widget's last-u
 | `warnPercent`, `critPercent` | `60`, `85` | level colour thresholds, 1–100 |
 | `expanded` | `false` | details open |
 | `showStats`, `showStatus`, `showSessions`, `showAccount`, `showMascot`, `showSky` | `true` | blocks to show, also under **Show in widget** |
+| `showHistory` | `false` | the 7-day chart of the session and week limits in the details, also under **Show in widget** |
 | `weatherLat`, `weatherLon` | unset | weather for these coordinates instead of your IP's location |
 | `refreshSeconds` | `10` | UI refresh, 2–300 |
 | `usageIntervalSeconds` | `60` | `/usage` probe, 30–3600 |
@@ -152,7 +153,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit with its reset. Not yet: A shorter menu with Settings. |
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
-| 7-day history | ✅ Ported | Not yet: Chart of the session and week limits; The week's top projects. |
+| 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval. Not yet: The week's top projects. |
 | Themes and skins | ⏳ Not yet | |
 | Settings window | ⏳ Not yet | Not ported: A tab for Claude Code's own settings. |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
@@ -194,6 +195,10 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   saved position lies on a display that is gone.
 - Clawd picks his walks inside his play area instead of heading for the edge, and the bars span exactly the
   widget's width.
+- The 7-day chart spans the bars' width too, so its newest hour is not cut off. It starts empty, since ClawBar's
+  `/usage` checks never left transcripts to fill it from, and its lines break after a pause that grows with
+  `usageIntervalSeconds` rather than after a fixed 20 minutes. Without Claude Code or plan limits it says *no data*
+  instead of promising that the history starts now.
 - Clawd Run, the game for a used-up session limit, is ClawBar's own; the original has nothing like it.
 
 ## Development

@@ -146,6 +146,29 @@ import ClawBarShared
         Self.expectFits([Piece(text: render(d, lang: lang).dayMain, size: 10.5)], "24 h counts")
     }
 
+    /// The chart's label, its legend with the four-space gap between entries, and the empty week's caption.
+    @Test(arguments: Lang.allCases)
+    func theChartTexts(lang: Lang) throws {
+        let config = Config(expanded: true, showHistory: true)
+        let h = try #require(render(sample(data: { $0.history = Samples.history }), config: config, lang: lang).history)
+        Self.expectFits([Self.label(h.label)], "chart label")
+        let legend = h.legend.flatMap { [Self.value("━ "), Self.value($0.text)] }
+        Self.expectFits(legend, in: Self.column - 11, "chart legend")
+        let empty = try #require(render(config: config, lang: lang).history)
+        Self.expectFits([Self.value(empty.caption)], "empty chart caption")
+    }
+
+    /// A weekday is centred in its slot: it fits a whole day, and in the narrowest slot that shows one it spills no
+    /// further than the card's 12-pt padding.
+    @Test(arguments: Lang.allCases)
+    func weekdaysUnderTheChart(lang: Lang) {
+        for n in 0 ... 6 {
+            let w = Self.width(Piece(text: L10n.weekday(n, lang), size: 8))
+            #expect(w <= Self.column / 7, "\(lang) \(n): \(w) pt")
+            #expect((w - 14) / 2 <= 12, "\(lang) \(n): \(w) pt")
+        }
+    }
+
     @Test(arguments: Lang.allCases)
     func theFooter(lang: Lang) {
         let late = Samples.now.addingTimeInterval(3600)

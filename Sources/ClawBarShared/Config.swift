@@ -21,7 +21,7 @@ public enum Lang: String, Sendable, CaseIterable {
 /// The JSON key of every setting in config.json.
 public enum ConfigKey: String, CaseIterable, Sendable {
     case language, scale, opacity, topmost, warnPercent, critPercent, expanded
-    case showStats, showStatus, showSessions, showAccount, showMascot, showSky
+    case showStats, showStatus, showSessions, showAccount, showMascot, showSky, showHistory
     case weatherLat, weatherLon
     case refreshSeconds, usageIntervalSeconds, versionIntervalSeconds, statusIntervalSeconds
     case accountIntervalSeconds, weatherIntervalSeconds
@@ -43,6 +43,8 @@ public struct Config: Sendable, Hashable {
     public var showAccount: Bool
     public var showMascot: Bool
     public var showSky: Bool
+    /// The 7-day chart of the session and week limits in the details.
+    public var showHistory: Bool
     /// Both set: weather for these coordinates; otherwise the IP location.
     public var weatherLat: Double?
     public var weatherLon: Double?
@@ -76,6 +78,7 @@ public struct Config: Sendable, Hashable {
         showAccount: Bool = true,
         showMascot: Bool = true,
         showSky: Bool = true,
+        showHistory: Bool = false,
         weatherLat: Double? = nil,
         weatherLon: Double? = nil,
         refreshSeconds: Int = 10,
@@ -103,6 +106,7 @@ public struct Config: Sendable, Hashable {
         self.showAccount = showAccount
         self.showMascot = showMascot
         self.showSky = showSky
+        self.showHistory = showHistory
         self.weatherLat = weatherLat
         self.weatherLon = weatherLon
         self.refreshSeconds = refreshSeconds
