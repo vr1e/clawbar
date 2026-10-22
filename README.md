@@ -97,9 +97,9 @@ Everything ClawBar touches, so you know there is nothing else:
   `claude --version`, and `claude update` when you click it. It reads `~/.claude/sessions/<pid>.json` to list
   sessions (never the `.key` files next to them) and `settings.json` for the update channel; `~/.claude` stands for
   Claude Code's folder, or `CLAUDE_CONFIG_DIR` when that is set. With `showHistory` on and the details open, it reads
-  the week's transcripts in `~/.claude/projects` every 15 minutes, taking only each reply's model, token counts, time,
-  message id and working folder to weigh this week's projects. It keeps none of what was said, and nothing leaves the
-  Mac.
+  the week's transcripts in `~/.claude/projects` every 15 minutes, taking only each reply's model, fast-mode flag,
+  token counts, time, message or request id and working folder to weigh this week's projects; `--diagnose` reads them
+  once and prints only counts. It keeps none of what was said, and nothing leaves the Mac.
 - **Your login shell:** run once at start (`$SHELL -ilc`) to learn claude's path, `PATH` and `CLAUDE_CONFIG_DIR`,
   which a GUI app does not inherit. If it gives no answer within 5 seconds and claude is nowhere to be found,
   ClawBar asks again every usage interval, at most three more times.

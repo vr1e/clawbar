@@ -409,7 +409,7 @@ import ClawBarShared
         let scan = ProjectScan(usage: usage, files: 4, bytes: 1000, unreadable: 1, unpricedModels: ["claude-opus-6", "claude-quill-1"])
         #expect(logs(e.handle(.projects(scan), now: t0 + 1)) == [
             "projects: unreadable transcripts: 1",
-            "projects-price: no list price for claude-opus-6, claude-quill-1; priced as the nearest model",
+            "projects-price: no list price for claude-opus-6, claude-quill-1; estimated from the closest one listed",
         ])
         #expect(e.snapshot.projects == usage)
         #expect(e.snapshot.projectsAt == t0 + 1)

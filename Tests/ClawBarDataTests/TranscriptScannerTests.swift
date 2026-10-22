@@ -46,6 +46,16 @@ import ClawBarShared
         #expect(weights(await scanner.scan(root: root, now: now).usage) == ["/Users/example/api": 0.14])
     }
 
+    @Test func linesAcrossAndLongerThanAReadChunkAreReadWhole() async {
+        let across = line("msg_1", 1), long = assistantLine("msg_2", at: now - 600, output: 2000, text: String(repeating: "x", count: TranscriptScanner.chunk + 1000)) + "\n"
+        // A user line that ends half a line before the first chunk does, so msg_1 straddles it.
+        let fill = TranscriptScanner.chunk - across.utf8.count / 2 - #"{"type":"user","x":""}"#.utf8.count - 1
+        let user = #"{"type":"user","x":""# + String(repeating: "y", count: fill) + "\"}\n"
+        write("-Users-example-api/s1.jsonl", user + across + long + line("msg_3", 4))
+        let scan = await TranscriptScanner().scan(root: root, now: now)
+        #expect(weights(scan.usage) == ["/Users/example/api": 0.14])
+    }
+
     @Test func aReplacedOrTruncatedFileIsReadAgainWithoutCountingTwice() async throws {
         let url = write("-Users-example-api/s1.jsonl", line("msg_1", 1) + line("msg_2", 2))
         let scanner = TranscriptScanner()
@@ -59,6 +69,17 @@ import ClawBarShared
         try h.write(contentsOf: Data(line("msg_1", 3).utf8))
         try h.close()
         #expect(weights(await scanner.scan(root: root, now: now).usage) == ["/Users/example/api": 0.12])
+    }
+
+    @Test func aShortenedFoldersNameStaysAcrossScans() async throws {
+        // Claude Code shortened the folder's name, so no cwd encodes to it and the busiest one names it.
+        let busy = "/Users/example/busy", quiet = "/Users/example/quiet"
+        let url = write("-Users-example-a-very-lo/s1.jsonl", line("msg_1", 1, cwd: busy) + line("msg_2", 1, cwd: busy) + line("msg_3", 1, cwd: quiet))
+        let scanner = TranscriptScanner()
+        #expect(await scanner.scan(root: root, now: now).usage.projects.map(\.path) == [busy])
+        // Rewritten with the quiet folder's reply twice: read again, it counts once.
+        try Data((line("msg_3", 1, cwd: quiet) + line("msg_3", 1, cwd: quiet)).utf8).write(to: url, options: .atomic)
+        #expect(await scanner.scan(root: root, now: now).usage.projects.map(\.path) == [busy])
     }
 
     @Test func aTranscriptUntouchedForAWeekIsSkippedAndRepliesBeforeTheWeekAreLeftOut() async throws {

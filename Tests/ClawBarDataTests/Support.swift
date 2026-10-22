@@ -74,7 +74,7 @@ func settle(_ time: Duration = .milliseconds(60)) async {
 /// One assistant line as Claude Code writes it, with the fields the scanner reads and a stand-in for what was said.
 func assistantLine(
     _ id: String, at date: Date, cwd: String = "/Users/example/api", model: String = "claude-opus-5-5", input: Int = 0,
-    writes5m: Int = 0, writes1h: Int = 0, reads: Int = 0, output: Int = 0, speed: String? = "standard"
+    writes5m: Int = 0, writes1h: Int = 0, reads: Int = 0, output: Int = 0, speed: String? = "standard", text: String = "…"
 ) -> String {
     var usage: [String: Any] = [
         "input_tokens": input, "cache_creation_input_tokens": writes5m + writes1h, "cache_read_input_tokens": reads,
@@ -84,7 +84,7 @@ func assistantLine(
     let line: [String: Any] = [
         "type": "assistant", "cwd": cwd, "timestamp": Date.ISO8601FormatStyle(includingFractionalSeconds: true).format(date),
         "requestId": "req_" + id, "isSidechain": false,
-        "message": ["id": id, "model": model, "role": "assistant", "content": [["type": "text", "text": "…"]], "usage": usage],
+        "message": ["id": id, "model": model, "role": "assistant", "content": [["type": "text", "text": text]], "usage": usage],
     ]
     let data = (try? JSONSerialization.data(withJSONObject: line, options: [.sortedKeys, .withoutEscapingSlashes])) ?? Data()
     return String(decoding: data, as: UTF8.self)

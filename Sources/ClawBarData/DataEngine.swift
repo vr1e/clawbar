@@ -420,7 +420,7 @@ struct DataEngine: Sendable {
         if scan.unpricedModels.isEmpty {
             succeed("projects-price")
         } else {
-            fail("projects-price", "no list price for \(scan.unpricedModels.joined(separator: ", ")); priced as the nearest model")
+            fail("projects-price", "no list price for \(scan.unpricedModels.joined(separator: ", ")); estimated from the closest one listed")
         }
     }
 

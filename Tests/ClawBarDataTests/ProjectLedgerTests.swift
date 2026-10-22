@@ -55,8 +55,9 @@ import ClawBarShared
         try add(&ledger, assistantLine("msg_1", at: t0, model: "claude-opus-6", output: 2000), in: "a")
         try add(&ledger, assistantLine("msg_2", at: t0, model: "claude-quill-1", output: 1000), in: "a")
         try add(&ledger, assistantLine("msg_3", at: t0, output: 1000), in: "a")
-        #expect(ledger.usage.unpriced == 2)
-        #expect(ledger.unpricedModels == ["claude-opus-6", "claude-quill-1"])
+        try add(&ledger, assistantLine("msg_4", at: t0, model: "claude-opus-4-8", output: 1000, speed: "fast"))
+        #expect(ledger.usage.unpriced == 3)
+        #expect(ledger.unpricedModels == ["claude-opus-4-8 fast", "claude-opus-6", "claude-quill-1"])
     }
 
     @Test func theWindowKeepsItsHoursAndForgetsOlderOnes() throws {
@@ -79,6 +80,15 @@ import ClawBarShared
         #expect(ProjectLedger.path(folder: "-Users-example-a-very-lo", cwds: ["/Users/example/x": 2, "/Users/example/y": 5]) == "/Users/example/y")
         #expect(ProjectLedger.path(folder: "-Users-example-z", cwds: ["/Users/example/x": 2, "/Users/example/y": 2]) == "/Users/example/x")
         #expect(ProjectLedger.path(folder: "-Users-example-z", cwds: [:]) == "-Users-example-z")
+    }
+
+    @Test func theBusiestCwdIsCountedInRepliesNotLines() throws {
+        var ledger = ProjectLedger()
+        let shortened = "-Users-example-a-very-lo"
+        for _ in 0 ..< 3 { try add(&ledger, assistantLine("msg_1", at: t0, cwd: "/Users/example/b", output: 100), in: shortened) }
+        try add(&ledger, assistantLine("msg_2", at: t0, cwd: "/Users/example/a", output: 100), in: shortened)
+        try add(&ledger, assistantLine("msg_3", at: t0, cwd: "/Users/example/a", output: 100), in: shortened)
+        #expect(ledger.usage.projects.map(\.path) == ["/Users/example/a"])
     }
 
     @Test func twoFoldersWithTheSameLeafStayApart() throws {

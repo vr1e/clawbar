@@ -54,36 +54,34 @@ struct ProjectLedger: Sendable {
         var listed = true
         var folder: String
         var hour: Int
+        var cwd: String?
     }
 
     private var replies: [String: Counted] = [:]
-    /// Transcript folder → working folder → lines seen there.
-    private var cwds: [String: [String: Int]] = [:]
 
     /// Merges `reply` into its id's earlier lines; a reply from before `since` (a UTC hour) is left out.
     mutating func add(_ reply: TranscriptReply, folder: String, since: Int) {
         guard reply.hour >= since else { return }
-        if let cwd = reply.cwd { cwds[folder, default: [:]][cwd, default: 0] += 1 }
         var c = replies[reply.id] ?? Counted(model: reply.model, folder: folder, hour: reply.hour)
-        // A line without a speed does not undo an earlier fast one.
+        // A line without a speed or a cwd does not undo an earlier one's.
         c.speed = reply.speed ?? c.speed
+        c.cwd = c.cwd ?? reply.cwd
         c.tokens = c.tokens.merged(reply.tokens)
         (c.dollars, c.listed) = PriceTable.price(model: c.model, speed: c.speed, tokens: c.tokens)
         replies[reply.id] = c
     }
 
-    /// Forgets the replies before `since`, and the folders left without any.
+    /// Forgets the replies before `since`.
     mutating func prune(before since: Int) {
         replies = replies.filter { $0.value.hour >= since }
-        let folders = Set(replies.values.map(\.folder))
-        cwds = cwds.filter { folders.contains($0.key) }
     }
 
-    /// Every folder with weight, heaviest first.
+    /// Every folder with weight, heaviest first, named from its week's replies, so a file read again names it alike.
     var usage: ProjectUsage {
         let projects = Dictionary(grouping: replies.values, by: \.folder).compactMap { folder, replies -> ProjectWeight? in
             let weight = replies.reduce(0) { $0 + $1.dollars }
-            return weight > 0 ? ProjectWeight(path: Self.path(folder: folder, cwds: cwds[folder] ?? [:]), weight: weight) : nil
+            let cwds = replies.reduce(into: [String: Int]()) { tally, r in if let cwd = r.cwd { tally[cwd, default: 0] += 1 } }
+            return weight > 0 ? ProjectWeight(path: Self.path(folder: folder, cwds: cwds), weight: weight) : nil
         }
         return ProjectUsage(
             projects: projects.sorted { $0.weight != $1.weight ? $0.weight > $1.weight : $0.path < $1.path },
@@ -91,10 +89,12 @@ struct ProjectLedger: Sendable {
         )
     }
 
-    /// The models priced as another, for the log.
-    var unpricedModels: [String] { Set(replies.values.filter { !$0.listed }.map(\.model)).sorted() }
+    /// The models without a list price, for the log; `fast` marks fast mode on a model priced only at standard speed.
+    var unpricedModels: [String] {
+        Set(replies.values.filter { !$0.listed }.map { $0.speed == "fast" ? $0.model + " fast" : $0.model }).sorted()
+    }
 
-    /// The folder Claude Code was started in, whose name the transcript folder carries; else the one most lines ran in,
+    /// The folder Claude Code was started in, whose name the transcript folder carries; else the one most replies ran in,
     /// since Claude Code may shorten a long name; else the transcript folder's own name.
     static func path(folder: String, cwds: [String: Int]) -> String {
         if let launch = cwds.keys.filter({ encode($0) == folder }).min() { return launch }
