@@ -24,7 +24,8 @@ final class Harness {
         config.showSky = false
         if claude { config.claudePath = installClaude("tools/claude") }
         runner.reply(.version, stdout: "2.1.302 (Claude Code)\n")
-        runner.reply(.account, data: Fixture.data("account/logged-in.json"))
+        // No configDirectory: the auth probe's outranks the shell's, so one would move the sessions mid-test.
+        runner.reply(.account, stdout: #"{"loggedIn": true, "subscriptionType": "team", "email": "user@example.com"}"#)
         http.answer("status.claude.com", Fixture.data("status/ok.json"))
         http.answer("downloads.claude.ai", Data("2.1.302\n".utf8))
     }
@@ -257,6 +258,7 @@ final class Counter {
         h.config.claudePath = h.installClaude("lib/node_modules/@anthropic-ai/claude-code/cli.js")
         h.dir.write("home/.claude/settings.json", #"{"autoUpdatesChannel": "stable"}"#)
         h.runner.reply(.version, stdout: "2.1.301 (Claude Code)\n")
+        h.runner.reply(.account, data: Fixture.data("account/logged-in.json"))
         h.http.answer("downloads.claude.ai", Data("2.1.303\n".utf8))
         h.http.answer("raw.githubusercontent.com", Fixture.data("version/CHANGELOG.md"))
         let dc = h.make()
