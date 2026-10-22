@@ -137,7 +137,7 @@ import ClawBarShared
     @Test func theLabelAndLegendInGerman() throws {
         let h = try chart(Samples.history, lang: .de)
         #expect(h.label == "LIMITS · 7 TAGE")
-        #expect(h.sessionName == "5 Std." && h.weekName == "Woche")
+        #expect(h.sessionName == "5h" && h.weekName == "Woche")
         #expect(try chart([]).label == "LIMITS · 7 DAYS")
     }
 }

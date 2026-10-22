@@ -14,7 +14,7 @@ public enum StringsDE {
         .uiDay: .text("LETZTE 24 STUNDEN · DIESER MAC"),
         .uiWeek7: .text("LETZTE 7 TAGE"),
         .uiHist: .text("LIMITS · 7 TAGE"),
-        .histSession: .text("5 Std."),
+        .histSession: .text("5h"),
         .histWeek: .text("Woche"),
         .histEmpty: .text("der Verlauf beginnt jetzt"),
         .uiPortOf: .text("macOS-Portierung von clawd-usage-winwidget {0}, mit einigen Funktionen späterer Versionen (MIT)"),
