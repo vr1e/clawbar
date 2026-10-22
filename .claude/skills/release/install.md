@@ -3,7 +3,8 @@
 Requires macOS 14 or later on Apple silicon, and [Claude Code](https://claude.ai/code) installed and logged in.
 
 1. Download `ClawBar-{version}-arm64.zip` and unzip it.
-2. Move `ClawBar.app` to `/Applications`. When updating, quit the running ClawBar from its menu first and replace the old app.
+2. Move `ClawBar.app` to `/Applications`. When updating, quit the running ClawBar from its menu first and replace the
+   old app; delete any copy left in `~/Applications`.
 3. The app is ad-hoc signed, not notarized, so macOS blocks the first open. Either run
    `xattr -dr com.apple.quarantine /Applications/ClawBar.app`, or open it once, then allow it under
    **System Settings → Privacy & Security → Open Anyway**.
