@@ -53,9 +53,10 @@ import ClawBarShared
         func hover(_ x: Double) -> HistoryHover { HistoryReadout.hover(x: x, chart: Self.minuteChart, input: input([])) }
         #expect(hover(-5) == HistoryHover(x: 0, caption: "Sat 10:09  ·  no data"))
         #expect(hover(300) == HistoryHover(x: 236, caption: "Sat 14:05  ·  no data"))
-        #expect(hover(0.5).caption.hasPrefix("Sat 10:09"))
-        #expect(hover(1.5).caption.hasPrefix("Sat 10:11"))
-        #expect(hover(2.5).caption.hasPrefix("Sat 10:11"))
+        // The chart starts on an odd minute, so 10:09.5 rounds up and 10:10.5 down.
+        #expect(hover(0.5).caption.hasPrefix("Sat 10:10"))
+        #expect(hover(1.5).caption.hasPrefix("Sat 10:10"))
+        #expect(hover(2.5).caption.hasPrefix("Sat 10:12"))
     }
 
     @Test func theTimeIsTheInputZones() {

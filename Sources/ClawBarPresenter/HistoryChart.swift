@@ -44,8 +44,8 @@ enum HistoryChart {
         let end: Int
 
         func x(_ minute: Int) -> Double { HistoryView.width * Double(minute - start) / Double(end - start) }
-        // The original's [int] cast rounds half to even.
-        func minute(at x: Double) -> Int { start + Int((Double(end - start) * x / HistoryView.width).rounded(.toNearestOrEven)) }
+        // The original's [int] cast rounds the whole minute, not the offset, half to even.
+        func minute(at x: Double) -> Int { Int((Double(start) + Double(end - start) * x / HistoryView.width).rounded(.toNearestOrEven)) }
     }
 
     /// 1 unit of room above 100% and below 0%, so the stroke is not cut.
