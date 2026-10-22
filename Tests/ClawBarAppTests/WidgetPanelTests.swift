@@ -90,12 +90,16 @@ final class ScreenBox {
 @MainActor
 final class StubPanelDelegate: WidgetPanelDelegate {
     let card: LaidOutCard
+    /// The pointer as the panel reported it, nil once it left.
+    var pointer: CGPoint?
     init(_ card: LaidOutCard) { self.card = card }
     func hitMap() -> WidgetHitMap { card.map }
     func clawdClicked() {}
     func controlClicked(_ id: HitID) {}
     func developerMenu() -> NSMenu? { nil }
     func wantsHandCursor(at p: CGPoint) -> Bool { false }
+    func pointerMoved(to p: CGPoint) { pointer = p }
+    func pointerLeft() { pointer = nil }
 }
 
 @MainActor
@@ -146,6 +150,20 @@ final class StubPanelDelegate: WidgetPanelDelegate {
         #expect(panel.route(event(.leftMouseDown, at: sky, in: panel, flags: .control)) == .devMenu)
         #expect(panel.route(event(.rightMouseDown, at: try card.center(.number), in: panel)) == .pass)
         #expect(panel.route(event(.rightMouseDown, at: try card.center(.hide), in: panel)) == .pass)
+    }
+
+    @Test func thePointerReachesTheAppInCardSpaceUntilItLeaves() throws {
+        let (panel, card, delegate) = setUp()
+        let p = try card.center(.number)
+        panel.mouseMoved(with: event(.mouseMoved, at: p, in: panel))
+        let reported = try #require(delegate.pointer)
+        #expect(abs(reported.x - p.x) < 0.01 && abs(reported.y - p.y) < 0.01)
+        let exit = NSEvent.enterExitEvent(
+            with: .mouseExited, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: panel.windowNumber,
+            context: nil, eventNumber: 0, trackingNumber: 0, userData: nil
+        )!
+        panel.mouseExited(with: exit)
+        #expect(delegate.pointer == nil)
     }
 
     @Test func otherEventsAreLeftToAppKit() throws {

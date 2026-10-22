@@ -75,13 +75,16 @@ public struct HistoryView: Sendable, Hashable {
     public var days: [ChartDay]
     /// Why the chart is empty, shown in place of the legend.
     public var caption: String
+    /// The Unix minutes at the left and right edge, so a hover reads the minute the chart drew there.
+    public var start: Int
+    public var end: Int
 
     /// The x of each midnight inside the week.
     public var dayTicks: [Double] { days.dropFirst().map(\.from) }
 
     public init(
         label: String, sessionName: String = "", weekName: String = "", sessionRuns: [[CGPoint]] = [],
-        weekRuns: [[CGPoint]] = [], days: [ChartDay] = [], caption: String = ""
+        weekRuns: [[CGPoint]] = [], days: [ChartDay] = [], caption: String = "", start: Int = 0, end: Int = 0
     ) {
         self.label = label
         self.sessionName = sessionName
@@ -89,6 +92,21 @@ public struct HistoryView: Sendable, Hashable {
         self.sessionRuns = sessionRuns
         self.weekRuns = weekRuns
         self.days = days
+        self.caption = caption
+        self.start = start
+        self.end = end
+    }
+}
+
+/// The pointer over the 7-day chart: a cursor line, and what the chart says there in place of the legend.
+public struct HistoryHover: Sendable, Hashable {
+    /// Base units from the chart's left edge, within its width.
+    public var x: Double
+    /// `Sat 14:20  ·  5h 34%  ·  week 61%`.
+    public var caption: String
+
+    public init(x: Double, caption: String) {
+        self.x = x
         self.caption = caption
     }
 }

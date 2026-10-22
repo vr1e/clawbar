@@ -158,6 +158,21 @@ import ClawBarShared
         Self.expectFits([Self.value(empty.caption)], "empty chart caption")
     }
 
+    /// The hover's readout with both limits at 100%, on every weekday.
+    @Test(arguments: Lang.allCases)
+    func theChartReadout(lang: Lang) {
+        var config = Config(expanded: true, showHistory: true)
+        config.language = lang.rawValue
+        let now = UsageSample.minute(of: Samples.now)
+        for day in 0 ..< 7 {
+            let minute = now - day * 1440
+            let data = sample(data: { $0.history = [UsageSample(minute: minute, session: 100, week: 100)] })
+            let input = PresenterInput(config: config, now: Samples.now, timeZone: Samples.timeZone, data: data)
+            let chart = HistoryView(label: "", start: minute, end: minute + 236)
+            Self.expectFits([Self.value(HistoryReadout.hover(x: 0, chart: chart, input: input).caption)], "chart readout")
+        }
+    }
+
     /// A weekday is centred in its slot: it fits a whole day, and in the narrowest slot that shows one it spills no
     /// further than the card's 12-pt padding.
     @Test(arguments: Lang.allCases)

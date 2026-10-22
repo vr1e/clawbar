@@ -38,6 +38,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private var widgetVisible = false
     private var occluded = false
     private var tooltipRefreshPending = false
+    /// Card space, while the pointer is over the widget.
+    private var pointer: CGPoint?
 
     init(paths: AppPaths) {
         self.paths = paths
@@ -151,14 +153,12 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     /// The presenter's view of the latest snapshot, into the card and the menu bar item, and Clawd's mood.
     private func recompute(now: Date = Date()) {
-        let snapshot = data.snapshot
-        // The original's "error" stamp marked a failed tick; here the one failure a tick can hit is an unparsable config.json.
-        let input = PresenterInput(
-            config: config, now: now, timeZone: .autoupdatingCurrent, data: snapshot, tickError: configStore.isUnreadable,
-            appVersion: AppInfo.version, homeDirectory: NSHomeDirectory()
-        )
+        let input = presenterInput(now: now)
+        let snapshot = input.data
         let view = WidgetPresenter.make(input)
         if view != app.view { app.view = view }
+        // A sample that arrives under a resting pointer updates its readout.
+        updateHistoryHover(now: now)
         statusItem.update(text: view.trayText, color: view.trayColor, mascot: view.trayMascot, tooltip: view.trayTooltip)
         game.update(caption: view.gameCaption, lang: config.lang)
         // Clawd waits for the first registry read, so he starts idle instead of burrowing.
@@ -167,6 +167,23 @@ final class AppController: NSObject, WidgetPanelDelegate {
         }
         syncAnimation()
         scheduleTooltipRefresh()
+    }
+
+    private func presenterInput(now: Date) -> PresenterInput {
+        // The original's "error" stamp marked a failed tick; here the one failure a tick can hit is an unparsable config.json.
+        PresenterInput(
+            config: config, now: now, timeZone: .autoupdatingCurrent, data: data.snapshot, tickError: configStore.isUnreadable,
+            appVersion: AppInfo.version, homeDirectory: NSHomeDirectory()
+        )
+    }
+
+    /// The chart's readout under the pointer, or the legend again once it is off the chart.
+    private func updateHistoryHover(now: Date) {
+        var hover: HistoryHover?
+        if let p = pointer, let chart = app.view.history, let x = hitMap().chartX(at: p) {
+            hover = HistoryReadout.hover(x: x, chart: chart, input: presenterInput(now: now))
+        }
+        if hover != app.historyHover { app.historyHover = hover }
     }
 
     /// Sync-Mascot: the animation runs only while the widget shows, is not covered and has Clawd.
@@ -303,6 +320,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private func hideWidget() {
         panel.orderOut(nil)
         widgetVisible = false
+        // A widget hidden under the pointer gets no exit event.
+        pointerLeft()
         syncAnimation()
     }
 
@@ -357,7 +376,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
             }
         case .appVersion: NSWorkspace.shared.open(app.view.appVersionURL)
         case .play: game.show()
-        case .hearts, .percentRow, .number, .reset, .sessions, .account: break
+        case .hearts, .percentRow, .number, .reset, .sessions, .account, .history: break
         }
     }
 
@@ -369,6 +388,16 @@ final class AppController: NSObject, WidgetPanelDelegate {
     func wantsHandCursor(at p: CGPoint) -> Bool {
         let map = hitMap()
         return map.control(at: p) != nil || (map.sprite?.contains(p) ?? false)
+    }
+
+    func pointerMoved(to p: CGPoint) {
+        pointer = p
+        updateHistoryHover(now: Date())
+    }
+
+    func pointerLeft() {
+        pointer = nil
+        if app.historyHover != nil { app.historyHover = nil }
     }
 
     /// The sky's two developer overrides are the app's; everything else is Clawd's.

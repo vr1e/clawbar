@@ -28,7 +28,9 @@ enum HistoryChart {
             sessionRuns: runs(week, \.session, box, gap: gap),
             weekRuns: runs(week, \.week, box, gap: gap),
             days: days(box, timeZone: timeZone, lang: lang),
-            caption: week.isEmpty ? L10n.t(empty, lang) : ""
+            caption: week.isEmpty ? L10n.t(empty, lang) : "",
+            start: box.start,
+            end: box.end
         )
     }
 

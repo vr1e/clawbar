@@ -49,7 +49,7 @@ struct CardView: View {
                     .padding(.top, 10 * k)
             }
             if v.detailsExpanded {
-                DetailsBlock(v: v, layout: layout)
+                DetailsBlock(v: v, app: app, layout: layout)
                     .padding(.top, 11 * k)
             }
             FooterRow(v: v, layout: layout)
@@ -269,6 +269,7 @@ private struct StatusRow: View {
 /// The 24 h / 7 d stats, the 7-day chart, the Claude Code version line and the ClawBar line.
 private struct DetailsBlock: View {
     let v: WidgetViewState
+    let app: AppModel
     let layout: LayoutModel
     @Environment(\.uiScale) private var k
 
@@ -280,7 +281,7 @@ private struct DetailsBlock: View {
                 period(v.week7Label, v.week7Main, v.week7Extra)
             }
             if let history = v.history {
-                HistoryBlock(h: history)
+                HistoryBlock(h: history, app: app, layout: layout)
             }
             Divider(k: k).padding(.bottom, 7 * k)
             HStack(alignment: .top, spacing: 0) {
@@ -319,6 +320,8 @@ private struct DetailsBlock: View {
 /// widget.xaml's HistPanel: the label, the chart, a weekday under each day, and the legend or why there is none.
 private struct HistoryBlock: View {
     let h: HistoryView
+    let app: AppModel
+    let layout: LayoutModel
     @Environment(\.uiScale) private var k
 
     var body: some View {
@@ -328,7 +331,9 @@ private struct HistoryBlock: View {
                 .padding(.bottom, 4 * k)
             HistoryChartView(h: h)
                 .frame(width: HistoryView.width * k, height: HistoryView.height * k)
+                .overlay(alignment: .topLeading) { HistoryCursor(app: app) }
                 .clipped()
+                .publish(.history, to: layout)
             ZStack(alignment: .topLeading) {
                 ForEach(h.days, id: \.from) { day in
                     WText(day.text, 8, color: Palette.footer)
@@ -337,16 +342,39 @@ private struct HistoryBlock: View {
                 }
             }
             .frame(width: HistoryView.width * k, height: 11 * k, alignment: .topLeading)
-            caption
+            HistoryCaption(h: h, app: app)
                 .frame(width: CardView.content * k, alignment: .leading)
                 .padding(.top, 1 * k)
                 .padding(.bottom, 10 * k)
         }
     }
+}
 
-    @ViewBuilder
-    private var caption: some View {
-        if h.caption.isEmpty {
+/// The line under the pointer, in its own view so a mouse move redraws only it.
+private struct HistoryCursor: View {
+    let app: AppModel
+    @Environment(\.uiScale) private var k
+
+    var body: some View {
+        if let hover = app.historyHover {
+            Rectangle()
+                .fill(Color(rgba: Palette.chartCursor))
+                .frame(width: 1 * k, height: HistoryView.height * k)
+                .offset(x: (hover.x - 0.5) * k)
+        }
+    }
+}
+
+/// The hover's readout, else the legend, else why the chart is empty.
+private struct HistoryCaption: View {
+    let h: HistoryView
+    let app: AppModel
+    @Environment(\.uiScale) private var k
+
+    var body: some View {
+        if let hover = app.historyHover {
+            WText(hover.caption, 10, color: Palette.muted, truncates: true)
+        } else if h.caption.isEmpty {
             HStack(alignment: .top, spacing: 0) {
                 legend(h.sessionName, HistoryChartView.sessionColor)
                 // Four spaces of 10-pt text between the entries, as Set-HistLegend pads them.

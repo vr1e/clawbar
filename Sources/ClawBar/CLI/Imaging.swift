@@ -12,6 +12,7 @@ enum CardRenderer {
         var skyVisible = true
         var clawd: ClawdFrame = .empty
         var sky: SkyFrame = .empty
+        var historyHover: HistoryHover?
     }
 
     /// The card at scale `k`, `pixelScale` pixels per point. Renders twice when needed so the number's
@@ -22,6 +23,7 @@ enum CardRenderer {
         app.scale = k
         app.mascotVisible = scene.mascotVisible
         app.skyVisible = scene.skyVisible
+        app.historyHover = scene.historyHover
         let animation = AnimationModel()
         animation.publish(scene.clawd)
         animation.publish(scene.sky)

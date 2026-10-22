@@ -80,6 +80,8 @@ public enum Palette {
     public static let modelWeekBar = RGBA("#FFA78BFA")
     /// Under the 7-day chart's session line.
     public static let chartFill = RGBA("#264ADE80")
+    /// The line under the pointer on the 7-day chart.
+    public static let chartCursor = RGBA("#66FFFFFF")
 
     public static let clawdBody = RGBA("#FFD77757")
     public static let clawdEyes = RGBA("#FF141416")

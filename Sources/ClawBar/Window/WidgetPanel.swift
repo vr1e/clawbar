@@ -46,6 +46,9 @@ protocol WidgetPanelDelegate: AnyObject {
     func developerMenu() -> NSMenu?
     /// Whether the point (card space) should show the hand cursor.
     func wantsHandCursor(at p: CGPoint) -> Bool
+    /// The pointer moved over the widget, in card space.
+    func pointerMoved(to p: CGPoint)
+    func pointerLeft()
 }
 
 /// The floating widget: borderless, never key, never activating the app, on every Space.
@@ -143,12 +146,15 @@ final class WidgetPanel: NSPanel {
     }
 
     override func mouseMoved(with event: NSEvent) {
-        let hand = widgetDelegate?.wantsHandCursor(at: cardPoint(event.locationInWindow)) ?? false
+        let p = cardPoint(event.locationInWindow)
+        let hand = widgetDelegate?.wantsHandCursor(at: p) ?? false
         (hand ? NSCursor.pointingHand : NSCursor.arrow).set()
+        widgetDelegate?.pointerMoved(to: p)
     }
 
     override func mouseExited(with event: NSEvent) {
         NSCursor.arrow.set()
+        widgetDelegate?.pointerLeft()
     }
 
     /// Window coordinates to card space: points with the origin at the card's top-left.
