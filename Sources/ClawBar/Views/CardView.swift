@@ -330,13 +330,13 @@ private struct HistoryBlock: View {
                 .frame(width: HistoryView.width * k, height: HistoryView.height * k)
                 .clipped()
             ZStack(alignment: .topLeading) {
-                ForEach(Array(h.days.enumerated()), id: \.offset) { _, day in
+                ForEach(h.days, id: \.from) { day in
                     WText(day.text, 8, color: Palette.footer)
                         .frame(width: (day.to - day.from) * k)
                         .offset(x: day.from * k)
                 }
             }
-            .frame(width: CardView.content * k, height: 11 * k, alignment: .topLeading)
+            .frame(width: HistoryView.width * k, height: 11 * k, alignment: .topLeading)
             caption
                 .frame(width: CardView.content * k, alignment: .leading)
                 .padding(.top, 1 * k)
@@ -346,17 +346,22 @@ private struct HistoryBlock: View {
 
     @ViewBuilder
     private var caption: some View {
-        if h.legend.isEmpty {
-            WText(h.caption, 10, color: Palette.muted, truncates: true)
-        } else {
+        if h.caption.isEmpty {
             HStack(alignment: .top, spacing: 0) {
-                ForEach(Array(h.legend.enumerated()), id: \.offset) { i, item in
-                    WText("━ ", 10, color: item.color)
-                    // Four spaces of 10-pt text between the entries, as Set-HistLegend pads them.
-                    WText(item.text, 10, color: Palette.muted)
-                        .padding(.trailing, i == h.legend.count - 1 ? 0 : 11 * k)
-                }
+                legend(h.sessionName, HistoryChartView.sessionColor)
+                // Four spaces of 10-pt text between the entries, as Set-HistLegend pads them.
+                legend(h.weekName, HistoryChartView.weekColor)
+                    .padding(.leading, 11 * k)
             }
+        } else {
+            WText(h.caption, 10, color: Palette.muted, truncates: true)
+        }
+    }
+
+    private func legend(_ name: String, _ color: RGBA) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            WText("━ ", 10, color: color)
+            WText(name, 10, color: Palette.muted)
         }
     }
 }
@@ -365,6 +370,9 @@ private struct HistoryBlock: View {
 private struct HistoryChartView: View {
     let h: HistoryView
     @Environment(\.uiScale) private var k
+
+    static let sessionColor = Palette.ok
+    static let weekColor = Palette.weekBar
 
     var body: some View {
         let scale = k
@@ -375,25 +383,21 @@ private struct HistoryChartView: View {
                 ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: height)), with: .color(Color(rgba: Palette.divider)))
             }
             let stroke = StrokeStyle(lineWidth: 1.2, lineJoin: .round)
-            ctx.stroke(Self.lines(h.weekRuns), with: .color(Color(rgba: Palette.weekBar)), style: stroke)
+            ctx.stroke(Self.lines(h.weekRuns), with: .color(Color(rgba: Self.weekColor)), style: stroke)
             var fill = Path()
             for run in h.sessionRuns {
                 guard let first = run.first, let last = run.last else { continue }
-                fill.move(to: CGPoint(x: first.x, y: height))
-                for p in run { fill.addLine(to: CGPoint(x: p.x, y: p.y)) }
-                fill.addLine(to: CGPoint(x: last.x, y: height))
+                fill.addLines(run + [CGPoint(x: last.x, y: height), CGPoint(x: first.x, y: height)])
                 fill.closeSubpath()
             }
             ctx.fill(fill, with: .color(Color(rgba: Palette.chartFill)))
-            ctx.stroke(Self.lines(h.sessionRuns), with: .color(Color(rgba: Palette.ok)), style: stroke)
+            ctx.stroke(Self.lines(h.sessionRuns), with: .color(Color(rgba: Self.sessionColor)), style: stroke)
         }
     }
 
-    static func lines(_ runs: [[ChartPoint]]) -> Path {
+    static func lines(_ runs: [[CGPoint]]) -> Path {
         var path = Path()
-        for run in runs {
-            path.addLines(run.map { CGPoint(x: $0.x, y: $0.y) })
-        }
+        for run in runs { path.addLines(run) }
         return path
     }
 }

@@ -60,9 +60,7 @@ private struct Render {
     }
 
     private func sessionNumbers(_ v: inout WidgetViewState) {
-        // Without claude, or under a login without a subscription, no session number applies, not even an old one.
-        let issue = data.usageIssue
-        let usage = issue == .claudeNotFound || issue == .noLimits ? nil : data.usage
+        let usage = data.usageIssue?.voidsLimits == true ? nil : data.usage
         v.resetColor = Palette.secondary
         v.resetTooltip = ""
         guard let usage, let pct = usage.sessionPercent else {
@@ -249,7 +247,7 @@ private struct Render {
         v.week7Label = t(.uiWeek7)
         (v.dayMain, v.dayExtra) = period(data.usage?.day)
         (v.week7Main, v.week7Extra) = period(data.usage?.week7)
-        v.history = cfg.showHistory && cfg.expanded ? HistoryChart.view(input, config: cfg, lang: lang) : nil
+        v.history = cfg.showHistory && cfg.expanded ? HistoryChart.view(data, config: cfg, now: now, timeZone: input.timeZone) : nil
         v.appVersionText = "\(AppInfo.name) v\(input.appVersion)"
         v.appVersionTooltip = t(.uiPortOf, AppInfo.originalVersion)
         v.appVersionURL = AppInfo.originalRepo

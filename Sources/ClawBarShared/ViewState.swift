@@ -44,18 +44,7 @@ public struct BarRow: Sendable, Hashable {
     }
 }
 
-/// A point in the 7-day chart's box, in base units: x from the left, y down from the top.
-public struct ChartPoint: Sendable, Hashable {
-    public var x: Double
-    public var y: Double
-
-    public init(x: Double, y: Double) {
-        self.x = x
-        self.y = y
-    }
-}
-
-/// A weekday under the 7-day chart, centred between the midnights at `from` and `to`.
+/// A weekday under the 7-day chart, centred between the midnights at `from` and `to`; empty in a slot too narrow.
 public struct ChartDay: Sendable, Hashable {
     public var text: String
     public var from: Double
@@ -68,17 +57,6 @@ public struct ChartDay: Sendable, Hashable {
     }
 }
 
-/// One entry of the chart's legend: a dash in the line's colour, then its name.
-public struct ChartLegendItem: Sendable, Hashable {
-    public var text: String
-    public var color: RGBA
-
-    public init(text: String, color: RGBA) {
-        self.text = text
-        self.color = color
-    }
-}
-
 /// The details' chart of the session and week limits over the last 7 days.
 public struct HistoryView: Sendable, Hashable {
     /// The chart's box in base units: the bars' width, and widget.xaml's 44.
@@ -87,26 +65,30 @@ public struct HistoryView: Sendable, Hashable {
 
     /// LIMITS · 7 DAYS.
     public var label: String
+    /// The legend's names for the session and the week line.
+    public var sessionName: String
+    public var weekName: String
     /// Runs of samples without a gap, each a line of its own; a lone sample is a 1-wide stub.
-    public var sessionRuns: [[ChartPoint]]
-    public var weekRuns: [[ChartPoint]]
-    /// The x of each midnight inside the week.
-    public var dayTicks: [Double]
+    public var sessionRuns: [[CGPoint]]
+    public var weekRuns: [[CGPoint]]
+    /// Every local day the week touches, oldest first.
     public var days: [ChartDay]
-    /// Empty while the caption says why the chart is empty.
-    public var legend: [ChartLegendItem]
+    /// Why the chart is empty, shown in place of the legend.
     public var caption: String
 
+    /// The x of each midnight inside the week.
+    public var dayTicks: [Double] { days.dropFirst().map(\.from) }
+
     public init(
-        label: String, sessionRuns: [[ChartPoint]] = [], weekRuns: [[ChartPoint]] = [], dayTicks: [Double] = [],
-        days: [ChartDay] = [], legend: [ChartLegendItem] = [], caption: String = ""
+        label: String, sessionName: String = "", weekName: String = "", sessionRuns: [[CGPoint]] = [],
+        weekRuns: [[CGPoint]] = [], days: [ChartDay] = [], caption: String = ""
     ) {
         self.label = label
+        self.sessionName = sessionName
+        self.weekName = weekName
         self.sessionRuns = sessionRuns
         self.weekRuns = weekRuns
-        self.dayTicks = dayTicks
         self.days = days
-        self.legend = legend
         self.caption = caption
     }
 }

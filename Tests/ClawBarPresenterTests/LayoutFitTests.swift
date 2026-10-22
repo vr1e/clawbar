@@ -152,7 +152,7 @@ import ClawBarShared
         let config = Config(expanded: true, showHistory: true)
         let h = try #require(render(sample(data: { $0.history = Samples.history }), config: config, lang: lang).history)
         Self.expectFits([Self.label(h.label)], "chart label")
-        let legend = h.legend.flatMap { [Self.value("━ "), Self.value($0.text)] }
+        let legend = [h.sessionName, h.weekName].flatMap { [Self.value("━ "), Self.value($0)] }
         Self.expectFits(legend, in: Self.column - 11, "chart legend")
         let empty = try #require(render(config: config, lang: lang).history)
         Self.expectFits([Self.value(empty.caption)], "empty chart caption")

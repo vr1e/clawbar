@@ -34,6 +34,10 @@ enum SnapshotCases {
             c.data.usageProbeCompleted = true
             c.data.usageIssue = issue
         }
+        func noLimits(_ c: inout SnapshotCase) {
+            c.data.usage = UsageSnapshot(day: DataSnapshot.sample.usage?.day, week7: DataSnapshot.sample.usage?.week7)
+            c.data.usageIssue = .noLimits
+        }
         func chart(_ c: inout SnapshotCase) {
             c.config.expanded = true
             c.config.showHistory = true
@@ -52,10 +56,7 @@ enum SnapshotCases {
         add("limit") { $0.data.usage?.sessionPercent = 100 }
         add("reset-passed") { $0.data.usage?.sessionReset = now.addingTimeInterval(-60) }
         add("claude-not-found") { noUsage(&$0, .claudeNotFound) }
-        add("no-limits") {
-            $0.data.usage = UsageSnapshot(day: DataSnapshot.sample.usage?.day, week7: DataSnapshot.sample.usage?.week7)
-            $0.data.usageIssue = .noLimits
-        }
+        add("no-limits") { noLimits(&$0) }
         add("probe-failed") { $0.data.usageIssue = .probeFailed("exit 1") }
         add("flag-rejected") { noUsage(&$0, .flagRejected("--no-session-persistence")) }
         add("model-reached") { noUsage(&$0, .modelReached(turns: 1, costUSD: 0.0042, tokens: 18)) }
@@ -112,8 +113,7 @@ enum SnapshotCases {
         add("history-empty") { chart(&$0) }
         add("history-no-limits") {
             chart(&$0)
-            $0.data.usage = UsageSnapshot(day: DataSnapshot.sample.usage?.day, week7: DataSnapshot.sample.usage?.week7)
-            $0.data.usageIssue = .noLimits
+            noLimits(&$0)
         }
         add("night") { $0.skyDev = SkyDevState(phase: .night, weatherCode: 0) }
         add("storm") { $0.skyDev = SkyDevState(phase: .dusk, weatherCode: 95) }

@@ -33,8 +33,8 @@ import ClawBarShared
         let h = try chart([UsageSample(minute: Self.m - 7 * 1440, session: 10, week: 50), UsageSample(minute: Self.m, session: 20, week: 50)])
         // A week apart is a gap, so each sample stands alone; the newest stubs leftwards to stay inside the clip.
         #expect(h.sessionRuns == [
-            [ChartPoint(x: 0, y: y(10)), ChartPoint(x: 1, y: y(10))],
-            [ChartPoint(x: 235, y: y(20)), ChartPoint(x: 236, y: y(20))],
+            [CGPoint(x: 0, y: y(10)), CGPoint(x: 1, y: y(10))],
+            [CGPoint(x: 235, y: y(20)), CGPoint(x: 236, y: y(20))],
         ])
         #expect(h.weekRuns.count == 2)
     }
@@ -47,20 +47,17 @@ import ClawBarShared
         #expect(h.weekRuns.isEmpty)
     }
 
-    @Test func aGapOfTwentyMinutesStillJoinsAtTheDefaultInterval() throws {
-        let joined = try chart([UsageSample(minute: Self.m - 40, session: 5), UsageSample(minute: Self.m - 20, session: 6), UsageSample(minute: Self.m, session: 7)])
-        #expect(joined.sessionRuns.map(\.count) == [3])
-        let broken = try chart([UsageSample(minute: Self.m - 41, session: 5), UsageSample(minute: Self.m - 20, session: 6), UsageSample(minute: Self.m, session: 7)])
-        #expect(broken.sessionRuns.map(\.count) == [2, 2])
-    }
-
-    @Test func anHourlyProbeStretchesTheGapToThreeIntervalsAndThirtySeconds() throws {
+    /// 20 minutes at the default interval; an hourly probe stretches the gap to three intervals and 30 seconds.
+    @Test(arguments: [(60, 20), (3600, 180)])
+    func aGapStillJoinsUpToItsLength(interval: Int, gap: Int) throws {
         var config = Self.chartOn
-        config.usageIntervalSeconds = 3600
-        let joined = try chart([UsageSample(minute: Self.m - 360, session: 5), UsageSample(minute: Self.m - 180, session: 6), UsageSample(minute: Self.m, session: 7)], config: config)
-        #expect(joined.sessionRuns.map(\.count) == [3])
-        let broken = try chart([UsageSample(minute: Self.m - 361, session: 5), UsageSample(minute: Self.m - 180, session: 6), UsageSample(minute: Self.m, session: 7)], config: config)
-        #expect(broken.sessionRuns.map(\.count) == [2, 2])
+        config.usageIntervalSeconds = interval
+        func runs(first: Int) throws -> [Int] {
+            let history = [UsageSample(minute: Self.m - first, session: 5), UsageSample(minute: Self.m - gap, session: 6), UsageSample(minute: Self.m, session: 7)]
+            return try chart(history, config: config).sessionRuns.map(\.count)
+        }
+        #expect(try runs(first: 2 * gap) == [3])
+        #expect(try runs(first: 2 * gap + 1) == [2, 2])
     }
 
     @Test func aMissingValueBreaksOnlyItsOwnLine() throws {
@@ -75,17 +72,17 @@ import ClawBarShared
 
     @Test func theSampleWeekEndsAtTheRightEdgeOnTheSamplesNumbers() throws {
         let h = try chart(Samples.history)
-        #expect(h.sessionRuns.last?.last == ChartPoint(x: 236, y: y(34)))
-        #expect(h.weekRuns.last?.last == ChartPoint(x: 236, y: y(59)))
+        #expect(h.sessionRuns.last?.last == CGPoint(x: 236, y: y(34)))
+        #expect(h.weekRuns.last?.last == CGPoint(x: 236, y: y(59)))
         // The Tuesday-night sleep is the one gap.
         #expect(h.sessionRuns.count == 2 && h.weekRuns.count == 2)
-        #expect(h.legend == [ChartLegendItem(text: "5h", color: Palette.ok), ChartLegendItem(text: "week", color: Palette.weekBar)])
+        #expect(h.sessionName == "5h" && h.weekName == "week")
         #expect(h.caption.isEmpty)
     }
 
     @Test func samplesFromAfterNowAreLeftOut() throws {
         let h = try chart([UsageSample(minute: Self.m - 5, session: 30), UsageSample(minute: Self.m + 30, session: 90)])
-        #expect(h.sessionRuns == [[ChartPoint(x: 235, y: y(30)), ChartPoint(x: 236, y: y(30))]])
+        #expect(h.sessionRuns == [[CGPoint(x: 235, y: y(30)), CGPoint(x: 236, y: y(30))]])
     }
 
     @Test func betweenSamplesTheChartStandsStillForTenMinutes() throws {
@@ -106,7 +103,7 @@ import ClawBarShared
         #expect(h.dayTicks == midnights.map { 236 * Double(UsageSample.minute(of: utc($0)) - start) / 10080 })
         #expect(h.days.map(\.text) == ["Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"])
         #expect(h.days.first?.from == 0 && h.days.last?.to == 236)
-        #expect(zip(h.days.dropFirst(), h.dayTicks).allSatisfy { $0.from == $1 })
+        #expect(zip(h.days, h.days.dropFirst()).allSatisfy { $0.to == $1.from })
         let german = try chart([], lang: .de, now: utc("2026-10-28T12:00:00Z"))
         #expect(german.days.map(\.text) == ["Mi.", "Do.", "Fr.", "Sa.", "So.", "Mo.", "Di.", "Mi."])
     }
@@ -115,13 +112,13 @@ import ClawBarShared
         // Saturday 14:00 to midnight is 600 minutes, 14.05 wide; from 14:05 it is 13.93.
         #expect(try chart([]).days.first?.text == "Sat")
         let h = try chart([UsageSample(minute: Self.m, session: 34)])
-        #expect(h.days.first?.text == "Sun")
-        #expect(h.days.count == 7 && h.dayTicks.count == 7)
+        #expect(h.days.prefix(2).map(\.text) == ["", "Sun"])
+        #expect(h.dayTicks.count == 7)
     }
 
     @Test func anEmptyWeekSaysTheHistoryStartsNow() throws {
         let h = try chart([])
-        #expect(h.caption == "the history starts now" && h.legend.isEmpty)
+        #expect(h.caption == "the history starts now")
         #expect(h.sessionRuns.isEmpty && h.weekRuns.isEmpty)
         #expect(try chart([], lang: .de).caption == "der Verlauf beginnt jetzt")
         // Samples older than the week, which the store keeps for a day longer, do not count.
@@ -134,13 +131,13 @@ import ClawBarShared
         #expect(try chart([], issue: .timedOut).caption == "the history starts now")
         // Older samples still draw, with the legend.
         let h = try chart([UsageSample(minute: Self.m - 60, session: 40)], issue: .noLimits)
-        #expect(h.caption.isEmpty && h.legend.count == 2 && h.sessionRuns.count == 1)
+        #expect(h.caption.isEmpty && h.sessionRuns.count == 1)
     }
 
     @Test func theLabelAndLegendInGerman() throws {
         let h = try chart(Samples.history, lang: .de)
         #expect(h.label == "LIMITS · 7 TAGE")
-        #expect(h.legend.map(\.text) == ["5 Std.", "Woche"])
+        #expect(h.sessionName == "5 Std." && h.weekName == "Woche")
         #expect(try chart([]).label == "LIMITS · 7 DAYS")
     }
 }

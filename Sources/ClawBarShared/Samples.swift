@@ -43,23 +43,18 @@ public enum Samples {
         let minutes = stride(from: end - 7 * 1440, through: end, by: 5).filter { !asleep.contains($0) }
         let sessions = minutes.map(session)
         // The week grows by what the session spends: from 41% to 78% before its reset, then from 0 to 59%.
-        var spent = (before: 0.0, after: 0.0)
-        for i in 1 ..< minutes.count where sessions[i] > sessions[i - 1] {
-            let rise = Double(sessions[i] - sessions[i - 1])
-            if minutes[i] < weekReset { spent.before += rise } else { spent.after += rise }
-        }
-        var week = 41.0
-        return minutes.indices.map { i in
-            if i > 0 {
-                let rise = Double(max(0, sessions[i] - sessions[i - 1]))
-                if minutes[i] < weekReset {
-                    week += rise * 37 / spent.before
-                } else {
-                    if minutes[i - 1] < weekReset { week = 0 }
-                    week += rise * 59 / spent.after
-                }
+        func spent(_ r: Range<Int>) -> [Double] {
+            var total = 0.0
+            return r.map { i in
+                if i > 0 { total += Double(max(0, sessions[i] - sessions[i - 1])) }
+                return total
             }
-            return UsageSample(minute: minutes[i], session: sessions[i], week: Int(week.rounded(.toNearestOrEven)))
+        }
+        let reset = minutes.firstIndex { $0 >= weekReset }!
+        let before = spent(0 ..< reset), after = spent(reset ..< minutes.count)
+        let week = before.map { 41 + 37 * $0 / before.last! } + after.map { 59 * $0 / after.last! }
+        return minutes.indices.map { i in
+            UsageSample(minute: minutes[i], session: sessions[i], week: Int(week[i].rounded(.toNearestOrEven)))
         }
     }()
 }
