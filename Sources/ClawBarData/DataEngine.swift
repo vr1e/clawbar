@@ -27,6 +27,7 @@ enum DataEvent: Sendable {
     case historySaved(failure: String?)
     /// nil once the latch is in state.json.
     case latchSaved(failure: String?)
+    case projects(ProjectScan)
 }
 
 /// What the engine asks the controller to do. Each probe, lookup and save answers with its event.
@@ -42,6 +43,7 @@ enum DataCommand: Sendable, Hashable {
     case runUpdate(claude: String, environment: [String: String])
     case saveLatch(UsageLatch?)
     case saveHistory([UsageSample])
+    case scanProjects(root: String)
     case log(String)
     case cancelAll
 }
@@ -88,6 +90,7 @@ struct DataEngine: Sendable {
     private var status = Slot()
     private var version = Slot()
     private var changelog = Slot()
+    private var projects = Slot()
     /// After a clean `claude update`: the version it started from and the log's last lines, for the next look to judge.
     private var pendingVerify: (from: String, tail: String)?
     /// Taken from `pendingVerify` when a look starts: a look already running saw the old version.
@@ -100,6 +103,8 @@ struct DataEngine: Sendable {
     private var commands: [DataCommand] = []
 
     static let changelogRetry = 600
+    /// Upstream's 15 minutes: the transcripts change by the minute, a week's shares do not.
+    static let projectsInterval = 900
     /// Each run sources the user's rc files again, so a shell that never answers is not asked forever.
     static let loginRunLimit = 4
 
@@ -153,7 +158,10 @@ struct DataEngine: Sendable {
         case .account(let info):
             account.running = false
             if let info {
+                let root = projectsRoot
                 snapshot.account = info
+                // A scan that ran before the account named its config dir read the wrong transcripts.
+                if projectsRoot != root { projects.lastTry = nil }
                 succeed("account")
             } else {
                 fail("account", "claude auth status gave no answer")
@@ -188,6 +196,8 @@ struct DataEngine: Sendable {
             if let failure { fail("history", failure) } else { succeed("history") }
         case .latchSaved(let failure):
             if let failure { fail("latch", failure) } else { succeed("latch") }
+        case .projects(let scan):
+            projectsAnswered(scan, now: now)
         }
         return commands
     }
@@ -201,6 +211,8 @@ struct DataEngine: Sendable {
         if claude == nil, locating.due(config.usageIntervalSeconds, now) {
             if login == nil, loginRuns < Self.loginRunLimit { runLoginShell(now: now) } else { locate(then: .startDue, now: now) }
         }
+        // The transcripts need no claude, only the config dir the login shell may name.
+        if resolved, config.showHistory, config.expanded, projects.due(Self.projectsInterval, now) { startProjects(now: now) }
         guard resolved, claude != nil else { return }
         if version.due(config.versionIntervalSeconds, now) { startVersion(now: now) }
         if latch == nil, usage.due(config.usageIntervalSeconds, now) { startUsage(now: now) }
@@ -391,6 +403,24 @@ struct DataEngine: Sendable {
         emit(.probeStatus)
     }
 
+    private mutating func startProjects(now: Date) {
+        projects.start(now)
+        emit(.scanProjects(root: projectsRoot))
+    }
+
+    /// Counts only: the log never names a project or quotes a transcript.
+    private mutating func projectsAnswered(_ scan: ProjectScan, now: Date) {
+        projects.running = false
+        snapshot.projects = scan.usage
+        snapshot.projectsAt = now
+        if scan.unreadable > 0 { fail("projects", "unreadable transcripts: \(scan.unreadable)") } else { succeed("projects") }
+        if scan.unpricedModels.isEmpty {
+            succeed("projects-price")
+        } else {
+            fail("projects-price", "no list price for \(scan.unpricedModels.joined(separator: ", ")); priced as the nearest model")
+        }
+    }
+
     // MARK: - The update
 
     private mutating func startUpdate() {
@@ -427,6 +457,8 @@ struct DataEngine: Sendable {
     private var configDirectory: String {
         ClaudeConfigDir.resolve(account: snapshot.account, login: login, environment: environment, home: home)
     }
+
+    private var projectsRoot: String { configDirectory + "/projects" }
 
     private var childEnvironment: [String: String] {
         ChildEnv.make(inherited: environment, login: login, claude: claude?.path)

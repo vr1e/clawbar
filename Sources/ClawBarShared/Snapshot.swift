@@ -107,6 +107,32 @@ public struct UsageSample: Sendable, Hashable {
     public var date: Date { Date(timeIntervalSince1970: TimeInterval(minute) * 60) }
 }
 
+/// One project's share of the week, from the replies in its transcript folder.
+public struct ProjectWeight: Sendable, Hashable {
+    /// The folder Claude Code was started in, else the one most replies ran in, else the transcript folder's name.
+    public var path: String
+    /// The replies at list prices, in dollars; only its ratio to the other projects' weights means anything.
+    public var weight: Double
+
+    public init(path: String, weight: Double) {
+        self.path = path
+        self.weight = weight
+    }
+}
+
+/// The week's Claude Code transcripts on this Mac, weighed per project.
+public struct ProjectUsage: Sendable, Hashable {
+    /// Heaviest first; only projects with replies this week.
+    public var projects: [ProjectWeight]
+    /// Replies priced as a nearby model, since the price table has none for theirs.
+    public var unpriced: Int
+
+    public init(projects: [ProjectWeight] = [], unpriced: Int = 0) {
+        self.projects = projects
+        self.unpriced = unpriced
+    }
+}
+
 /// Why the usage numbers are missing or stopped.
 public enum UsageIssue: Sendable, Hashable {
     /// No claude executable anywhere; retried every usage interval.
@@ -329,12 +355,16 @@ public struct DataSnapshot: Sendable, Hashable {
     public var version: VersionState
     public var weather: WeatherSnapshot?
     public var place: Place?
+    /// nil until the first scan of the transcripts has finished.
+    public var projects: ProjectUsage?
+    public var projectsAt: Date?
 
     public init(
         usage: UsageSnapshot? = nil, usageAt: Date? = nil, usageProbeCompleted: Bool = false,
         usageIssue: UsageIssue? = nil, history: [UsageSample] = [], sessions: [SessionInfo] = [], sessionsRead: Bool = false,
         status: ServiceStatus? = nil, statusAt: Date? = nil, account: AccountInfo? = nil,
-        version: VersionState = VersionState(), weather: WeatherSnapshot? = nil, place: Place? = nil
+        version: VersionState = VersionState(), weather: WeatherSnapshot? = nil, place: Place? = nil,
+        projects: ProjectUsage? = nil, projectsAt: Date? = nil
     ) {
         self.usage = usage
         self.usageAt = usageAt
@@ -349,6 +379,8 @@ public struct DataSnapshot: Sendable, Hashable {
         self.version = version
         self.weather = weather
         self.place = place
+        self.projects = projects
+        self.projectsAt = projectsAt
     }
 
     public static let empty = DataSnapshot()

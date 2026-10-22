@@ -45,6 +45,8 @@ public final class DataController {
     private let latchStore: LatchStore
     private let historyStore: UsageHistoryStore
     private let weather: WeatherService
+    /// Keeps each transcript's read position and the week's replies between scans.
+    private let scanner = TranscriptScanner()
     private var tasks: [Int: Task<Void, Never>] = [:]
     private var nextTask = 0
 
@@ -164,6 +166,10 @@ public final class DataController {
             return .latchSaved(failure: Self.failure { try latchStore.save(latch) })
         case .saveHistory(let samples):
             return .historySaved(failure: Self.failure { try historyStore.save(samples) })
+        case .scanProjects(let root):
+            let scanner = scanner, clock = deps.clock
+            // A first pass reads every transcript of the week, so it yields to everything else.
+            spawn(priority: .utility) { .projects(await scanner.scan(root: root, now: clock())) }
         case .log(let line):
             log.append(line, now: deps.clock(), timeZone: deps.timeZone)
         case .cancelAll:
@@ -189,10 +195,10 @@ public final class DataController {
     }
 
     /// Runs `work` off the main actor, feeds its event back on it, and forgets the task when it ends.
-    private func spawn(_ work: @escaping @Sendable () async -> DataEvent) {
+    private func spawn(priority: TaskPriority? = nil, _ work: @escaping @Sendable () async -> DataEvent) {
         let id = nextTask
         nextTask += 1
-        tasks[id] = Task { [weak self] in
+        tasks[id] = Task(priority: priority) { [weak self] in
             let event = await work()
             guard let self else { return }
             self.complete(event)

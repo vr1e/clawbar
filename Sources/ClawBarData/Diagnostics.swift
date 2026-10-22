@@ -95,6 +95,20 @@ public enum Diagnostics {
         }
         say("sessions: \(sessions.count)" + (names.isEmpty ? "" : " · " + names.joined(separator: ", ")))
 
+        // Counts only: which projects ran this week is the user's business.
+        let started = ContinuousClock.now
+        let scan = await TranscriptScanner().scan(root: configDir + "/projects", now: deps.clock())
+        let took = (ContinuousClock.now - started).components
+        var projects = [
+            "\(scan.files) transcripts", String(format: "%.0f MB", Double(scan.bytes) / 1_048_576), "\(scan.usage.projects.count) projects",
+            String(format: "%.1f s", Double(took.seconds) + Double(took.attoseconds) / 1e18),
+        ]
+        if scan.usage.unpriced > 0 {
+            projects.append("\(scan.usage.unpriced) replies without a list price (\(scan.unpricedModels.joined(separator: ", ")))")
+        }
+        if scan.unreadable > 0 { projects.append("\(scan.unreadable) unreadable") }
+        say("projects: " + projects.joined(separator: " · "))
+
         if let body = try? await deps.http.get(AppInfo.statusSummary, timeout: 15), let s = StatusProbe.parse(body) {
             say("status: \(s.indicator) · incidents \(s.incidents.count) · broken \(s.broken.count)")
         } else {

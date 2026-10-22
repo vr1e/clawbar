@@ -37,6 +37,16 @@ import ClawBarShared
         #expect(d.render().contains("\nusage.history: 2 samples, \(from) to \(to)\n"))
     }
 
+    @Test func theProjectsAreReportedByCountNotByName() {
+        #expect(dump().render().contains("\nprojects: none\n"))
+        var d = dump()
+        d.snapshot.projects = ProjectUsage(projects: [ProjectWeight(path: "/Users/example/secret", weight: 1)])
+        d.snapshot.projectsAt = Samples.now
+        let text = d.render()
+        #expect(text.contains("\nprojects: 1, scanned \(StateDump.iso(Samples.now))\n"))
+        #expect(!text.contains("secret"))
+    }
+
     @Test func theAppLineEndsInThePidThatBuildAppWaitsOn() {
         // scripts/build-app.sh --install reads the running copy's pid from this line.
         #expect(dump().render().contains("\napp: \(AppInfo.title) (pid 4242)\n"))
