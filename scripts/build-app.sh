@@ -26,14 +26,15 @@ if [ "$sdk" = "$minos" ]; then
     exit 1
 fi
 
-APP="$ROOT/build.noindex/ClawBar.app"
-ICONSET="$ROOT/build.noindex/AppIcon.iconset"
+BUILD="$ROOT/build.noindex"
+APP="$BUILD/ClawBar.app"
+ICONSET="$BUILD/AppIcon.iconset"
 rm -rf "$APP" "$ICONSET"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/ClawBar"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 
-"$BIN" --make-icon "$ROOT/build.noindex" >/dev/null
+"$BIN" --make-icon "$BUILD" >/dev/null
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 rm -rf "$ICONSET"
 

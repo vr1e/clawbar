@@ -15,11 +15,12 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-WORK = ROOT / "build.noindex" / "release"
+BUILD = ROOT / "build.noindex"
+WORK = BUILD / "release"
 RELEASE = WORK / "release.json"
 NOTES = WORK / "notes.md"
 INSTALL = Path(__file__).with_name("install.md")
-APP = ROOT / "build.noindex" / "ClawBar.app"
+APP = BUILD / "ClawBar.app"
 SWIFT_VERSION = ROOT / "Sources" / "ClawBarShared" / "AppPaths.swift"
 PLIST = ROOT / "Resources" / "Info.plist"
 KINDS = ("feature", "fix", "internal")
