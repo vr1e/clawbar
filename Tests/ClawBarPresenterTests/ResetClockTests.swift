@@ -5,15 +5,8 @@ import ClawBarShared
 
 // Expected values follow format.ps1 Format-ResetClock, counted in calendar days of the input's zone.
 @Suite struct ResetClockTests {
-    private func clock(_ reset: Date, from now: Date = Samples.now, _ lang: Lang = .en, zone: TimeZone = Samples.timeZone) -> String? {
+    private func clock(_ reset: Date, from now: Date = Samples.now, _ lang: Lang = .en, zone: TimeZone = Samples.timeZone) -> String {
         ResetClock.text(reset, now: now, timeZone: zone, lang: lang)
-    }
-
-    private func utc(_ iso: String) -> Date { ISO8601DateFormatter().date(from: iso)! }
-
-    @Test(arguments: [0.0, -1, -86_400])
-    func nothingOnceTheResetHasPassed(seconds: Double) {
-        #expect(clock(Samples.now.plus(seconds: seconds)) == nil)
     }
 
     @Test func todayIsTheTimeAlone() {

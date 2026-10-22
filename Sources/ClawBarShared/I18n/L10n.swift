@@ -7,10 +7,25 @@ public enum L10nValue: Sendable, Equatable {
 }
 
 /// What a `{n}` placeholder can show; an optional is no argument, so it never renders as "Optional(…)".
-public protocol L10nArg {}
-extension Int: L10nArg {}
-extension Double: L10nArg {}
-extension String: L10nArg {}
+public protocol L10nArg {
+    /// The text before zero padding; `pad` is the `{n:00}` width.
+    func l10nText(pad: Int) -> String
+}
+
+extension Int: L10nArg {
+    public func l10nText(pad: Int) -> String { String(self) }
+}
+
+extension Double: L10nArg {
+    // A padded or whole value shows without a fraction, as .NET's `{0:00}` and `{0}` do.
+    public func l10nText(pad: Int) -> String {
+        pad > 0 || (rounded() == self && abs(self) < 1e15) ? String(Int(rounded(.toNearestOrEven))) : String(self)
+    }
+}
+
+extension String: L10nArg {
+    public func l10nText(pad: Int) -> String { self }
+}
 
 /// Runtime-switchable strings: the language comes with every call, never from the system locale.
 public enum L10n {
@@ -109,18 +124,7 @@ public enum L10n {
     }
 
     private static func render(_ arg: any L10nArg, pad: Int) -> String {
-        let s: String
-        switch arg {
-        case let v as Int: s = String(v)
-        case let v as Double:
-            if pad > 0 || (v.rounded() == v && abs(v) < 1e15) {
-                s = String(Int(v.rounded(.toNearestOrEven)))
-            } else {
-                s = String(v)
-            }
-        case let v as String: s = v
-        default: s = String(describing: arg)
-        }
+        let s = arg.l10nText(pad: pad)
         guard pad > s.count, let first = s.first, first != "-" else { return s }
         return String(repeating: "0", count: pad - s.count) + s
     }

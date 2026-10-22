@@ -14,6 +14,8 @@ struct SnapshotCase {
     var data = DataSnapshot.sample
     var tickError = false
     var skyDev = SkyDevState()
+    /// False for a state that only its menu bar tooltip shows, so it gets no PNG.
+    var card = true
 }
 
 /// Every presenter state the data contract can express, all at `Samples.now` in Berlin.
@@ -102,17 +104,16 @@ enum SnapshotCases {
         add("night") { $0.skyDev = SkyDevState(phase: .night, weatherCode: 0) }
         add("storm") { $0.skyDev = SkyDevState(phase: .dusk, weatherCode: 95) }
         add("snow") { $0.skyDev = SkyDevState(phase: .day, weatherCode: 73) }
+        add("reset-tomorrow") {
+            $0.card = false
+            $0.data.usage?.sessionReset = now.addingTimeInterval(10 * 3600 + 25 * 60)
+        }
+        add("reset-week-out") {
+            $0.card = false
+            $0.data.usage?.weekReset = now.addingTimeInterval(7 * 86400 - 300)
+        }
 
         return list
-    }
-
-    /// States only the menu bar tooltip tells apart from the sample, so they get no PNG.
-    static func tooltipOnly() -> [SnapshotCase] {
-        var tomorrow = SnapshotCase(name: "reset-tomorrow")
-        tomorrow.data.usage?.sessionReset = Date(timeIntervalSince1970: 1_792_276_200)
-        var weekOut = SnapshotCase(name: "reset-week-out")
-        weekOut.data.usage?.weekReset = Samples.now.addingTimeInterval(7 * 86400 - 300)
-        return [tomorrow, weekOut]
     }
 }
 
@@ -136,7 +137,7 @@ enum SnapshotMode {
     static func write(to dir: URL) throws -> [URL] {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         var out: [URL] = []
-        for c in SnapshotCases.all() {
+        for c in SnapshotCases.all() where c.card {
             for lang in Lang.allCases {
                 for k in scales {
                     guard let card = renderCard(c, lang: lang, scale: k), let image = Imaging.onBackdrop(card, pad: 24, color: backdrop) else {
@@ -251,7 +252,7 @@ enum SnapshotMode {
 
     /// The menu bar item's text, colour and tooltip in every state, since no PNG shows the tooltip.
     static func menuBarDump(lang: Lang) -> String {
-        let states = (SnapshotCases.all() + SnapshotCases.tooltipOnly()).map { c in
+        let states = SnapshotCases.all().map { c in
             let v = view(for: c, lang: lang)
             let level = Level.allCases.first { $0.color == v.trayColor }?.rawValue ?? v.trayColor.hex
             return "\(c.name): \(v.trayText) (\(level))\n  " + v.trayTooltip.replacingOccurrences(of: "\n", with: "\n  ")

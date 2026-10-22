@@ -147,10 +147,8 @@ private struct Render {
 
     /// `week 59% · 4d 15h (Thu 06:00)` while the reset lies ahead, else the label alone.
     private func trayLimit(_ label: String, _ reset: Date?) -> String {
-        guard let reset, let span = Span.text(until: reset, now: now, lang: lang),
-              let clock = ResetClock.text(reset, now: now, timeZone: input.timeZone, lang: lang)
-        else { return label }
-        return "\(label) · \(span) (\(clock))"
+        guard let reset, let span = Span.text(until: reset, now: now, lang: lang) else { return label }
+        return "\(label) · \(span) (\(ResetClock.text(reset, now: now, timeZone: input.timeZone, lang: lang)))"
     }
 
     private func weeks(_ v: inout WidgetViewState) {

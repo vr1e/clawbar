@@ -42,3 +42,5 @@ extension Date {
         addingTimeInterval(days * 86_400 + hours * 3600 + minutes * 60 + seconds)
     }
 }
+
+func utc(_ iso: String) -> Date { ISO8601DateFormatter().date(from: iso)! }

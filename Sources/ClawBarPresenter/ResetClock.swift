@@ -3,9 +3,8 @@ import ClawBarShared
 
 /// format.ps1 Format-ResetClock: the clock time a reset falls at, in the input's zone.
 public enum ResetClock {
-    /// `16:10` today, `tomorrow 00:30`, `Thu 06:00` within the week, `Thu 29 06:00` from a week out; nil once passed.
-    public static func text(_ reset: Date, now: Date, timeZone: TimeZone, lang: Lang) -> String? {
-        guard reset > now else { return nil }
+    /// `16:10` today, `tomorrow 00:30`, `Thu 06:00` within the week, `Thu 29 06:00` from a week out.
+    public static func text(_ reset: Date, now: Date, timeZone: TimeZone, lang: Lang) -> String {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         // Calendar days, not 24-hour steps, so a DST change or a reset just past midnight lands on the right day.
