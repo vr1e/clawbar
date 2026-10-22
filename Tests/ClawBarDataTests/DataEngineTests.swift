@@ -427,6 +427,11 @@ import ClawBarShared
         #expect(!kinds(e.handle(.tick, now: t0 + 3)).contains("scanProjects"))
         _ = e.handle(.account(AccountInfo(loggedIn: true, plan: "Max", configDirectory: "/Users/example/.claude-work")), now: t0 + 4)
         #expect(e.handle(.tick, now: t0 + 5).contains(.scanProjects(root: "/Users/example/.claude-work/projects")))
+        // A move during a scan waits for it, then scans the new root.
+        _ = e.handle(.account(AccountInfo(loggedIn: true, plan: "Max", configDirectory: "/Users/example/.claude")), now: t0 + 6)
+        #expect(!kinds(e.handle(.tick, now: t0 + 7)).contains("scanProjects"))
+        _ = e.handle(.projects(ProjectScan()), now: t0 + 8)
+        #expect(e.handle(.tick, now: t0 + 9).contains(.scanProjects(root: "/Users/example/.claude/projects")))
     }
 
     // MARK: - The update and the changelog

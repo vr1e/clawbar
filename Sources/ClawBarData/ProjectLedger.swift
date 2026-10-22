@@ -16,10 +16,13 @@ struct TranscriptReply: Sendable, Hashable {
     private static let stamp = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
     private static let wholeSeconds = Date.ISO8601FormatStyle()
 
+    static func hour(of date: Date) -> Int { Int((date.timeIntervalSince1970 / 3600).rounded(.down)) }
+
     /// nil for any other line, a synthetic reply (Claude Code's own error notes), or a line without usage or time.
     init?(line: Data) {
-        guard let j = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any], j["type"] as? String == "assistant",
-              let message = j["message"] as? [String: Any], let usage = message["usage"] as? [String: Any],
+        // NSDictionary lookups skip bridging every line's content into Swift dictionaries.
+        guard let j = (try? JSONSerialization.jsonObject(with: line)) as? NSDictionary, j["type"] as? String == "assistant",
+              let message = j["message"] as? NSDictionary, let usage = message["usage"] as? NSDictionary,
               let model = message["model"] as? String, model != "<synthetic>",
               let id = (message["id"] as? String) ?? (j["requestId"] as? String),
               let text = j["timestamp"] as? String,
@@ -30,18 +33,18 @@ struct TranscriptReply: Sendable, Hashable {
         speed = usage["speed"] as? String
         // Without the 5-minute / 1-hour breakdown every write is taken as a 5-minute one.
         let writes = Lenient.int(usage["cache_creation_input_tokens"]) ?? 0
-        let write1h = Lenient.int((usage["cache_creation"] as? [String: Any])?["ephemeral_1h_input_tokens"]) ?? 0
+        let write1h = Lenient.int((usage["cache_creation"] as? NSDictionary)?["ephemeral_1h_input_tokens"]) ?? 0
         tokens = TokenCounts(
             input: Lenient.int(usage["input_tokens"]) ?? 0, write5m: max(0, writes - write1h), write1h: write1h,
             cacheRead: Lenient.int(usage["cache_read_input_tokens"]) ?? 0, output: Lenient.int(usage["output_tokens"]) ?? 0
         )
-        hour = Int((at.timeIntervalSince1970 / 3600).rounded(.down))
+        hour = Self.hour(of: at)
         cwd = j["cwd"] as? String
     }
 }
 
-/// The week's replies weighed per transcript folder and UTC hour. Each reply counts once, with the largest count of
-/// each kind any of its lines showed, wherever it was first seen: a forked subagent repeats its parent's lines.
+/// The week's replies per transcript folder. Each reply counts once, with the largest count of each kind any of its
+/// lines showed, in the folder where it was first seen: a forked subagent repeats its parent's lines.
 struct ProjectLedger: Sendable {
     private struct Counted: Sendable {
         var model: String
@@ -54,12 +57,10 @@ struct ProjectLedger: Sendable {
     }
 
     private var replies: [String: Counted] = [:]
-    /// Transcript folder → UTC hour → dollars.
-    private var weights: [String: [Int: Double]] = [:]
     /// Transcript folder → working folder → lines seen there.
     private var cwds: [String: [String: Int]] = [:]
 
-    /// Adds what `reply` counts beyond its id's earlier lines; a reply from before `since` (a UTC hour) is left out.
+    /// Merges `reply` into its id's earlier lines; a reply from before `since` (a UTC hour) is left out.
     mutating func add(_ reply: TranscriptReply, folder: String, since: Int) {
         guard reply.hour >= since else { return }
         if let cwd = reply.cwd { cwds[folder, default: [:]][cwd, default: 0] += 1 }
@@ -67,27 +68,21 @@ struct ProjectLedger: Sendable {
         // A line without a speed does not undo an earlier fast one.
         c.speed = reply.speed ?? c.speed
         c.tokens = c.tokens.merged(reply.tokens)
-        let price = PriceTable.price(model: c.model, speed: c.speed, tokens: c.tokens)
-        weights[c.folder, default: [:]][c.hour, default: 0] += price.dollars - c.dollars
-        c.dollars = price.dollars
-        c.listed = price.listed
+        (c.dollars, c.listed) = PriceTable.price(model: c.model, speed: c.speed, tokens: c.tokens)
         replies[reply.id] = c
     }
 
-    /// Forgets the replies and hours before `since`.
+    /// Forgets the replies before `since`, and the folders left without any.
     mutating func prune(before since: Int) {
         replies = replies.filter { $0.value.hour >= since }
-        for (folder, hours) in weights {
-            let kept = hours.filter { $0.key >= since }
-            weights[folder] = kept.isEmpty ? nil : kept
-        }
-        cwds = cwds.filter { weights[$0.key] != nil }
+        let folders = Set(replies.values.map(\.folder))
+        cwds = cwds.filter { folders.contains($0.key) }
     }
 
     /// Every folder with weight, heaviest first.
     var usage: ProjectUsage {
-        let projects = weights.compactMap { folder, hours -> ProjectWeight? in
-            let weight = hours.values.reduce(0, +)
+        let projects = Dictionary(grouping: replies.values, by: \.folder).compactMap { folder, replies -> ProjectWeight? in
+            let weight = replies.reduce(0) { $0 + $1.dollars }
             return weight > 0 ? ProjectWeight(path: Self.path(folder: folder, cwds: cwds[folder] ?? [:]), weight: weight) : nil
         }
         return ProjectUsage(

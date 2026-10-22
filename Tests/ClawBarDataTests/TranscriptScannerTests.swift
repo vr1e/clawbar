@@ -24,10 +24,6 @@ import ClawBarShared
         try h.close()
     }
 
-    func weights(_ scan: ProjectScan) -> [String: Double] {
-        Dictionary(uniqueKeysWithValues: scan.usage.projects.map { ($0.path, ($0.weight * 1e6).rounded() / 1e6) })
-    }
-
     @Test func subagentTranscriptsCountWithTheirProject() async {
         write("-Users-example-api/s1.jsonl", line("msg_1", 1) + #"{"type":"user","cwd":"/Users/example/api"}"# + "\n")
         write("-Users-example-api/s1/subagents/agent-a1.jsonl", line("msg_2", 2))
@@ -36,33 +32,33 @@ import ClawBarShared
         write("-Users-example-api/s1/notes.txt", line("msg_4", 4))
         write("stray.jsonl", line("msg_5", 5))
         let scan = await TranscriptScanner().scan(root: root, now: now)
-        #expect(weights(scan) == ["/Users/example/api": 0.12])
+        #expect(weights(scan.usage) == ["/Users/example/api": 0.12])
         #expect(scan.files == 3 && scan.unreadable == 0)
     }
 
     @Test func aLineStillBeingWrittenIsReadOnTheNextPass() async throws {
         let url = write("-Users-example-api/s1.jsonl", line("msg_1", 1) + line("msg_2", 2).dropLast())
         let scanner = TranscriptScanner()
-        #expect(weights(await scanner.scan(root: root, now: now)) == ["/Users/example/api": 0.02])
+        #expect(weights(await scanner.scan(root: root, now: now).usage) == ["/Users/example/api": 0.02])
         try append(url, "\n" + line("msg_3", 4))
-        #expect(weights(await scanner.scan(root: root, now: now)) == ["/Users/example/api": 0.14])
+        #expect(weights(await scanner.scan(root: root, now: now).usage) == ["/Users/example/api": 0.14])
         // Nothing new: nothing changes.
-        #expect(weights(await scanner.scan(root: root, now: now)) == ["/Users/example/api": 0.14])
+        #expect(weights(await scanner.scan(root: root, now: now).usage) == ["/Users/example/api": 0.14])
     }
 
     @Test func aReplacedOrTruncatedFileIsReadAgainWithoutCountingTwice() async throws {
         let url = write("-Users-example-api/s1.jsonl", line("msg_1", 1) + line("msg_2", 2))
         let scanner = TranscriptScanner()
-        #expect(weights(await scanner.scan(root: root, now: now)) == ["/Users/example/api": 0.06])
+        #expect(weights(await scanner.scan(root: root, now: now).usage) == ["/Users/example/api": 0.06])
         // Written anew: msg_1 again with its final count, and a new reply.
         try Data((line("msg_1", 3) + line("msg_9", 1)).utf8).write(to: url, options: .atomic)
-        #expect(weights(await scanner.scan(root: root, now: now)) == ["/Users/example/api": 0.12])
+        #expect(weights(await scanner.scan(root: root, now: now).usage) == ["/Users/example/api": 0.12])
         // Cut short in place.
         let h = try FileHandle(forWritingTo: url)
         try h.truncate(atOffset: 0)
         try h.write(contentsOf: Data(line("msg_1", 3).utf8))
         try h.close()
-        #expect(weights(await scanner.scan(root: root, now: now)) == ["/Users/example/api": 0.12])
+        #expect(weights(await scanner.scan(root: root, now: now).usage) == ["/Users/example/api": 0.12])
     }
 
     @Test func aTranscriptUntouchedForAWeekIsSkippedAndRepliesBeforeTheWeekAreLeftOut() async throws {
@@ -70,7 +66,7 @@ import ClawBarShared
         try FileManager.default.setAttributes([.modificationDate: now - 8 * 86400], ofItemAtPath: old.path)
         write("-Users-example-api/s1.jsonl", line("msg_2", 1, ago: 7 * 86400 + 3600) + line("msg_3", 2))
         let scan = await TranscriptScanner().scan(root: root, now: now)
-        #expect(weights(scan) == ["/Users/example/api": 0.04])
+        #expect(weights(scan.usage) == ["/Users/example/api": 0.04])
         #expect(scan.files == 1)
     }
 
@@ -78,9 +74,9 @@ import ClawBarShared
         write("-Users-example-api/s1.jsonl", line("msg_1", 1))
         dir.write("alt/projects/-Users-example-web/s1.jsonl", line("msg_2", 2, cwd: "/Users/example/web"))
         let scanner = TranscriptScanner()
-        #expect(weights(await scanner.scan(root: root, now: now)) == ["/Users/example/api": 0.02])
+        #expect(weights(await scanner.scan(root: root, now: now).usage) == ["/Users/example/api": 0.02])
         let alt = dir.url.appendingPathComponent("alt/projects").path
-        #expect(weights(await scanner.scan(root: alt, now: now)) == ["/Users/example/web": 0.04])
+        #expect(weights(await scanner.scan(root: alt, now: now).usage) == ["/Users/example/web": 0.04])
     }
 
     @Test func anUnreadableTranscriptIsCountedAndAMissingRootIsAnEmptyWeek() async throws {
@@ -89,7 +85,7 @@ import ClawBarShared
         chmod(url.path, 0)
         defer { chmod(url.path, 0o644) }
         let scan = await TranscriptScanner().scan(root: root, now: now)
-        #expect(scan.unreadable == 1 && weights(scan) == ["/Users/example/api": 0.04])
+        #expect(scan.unreadable == 1 && weights(scan.usage) == ["/Users/example/api": 0.04])
         let none = await TranscriptScanner().scan(root: dir.url.appendingPathComponent("nowhere").path, now: now)
         #expect(none == ProjectScan())
     }

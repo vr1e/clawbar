@@ -91,6 +91,8 @@ struct DataEngine: Sendable {
     private var version = Slot()
     private var changelog = Slot()
     private var projects = Slot()
+    /// The transcripts the last scan was started on; another root is due at once.
+    private var scannedRoot: String?
     /// After a clean `claude update`: the version it started from and the log's last lines, for the next look to judge.
     private var pendingVerify: (from: String, tail: String)?
     /// Taken from `pendingVerify` when a look starts: a look already running saw the old version.
@@ -158,10 +160,7 @@ struct DataEngine: Sendable {
         case .account(let info):
             account.running = false
             if let info {
-                let root = projectsRoot
                 snapshot.account = info
-                // A scan that ran before the account named its config dir read the wrong transcripts.
-                if projectsRoot != root { projects.lastTry = nil }
                 succeed("account")
             } else {
                 fail("account", "claude auth status gave no answer")
@@ -211,8 +210,11 @@ struct DataEngine: Sendable {
         if claude == nil, locating.due(config.usageIntervalSeconds, now) {
             if login == nil, loginRuns < Self.loginRunLimit { runLoginShell(now: now) } else { locate(then: .startDue, now: now) }
         }
-        // The transcripts need no claude, only the config dir the login shell may name.
-        if resolved, config.showHistory, config.expanded, projects.due(Self.projectsInterval, now) { startProjects(now: now) }
+        // The transcripts need no claude, only the config dir the login shell or the account may name.
+        if resolved, config.showHistory, config.expanded,
+           projects.due(Self.projectsInterval, now) || !projects.running && scannedRoot != projectsRoot {
+            startProjects(now: now)
+        }
         guard resolved, claude != nil else { return }
         if version.due(config.versionIntervalSeconds, now) { startVersion(now: now) }
         if latch == nil, usage.due(config.usageIntervalSeconds, now) { startUsage(now: now) }
@@ -405,6 +407,7 @@ struct DataEngine: Sendable {
 
     private mutating func startProjects(now: Date) {
         projects.start(now)
+        scannedRoot = projectsRoot
         emit(.scanProjects(root: projectsRoot))
     }
 
@@ -458,7 +461,7 @@ struct DataEngine: Sendable {
         ClaudeConfigDir.resolve(account: snapshot.account, login: login, environment: environment, home: home)
     }
 
-    private var projectsRoot: String { configDirectory + "/projects" }
+    private var projectsRoot: String { TranscriptScanner.root(configDir: configDirectory) }
 
     private var childEnvironment: [String: String] {
         ChildEnv.make(inherited: environment, login: login, claude: claude?.path)

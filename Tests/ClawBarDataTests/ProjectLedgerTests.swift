@@ -6,53 +6,55 @@ import ClawBarShared
 // Expected values follow history-dedup-final-usage and history-project-identity in the 1.6.0 review.
 @Suite struct ProjectLedgerTests {
     let t0 = utc("2026-10-16T22:30:00Z")
-    var since: Int { Int(t0.timeIntervalSince1970 / 3600) - 168 }
+    var since: Int { TranscriptReply.hour(of: t0) - 168 }
 
     func reply(_ line: String) throws -> TranscriptReply {
         try #require(TranscriptReply(line: Data(line.utf8)))
     }
 
-    /// Opus 5.5 output: $20 per million, so 1,000 tokens are 2 cents.
-    func weights(_ ledger: ProjectLedger) -> [String: Double] {
-        Dictionary(uniqueKeysWithValues: ledger.usage.projects.map { ($0.path, ($0.weight * 1e6).rounded() / 1e6) })
+    func add(_ ledger: inout ProjectLedger, _ line: String, in folder: String = "-Users-example-api") throws {
+        ledger.add(try reply(line), folder: folder, since: since)
     }
+
+    /// Opus 5.5 output: $20 per million, so 1,000 tokens are 2 cents.
+    func weights(_ ledger: ProjectLedger) -> [String: Double] { ClawBarDataTests.weights(ledger.usage) }
 
     @Test func aReplyCountsOnceWithItsFinalCounts() throws {
         var ledger = ProjectLedger()
         for output in [8, 900, 1477] {
-            ledger.add(try reply(assistantLine("msg_1", at: t0, output: output)), folder: "-Users-example-api", since: since)
+            try add(&ledger, assistantLine("msg_1", at: t0, output: output))
         }
         #expect(weights(ledger) == ["/Users/example/api": 0.02954])
         // A pass that sees the final line later adds only the difference.
         var split = ProjectLedger()
-        split.add(try reply(assistantLine("msg_1", at: t0, output: 8)), folder: "-Users-example-api", since: since)
+        try add(&split, assistantLine("msg_1", at: t0, output: 8))
         #expect(weights(split) == ["/Users/example/api": 0.00016])
-        split.add(try reply(assistantLine("msg_1", at: t0, output: 1477)), folder: "-Users-example-api", since: since)
+        try add(&split, assistantLine("msg_1", at: t0, output: 1477))
         #expect(weights(split) == weights(ledger))
     }
 
     @Test func aForkedSubagentsCopyOfAReplyCountsInTheFolderThatHadItFirst() throws {
         var ledger = ProjectLedger()
-        ledger.add(try reply(assistantLine("msg_1", at: t0, output: 1000)), folder: "-Users-example-api", since: since)
-        ledger.add(try reply(assistantLine("msg_1", at: t0 + 60, cwd: "/Users/example/web", output: 1000)), folder: "-Users-example-web", since: since)
-        ledger.add(try reply(assistantLine("msg_2", at: t0, cwd: "/Users/example/web", output: 500)), folder: "-Users-example-web", since: since)
+        try add(&ledger, assistantLine("msg_1", at: t0, output: 1000))
+        try add(&ledger, assistantLine("msg_1", at: t0 + 60, cwd: "/Users/example/web", output: 1000), in: "-Users-example-web")
+        try add(&ledger, assistantLine("msg_2", at: t0, cwd: "/Users/example/web", output: 500), in: "-Users-example-web")
         #expect(weights(ledger) == ["/Users/example/api": 0.02, "/Users/example/web": 0.01])
         #expect(ledger.usage.projects.map(\.path) == ["/Users/example/api", "/Users/example/web"])
     }
 
     @Test func aFastLineIsNotUndoneByALaterLineWithoutASpeed() throws {
         var ledger = ProjectLedger()
-        ledger.add(try reply(assistantLine("msg_1", at: t0, output: 100, speed: "fast")), folder: "-Users-example-api", since: since)
-        ledger.add(try reply(assistantLine("msg_1", at: t0, output: 1000, speed: nil)), folder: "-Users-example-api", since: since)
+        try add(&ledger, assistantLine("msg_1", at: t0, output: 100, speed: "fast"))
+        try add(&ledger, assistantLine("msg_1", at: t0, output: 1000, speed: nil))
         #expect(weights(ledger) == ["/Users/example/api": 0.04])
     }
 
     @Test func unpricedRepliesAreCountedAndTheirModelsNamed() throws {
         var ledger = ProjectLedger()
-        ledger.add(try reply(assistantLine("msg_1", at: t0, model: "claude-opus-6", output: 1000)), folder: "a", since: since)
-        ledger.add(try reply(assistantLine("msg_1", at: t0, model: "claude-opus-6", output: 2000)), folder: "a", since: since)
-        ledger.add(try reply(assistantLine("msg_2", at: t0, model: "claude-quill-1", output: 1000)), folder: "a", since: since)
-        ledger.add(try reply(assistantLine("msg_3", at: t0, output: 1000)), folder: "a", since: since)
+        try add(&ledger, assistantLine("msg_1", at: t0, model: "claude-opus-6", output: 1000), in: "a")
+        try add(&ledger, assistantLine("msg_1", at: t0, model: "claude-opus-6", output: 2000), in: "a")
+        try add(&ledger, assistantLine("msg_2", at: t0, model: "claude-quill-1", output: 1000), in: "a")
+        try add(&ledger, assistantLine("msg_3", at: t0, output: 1000), in: "a")
         #expect(ledger.usage.unpriced == 2)
         #expect(ledger.unpricedModels == ["claude-opus-6", "claude-quill-1"])
     }
@@ -61,9 +63,9 @@ import ClawBarShared
         var ledger = ProjectLedger()
         let edge = Date(timeIntervalSince1970: TimeInterval(since) * 3600)
         let web = "/Users/example/web"
-        ledger.add(try reply(assistantLine("msg_old", at: edge - 1, output: 1000)), folder: "-Users-example-api", since: since)
-        ledger.add(try reply(assistantLine("msg_edge", at: edge, output: 1000)), folder: "-Users-example-api", since: since)
-        ledger.add(try reply(assistantLine("msg_new", at: t0, cwd: web, output: 1000)), folder: "-Users-example-web", since: since)
+        try add(&ledger, assistantLine("msg_old", at: edge - 1, output: 1000))
+        try add(&ledger, assistantLine("msg_edge", at: edge, output: 1000))
+        try add(&ledger, assistantLine("msg_new", at: t0, cwd: web, output: 1000), in: "-Users-example-web")
         #expect(weights(ledger) == ["/Users/example/api": 0.02, web: 0.02])
         // An hour later the edge hour has left the week, and the api folder with it.
         ledger.prune(before: since + 1)
@@ -81,8 +83,8 @@ import ClawBarShared
 
     @Test func twoFoldersWithTheSameLeafStayApart() throws {
         var ledger = ProjectLedger()
-        ledger.add(try reply(assistantLine("msg_1", at: t0, cwd: "/Users/example/work/api", output: 1000)), folder: "-Users-example-work-api", since: since)
-        ledger.add(try reply(assistantLine("msg_2", at: t0, cwd: "/Users/example/home/api", output: 500)), folder: "-Users-example-home-api", since: since)
+        try add(&ledger, assistantLine("msg_1", at: t0, cwd: "/Users/example/work/api", output: 1000), in: "-Users-example-work-api")
+        try add(&ledger, assistantLine("msg_2", at: t0, cwd: "/Users/example/home/api", output: 500), in: "-Users-example-home-api")
         #expect(weights(ledger) == ["/Users/example/work/api": 0.02, "/Users/example/home/api": 0.01])
     }
 
@@ -98,7 +100,7 @@ import ClawBarShared
         let r = try reply(reordered)
         #expect(r.tokens == TokenCounts(input: 2, write5m: 1, write1h: 4, cacheRead: 3, output: 7))
         #expect(r.id == "msg_9" && r.cwd == "/Users/example/api" && r.speed == nil)
-        #expect(r.hour == Int(t0.timeIntervalSince1970 / 3600))
+        #expect(r.hour == TranscriptReply.hour(of: t0))
         // Without the breakdown every write is a 5-minute one; without a message id the request id stands in.
         let bare = #"{"type":"assistant","requestId":"req_1","timestamp":"2026-10-16T22:30:00Z","message":{"model":"claude-opus-5-5","usage":{"cache_creation_input_tokens":5}}}"#
         let b = try reply(bare)

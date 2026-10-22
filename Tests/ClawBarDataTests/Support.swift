@@ -89,3 +89,8 @@ func assistantLine(
     let data = (try? JSONSerialization.data(withJSONObject: line, options: [.sortedKeys, .withoutEscapingSlashes])) ?? Data()
     return String(decoding: data, as: UTF8.self)
 }
+
+/// Each project's weight in millionths of a dollar, keyed by its path.
+func weights(_ usage: ProjectUsage) -> [String: Double] {
+    Dictionary(uniqueKeysWithValues: usage.projects.map { ($0.path, ($0.weight * 1e6).rounded() / 1e6) })
+}

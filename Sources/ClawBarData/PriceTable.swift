@@ -71,14 +71,13 @@ enum PriceTable {
         let fable51 = RateCard(input: 10, output: 50, cacheRead: 0.25, write5m: 12.5, write1h: 20)
         let fable5 = RateCard(input: 10, output: 50, cacheRead: 1, write5m: 12.5, write1h: 20)
         let opus = RateCard(input: 5, output: 25, cacheRead: 0.5, write5m: 6.25, write1h: 10)
-        var opus5 = opus
-        opus5.fast = 2
         let sonnet5 = RateCard(input: 2, output: 10, cacheRead: 0.2, write5m: 2.5, write1h: 4)
         return [
             Model("fable", 5, 1): fable51, Model("mythos", 5, 1): fable51,
             Model("fable", 5): fable5, Model("mythos", 5): fable5,
             Model("opus", 5, 5): RateCard(input: 4, output: 20, cacheRead: 0.2, write5m: 5, write1h: 8, fast: 2),
-            Model("opus", 5): opus5, Model("opus", 4, 8): opus, Model("opus", 4, 7): opus, Model("opus", 4, 6): opus,
+            Model("opus", 5): RateCard(input: 5, output: 25, cacheRead: 0.5, write5m: 6.25, write1h: 10, fast: 2),
+            Model("opus", 4, 8): opus, Model("opus", 4, 7): opus, Model("opus", 4, 6): opus,
             Model("sonnet", 5, 5): sonnet5, Model("sonnet", 5): sonnet5,
             Model("sonnet", 4, 6): RateCard(input: 3, output: 15, cacheRead: 0.3, write5m: 3.75, write1h: 6),
             Model("haiku", 5, 5): RateCard(input: 0.1, output: 0.5, cacheRead: 0.01, write5m: 0.125, write1h: 0.2, longAbove: 100_000),
@@ -92,14 +91,9 @@ enum PriceTable {
     /// A reply's list price, and whether the table lists it; one that is not is priced as the nearest listed version of
     /// its family, else as the default model.
     static func price(model id: String, speed: String?, tokens: TokenCounts) -> (dollars: Double, listed: Bool) {
-        var listed = true
-        var card: RateCard
-        if let model = Model(id), let exact = cards[model] {
-            card = exact
-        } else {
-            listed = false
-            card = cards[nearest(Model(id)) ?? fallback]!
-        }
+        let model = Model(id), exact = model.flatMap { cards[$0] }
+        var listed = exact != nil
+        var card = exact ?? cards[model.flatMap(nearest) ?? fallback]!
         if speed == "fast" {
             if let k = card.fast { card = card.scaled(k) } else { listed = false }
         }
@@ -108,9 +102,8 @@ enum PriceTable {
     }
 
     /// The listed version of the same family closest to `model`'s, the newer one on a tie.
-    static func nearest(_ model: Model?) -> Model? {
-        guard let model else { return nil }
-        return cards.keys.filter { $0.family == model.family }
+    static func nearest(_ model: Model) -> Model? {
+        cards.keys.filter { $0.family == model.family }
             .min { a, b in
                 let da = abs(a.version - model.version), db = abs(b.version - model.version)
                 return da != db ? da < db : a.version > b.version

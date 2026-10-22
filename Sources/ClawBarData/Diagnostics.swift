@@ -97,11 +97,10 @@ public enum Diagnostics {
 
         // Counts only: which projects ran this week is the user's business.
         let started = ContinuousClock.now
-        let scan = await TranscriptScanner().scan(root: configDir + "/projects", now: deps.clock())
-        let took = (ContinuousClock.now - started).components
+        let scan = await TranscriptScanner().scan(root: TranscriptScanner.root(configDir: configDir), now: deps.clock())
         var projects = [
             "\(scan.files) transcripts", String(format: "%.0f MB", Double(scan.bytes) / 1_048_576), "\(scan.usage.projects.count) projects",
-            String(format: "%.1f s", Double(took.seconds) + Double(took.attoseconds) / 1e18),
+            String(format: "%.1f s", (ContinuousClock.now - started) / .seconds(1)),
         ]
         if scan.usage.unpriced > 0 {
             projects.append("\(scan.usage.unpriced) replies without a list price (\(scan.unpricedModels.joined(separator: ", ")))")
