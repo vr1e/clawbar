@@ -45,6 +45,7 @@ struct StateDump {
         add("config.topmost", config.topmost)
         add("config.showMascot", config.showMascot)
         add("config.showSky", config.showSky)
+        add("config.showHistory", config.showHistory)
         add("config.launchAtLogin", config.launchAtLogin)
         add("config.menuBarMascot", config.menuBarMascot)
         add("loginItem.status", loginItemStatus)

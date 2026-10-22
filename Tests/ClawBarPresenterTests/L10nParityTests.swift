@@ -3,8 +3,8 @@ import Testing
 import ClawBarShared
 
 @Suite struct L10nParityTests {
-    /// Keys whose German is, correctly, the English: pure formats and a proper name.
-    static let sameInBothLanguages: Set<L10nKey> = [.period, .spanD, .statMcp, .setShowMascot, .gameTitle]
+    /// Keys whose German is, correctly, the English: pure formats, a unit symbol and a proper name.
+    static let sameInBothLanguages: Set<L10nKey> = [.period, .spanD, .statMcp, .histSession, .setShowMascot, .gameTitle]
 
     @Test func bothTablesHaveExactlyTheKeys() {
         let all = Set(L10nKey.allCases)
@@ -50,7 +50,7 @@ import ClawBarShared
 
     @Test(arguments: Lang.allCases)
     func rowLabelsAreUpperCase(lang: Lang) {
-        for key in [L10nKey.uiWeek, .uiModelWeek, .uiSessions, .uiDay, .uiWeek7] {
+        for key in [L10nKey.uiWeek, .uiModelWeek, .uiSessions, .uiDay, .uiWeek7, .uiHist] {
             let s = L10n.t(key, lang)
             #expect(s == s.uppercased(), "\(lang) \(key.rawValue): \(s)")
         }

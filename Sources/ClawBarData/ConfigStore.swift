@@ -92,6 +92,7 @@ public final class ConfigStore {
         c.showAccount = Lenient.bool(j["showAccount"]) ?? d.showAccount
         c.showMascot = Lenient.bool(j["showMascot"]) ?? d.showMascot
         c.showSky = Lenient.bool(j["showSky"]) ?? d.showSky
+        c.showHistory = Lenient.bool(j["showHistory"]) ?? d.showHistory
         c.weatherLat = Lenient.double(j["weatherLat"])
         c.weatherLon = Lenient.double(j["weatherLon"])
         c.refreshSeconds = Lenient.int(j["refreshSeconds"]) ?? d.refreshSeconds
@@ -132,6 +133,7 @@ public final class ConfigStore {
         case .showAccount: c.showAccount
         case .showMascot: c.showMascot
         case .showSky: c.showSky
+        case .showHistory: c.showHistory
         case .weatherLat: c.weatherLat.map(AnyHashable.init)
         case .weatherLon: c.weatherLon.map(AnyHashable.init)
         case .refreshSeconds: c.refreshSeconds

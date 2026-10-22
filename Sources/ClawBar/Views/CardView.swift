@@ -266,7 +266,7 @@ private struct StatusRow: View {
     }
 }
 
-/// The 24 h / 7 d stats, the Claude Code version line and the ClawBar line.
+/// The 24 h / 7 d stats, the 7-day chart, the Claude Code version line and the ClawBar line.
 private struct DetailsBlock: View {
     let v: WidgetViewState
     let layout: LayoutModel
@@ -278,6 +278,9 @@ private struct DetailsBlock: View {
                 Divider(k: k).padding(.bottom, 8 * k)
                 period(v.dayLabel, v.dayMain, v.dayExtra)
                 period(v.week7Label, v.week7Main, v.week7Extra)
+            }
+            if let history = v.history {
+                HistoryBlock(h: history)
             }
             Divider(k: k).padding(.bottom, 7 * k)
             HStack(alignment: .top, spacing: 0) {
@@ -310,6 +313,92 @@ private struct DetailsBlock: View {
                 .frame(width: CardView.content * k, alignment: .leading)
                 .padding(.bottom, 10 * k)
         }
+    }
+}
+
+/// widget.xaml's HistPanel: the label, the chart, a weekday under each day, and the legend or why there is none.
+private struct HistoryBlock: View {
+    let h: HistoryView
+    @Environment(\.uiScale) private var k
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Divider(k: k).padding(.bottom, 8 * k)
+            WText(h.label, 9, weight: .semibold, color: Palette.label)
+                .padding(.bottom, 4 * k)
+            HistoryChartView(h: h)
+                .frame(width: HistoryView.width * k, height: HistoryView.height * k)
+                .clipped()
+            ZStack(alignment: .topLeading) {
+                ForEach(h.days, id: \.from) { day in
+                    WText(day.text, 8, color: Palette.footer)
+                        .frame(width: (day.to - day.from) * k)
+                        .offset(x: day.from * k)
+                }
+            }
+            .frame(width: HistoryView.width * k, height: 11 * k, alignment: .topLeading)
+            caption
+                .frame(width: CardView.content * k, alignment: .leading)
+                .padding(.top, 1 * k)
+                .padding(.bottom, 10 * k)
+        }
+    }
+
+    @ViewBuilder
+    private var caption: some View {
+        if h.caption.isEmpty {
+            HStack(alignment: .top, spacing: 0) {
+                legend(h.sessionName, HistoryChartView.sessionColor)
+                // Four spaces of 10-pt text between the entries, as Set-HistLegend pads them.
+                legend(h.weekName, HistoryChartView.weekColor)
+                    .padding(.leading, 11 * k)
+            }
+        } else {
+            WText(h.caption, 10, color: Palette.muted, truncates: true)
+        }
+    }
+
+    private func legend(_ name: String, _ color: RGBA) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            WText("━ ", 10, color: color)
+            WText(name, 10, color: Palette.muted)
+        }
+    }
+}
+
+/// The midnights, then the week line, the session's fill and its line on top, as Draw-HistoryChart adds them.
+private struct HistoryChartView: View {
+    let h: HistoryView
+    @Environment(\.uiScale) private var k
+
+    static let sessionColor = Palette.ok
+    static let weekColor = Palette.weekBar
+
+    var body: some View {
+        let scale = k
+        Canvas { ctx, _ in
+            ctx.scaleBy(x: scale, y: scale)
+            let height = HistoryView.height
+            for x in h.dayTicks {
+                ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: height)), with: .color(Color(rgba: Palette.divider)))
+            }
+            let stroke = StrokeStyle(lineWidth: 1.2, lineJoin: .round)
+            ctx.stroke(Self.lines(h.weekRuns), with: .color(Color(rgba: Self.weekColor)), style: stroke)
+            var fill = Path()
+            for run in h.sessionRuns {
+                guard let first = run.first, let last = run.last else { continue }
+                fill.addLines(run + [CGPoint(x: last.x, y: height), CGPoint(x: first.x, y: height)])
+                fill.closeSubpath()
+            }
+            ctx.fill(fill, with: .color(Color(rgba: Palette.chartFill)))
+            ctx.stroke(Self.lines(h.sessionRuns), with: .color(Color(rgba: Self.sessionColor)), style: stroke)
+        }
+    }
+
+    static func lines(_ runs: [[CGPoint]]) -> Path {
+        var path = Path()
+        for run in runs { path.addLines(run) }
+        return path
     }
 }
 

@@ -128,6 +128,14 @@ public enum UsageIssue: Sendable, Hashable {
         default: false
         }
     }
+
+    /// Without claude, or under a login without a subscription, no limit applies, not even an old number.
+    public var voidsLimits: Bool {
+        switch self {
+        case .claudeNotFound, .noLimits: true
+        default: false
+        }
+    }
 }
 
 public struct BrokenComponent: Sendable, Hashable {
@@ -347,9 +355,11 @@ public struct DataSnapshot: Sendable, Hashable {
 
     public func count(of state: SessionState) -> Int { sessions.count { $0.state == state } }
 
-    /// Data is stale when older than 3 × its interval + 30 s.
     public static func isStale(_ at: Date?, interval: Int, now: Date) -> Bool {
         guard let at else { return true }
-        return now.timeIntervalSince(at) > Double(3 * interval + 30)
+        return now.timeIntervalSince(at) > staleAfter(interval: interval)
     }
+
+    /// Data is stale when older than 3 × its interval + 30 s.
+    public static func staleAfter(interval: Int) -> TimeInterval { Double(3 * interval + 30) }
 }

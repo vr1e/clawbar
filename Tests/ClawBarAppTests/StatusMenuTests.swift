@@ -22,7 +22,7 @@ import ClawBarShared
         ])
         #expect(titles(e[10].children) == [
             "Clawd", "Sky and weather behind him", "Anthropic status", "Running sessions", "Plan and account",
-            "Last 24 hours and 7 days (details)",
+            "Last 24 hours and 7 days (details)", "7-day chart (details)",
         ])
         #expect(titles(e[11].children) == ["English", "Deutsch"])
     }
@@ -104,19 +104,22 @@ import ClawBarShared
         config.showStats = false
         config.showAccount = false
         let e = entries(config)
-        #expect(e[10].children.map(\.checked) == [true, true, true, true, false, false])
+        #expect(e[10].children.map(\.checked) == [true, true, true, true, false, false, false])
         #expect(e[10].children.allSatisfy { $0.checkable && $0.enabled })
         config.showMascot = false
+        config.showHistory = true
         let noClawd = entries(config)
-        #expect(noClawd[10].children.map(\.checked) == [false, true, true, true, false, false])
-        #expect(noClawd[10].children.map(\.enabled) == [true, false, true, true, true, true])
+        #expect(noClawd[10].children.map(\.checked) == [false, true, true, true, false, false, true])
+        #expect(noClawd[10].children.map(\.enabled) == [true, false, true, true, true, true, true])
     }
 
     @Test func eachBlockTogglesItsOwnConfigKey() {
+        // Every block shows by default but the chart, as in the original.
+        #expect(WidgetBlock.shown(in: Config()) == all.subtracting([.history]))
         for b in WidgetBlock.allCases {
             var config = Config()
             config[keyPath: b.flag].toggle()
-            #expect(WidgetBlock.shown(in: config) == all.subtracting([b]))
+            #expect(WidgetBlock.shown(in: config).symmetricDifference(WidgetBlock.shown(in: Config())) == [b])
         }
     }
 
