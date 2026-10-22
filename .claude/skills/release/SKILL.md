@@ -7,7 +7,7 @@ description: Releases ClawBar from main. It picks the next version from what mer
 
 `release.py` beside this file does the mechanics and refuses any state or input it can't use. Your part is the
 judgement: what kind each change is, and how the notes put it. Run the script as `python3 .claude/skills/release/release.py <step>`
-from the repo root. Its working files sit in `build/release/`, which git ignores.
+from the repo root. Its working files sit in `build.noindex/release/`, which git ignores.
 
 ## Steps
 
@@ -24,7 +24,7 @@ from the repo root. Its working files sit in `build/release/`, which git ignores
    describe the code; the diff shows what changed for the user. If every commit is `internal`, tell the user there is nothing to release, list the commits, and stop.
    Done when every commit in the plan has a kind.
 
-3. **Write the notes** into `build/release/release.json`:
+3. **Write the notes** into `build.noindex/release/release.json`:
 
    ```json
    {
@@ -39,7 +39,7 @@ from the repo root. Its working files sit in `build/release/`, which git ignores
    one of them.
 
 4. **Prepare.** Run `prepare`, or `prepare X.Y.Z` when the user named a version. It derives the version from the
-   kinds, tests, builds and checks the zip, renders `build/release/notes.md` with the Install section from
+   kinds, tests, builds and checks the zip, renders `build.noindex/release/notes.md` with the Install section from
    `install.md`, then commits `Release X.Y.Z` and tags it locally. On a failure it undoes the bump; fix the cause or
    report it to the user, and keep every test as it is. Done when it prints the version, the zip and the notes path.
 

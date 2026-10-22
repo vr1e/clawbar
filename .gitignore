@@ -1,6 +1,6 @@
 .build/
 .swiftpm/
-build/
+build.noindex/
 *.app
 .DS_Store
 *.local

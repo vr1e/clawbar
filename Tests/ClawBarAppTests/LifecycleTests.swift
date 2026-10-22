@@ -32,7 +32,7 @@ final class TempDir {
         }
         #expect(installed("/Users/example/Applications/ClawBar.app"))
         #expect(installed("/Applications/ClawBar.app"))
-        #expect(!installed("/Users/example/Dev/clawbar/build/ClawBar.app"))
+        #expect(!installed("/Users/example/Dev/clawbar/build.noindex/ClawBar.app"))
         #expect(!installed("/Users/example/Dev/clawbar/.build/release"))
         #expect(!installed("/Users/example/Applications/ClawBar.app", id: "com.example.other"))
         #expect(!installed("/Users/example/Applications/ClawBar.app", id: nil))
