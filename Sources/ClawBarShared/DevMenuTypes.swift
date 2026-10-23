@@ -1,4 +1,4 @@
-/// A developer-menu click. Clawd's engine handles everything but the two sky cases, which the app owns.
+/// A developer-menu click. The animation engine keeps the two sky overrides; everything else is Clawd's.
 public enum DevAction: Sendable, Hashable {
     /// Back to live data: stops the demo and every Clawd and sky override.
     case auto

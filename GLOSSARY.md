@@ -23,3 +23,19 @@ _Avoid_: lock, block
 **Snapshot mode**:
 The `--snapshot` run that renders every widget state to PNGs for the README and for review. Not a data snapshot.
 _Avoid_: screenshot mode
+
+**Animation tick**:
+One step of everything that moves: Clawd, his hearts and the sky, every 90 ms (60 while a Claude Code sequence plays), only while the widget shows and has Clawd. Not the data tick.
+_Avoid_: frame tick, timer tick
+
+**Animation engine**:
+The decisions of the moving side: what Clawd and the sky do on an animation tick, and what the data, a click or a developer action does to them. It takes the data snapshot, the settings and one tick's inputs, and returns the frame and the cadence of the next tick.
+_Avoid_: animator, stepper, ticker
+
+**Animation frame**:
+Everything one animation tick drew: Clawd with his hearts, and the sky.
+_Avoid_: scene (upstream's animated themes), picture
+
+**Play area**:
+The strip of the percent row right of the number where Clawd walks: as wide as the number leaves it, reaching 3 below the row to the ground line he stands on. The sky spans the whole row behind it.
+_Avoid_: mascot area, stage

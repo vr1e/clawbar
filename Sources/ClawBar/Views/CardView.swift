@@ -9,7 +9,7 @@ struct CardView: View {
     @Environment(\.uiScale) private var k
 
     static let width = 262.0
-    static let content = 236.0
+    static let content = PlayArea.content
 
     var body: some View {
         let v = app.view

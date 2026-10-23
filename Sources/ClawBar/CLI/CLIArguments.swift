@@ -14,11 +14,6 @@ enum CLIMode: Equatable {
     case makeIcon(dir: String)
 }
 
-/// record-gif.ps1's scenarios.
-enum RecordScenario: String, CaseIterable, Sendable {
-    case tour, sleep, limit, reset, hearts, weather, clicks
-}
-
 /// What `--command` asks the running instance to do.
 enum RemoteCommand: Equatable, Sendable {
     case toggle, show, larger, smaller, refresh, quit

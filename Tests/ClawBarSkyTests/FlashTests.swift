@@ -47,10 +47,18 @@ import ClawBarSky
         let sky = SkyEngine(random: SeededRandomSource(seed: 3))
         let now = utcDay(600)
         #expect(sky.step(size: skySize, inputs: inputs(now)).top == RGBA("#004A8CCB"))
-        let later = inputs(now, sun: SunTimes(sunrise: 700, sunset: 1140))
-        #expect(sky.step(size: skySize, inputs: later).top == RGBA("#004A8CCB"))
-        sky.invalidate()
-        #expect(sky.step(size: skySize, inputs: later).top == RGBA("#00304A8C"))
+        let night = SunTimes(sunrise: 700, sunset: 1140)
+        #expect(sky.step(size: skySize, inputs: inputs(now, sun: night)).top == RGBA("#004A8CCB"))
+        #expect(sky.step(size: skySize, inputs: inputs(utcDay(601), sun: night)).top == RGBA("#00304A8C"))
+    }
+
+    @Test func aForcedPhaseRecomputesAtOnceEvenWhenTheMinuteStays() {
+        // A polar day at 00:00 is day by the clock; forced to night at the same minute, the fallback sun times make it night.
+        let sky = SkyEngine(random: SeededRandomSource(seed: 3))
+        let polar = SunTimes(sunrise: -80, sunset: 1520)
+        #expect(sky.step(size: skySize, inputs: inputs(utcDay(0), sun: polar)).top == RGBA("#004A8CCB"))
+        #expect(sky.step(size: skySize, inputs: inputs(utcDay(0), sun: polar, phase: .night)).top == RGBA("#00304A8C"))
+        #expect(sky.step(size: skySize, inputs: inputs(utcDay(0), sun: polar)).top == RGBA("#004A8CCB"))
     }
 
     @Test func theMinuteInTheKeyRoundsHalfToEven() {

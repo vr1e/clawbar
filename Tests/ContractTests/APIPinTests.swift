@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
+import ClawBarAnimation
 import ClawBarClawd
 import ClawBarData
 import ClawBarPresenter
@@ -49,9 +50,7 @@ private func pinClawd() {
     let engine = ClawdEngine(random: SeededRandomSource(seed: 1), now: Date())
     engine.apply(ClawdDataInput(busy: 0, waiting: 0, sessionCount: 0, pct: nil, sessionReset: nil, critPercent: 85), now: Date())
     engine.click(now: Date())
-    let _: ClawdFrame = engine.step(ClawdStepEnv(
-        areaWidth: 180, areaHeight: 43, mouseOverWindow: false, mouseX: nil, now: Date(), lang: .en
-    ))
+    let _: ClawdFrame = engine.step(ClawdStepEnv(areaWidth: 180, mouseOverWindow: false, mouseX: nil, now: Date(), lang: .en))
     let _: Int = engine.tickMilliseconds
     let _: ClawdDevState = engine.devState
     engine.resetHearts()
@@ -66,12 +65,31 @@ private func pinSky() {
         now: Date(), timeZone: .gmt, sun: .fallback, weather: nil, latitude: 50, forcedPhase: nil
     )
     let _: SkyFrame = sky.step(size: CGSize(width: 236, height: 43), inputs: inputs)
-    sky.invalidate()
     let _: SkyWeather? = SkyInfo.skyWeather(nil, now: Date(), dev: SkyDevState())
     let (_, _): (SunTimes, TimeZone) = SkyInfo.sunTimes(nil, place: nil, now: Date(), localZone: .gmt)
     let _: Double = SkyInfo.latitude(place: nil)
     let _: SkyInputs = SkyInfo.inputs(nil, place: nil, now: Date(), localZone: .gmt, dev: SkyDevState())
     let _: String = SkyInfo.tooltip(nil, place: nil, sun: .fallback, now: Date(), dev: SkyDevState(), lang: .en)
+}
+
+private func pinAnimation() {
+    let engine = AnimationEngine(random: SeededRandomSource(seed: 1), config: Config(), now: Date())
+    engine.apply(.empty, config: Config(), now: Date())
+    engine.click(now: Date())
+    engine.perform(.skyPhase(.night))
+    let _: AnimationFrame = engine.step(AnimationInputs(now: Date(), timeZone: .gmt, numberWidth: 32, mouseOverWindow: false, mouseX: nil))
+    let _: AnimationFrame = engine.frame
+    let _: Int? = engine.tickMilliseconds
+    let _: Bool = engine.mascotVisible
+    let _: Bool = engine.skyVisible
+    let _: [DevMenuNode] = engine.developerMenu()
+    let _: String = engine.skyTooltip(now: Date(), timeZone: .gmt)
+    let run = ScenarioRun(.tour, seed: 42, config: Scenarios.config)
+    let _: ScenarioFrame? = run.next(numberWidth: 32)
+    let _: Bool = run.mascotVisible
+    let _: Bool = run.skyVisible
+    let _: DataSnapshot = run.data
+    let _: ScenarioScript = run.script
 }
 
 @Suite struct APIPinTests {
