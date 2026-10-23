@@ -58,7 +58,6 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     func start() {
         apply(config: config, initial: true)
-        syncVisibility()
         panel.widgetDelegate = self
         tooltips.text = { [unowned self] id in
             TooltipLayout.text(id, view: app.view, hearts: animation.hearts) { self.engine.skyTooltip(now: Date(), timeZone: self.zone) }
@@ -207,7 +206,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         var mouseX: Double?
         if over {
             // The engine needs x whenever the pointer is over the window; before the first layout the row sits at 13.
-            let row = layout.rects[.percentRow] ?? CGRect(x: 13 * k, y: 0, width: PlayArea.content * k, height: 40 * k)
+            let row = layout.rects[.percentRow] ?? CGRect(x: 13 * k, y: 0, width: CardView.content * k, height: 40 * k)
             mouseX = PlayArea.mouseX(cardX: mouse.x - panel.frame.minX, row: row, numberWidth: layout.numberWidth, scale: k)
         }
         let heartsVisibleBefore = animation.hearts.visible

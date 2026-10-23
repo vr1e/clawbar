@@ -10,6 +10,13 @@ func engine(seed: UInt64 = 2026, config: Config = Config()) -> AnimationEngine {
     AnimationEngine(random: SeededRandomSource(seed: seed), config: config, now: t0)
 }
 
+/// A fresh engine with Clawd's entrance act cut short, so a test starts from a standing Clawd.
+func settled(seed: UInt64 = 2026) -> AnimationEngine {
+    let engine = engine(seed: seed)
+    engine.perform(.auto)
+    return engine
+}
+
 func inputs(now: Date = t0, over: Bool = false, mouseX: Double? = nil, zone: TimeZone = Samples.timeZone) -> AnimationInputs {
     AnimationInputs(now: now, timeZone: zone, numberWidth: 32, mouseOverWindow: over, mouseX: mouseX)
 }
@@ -43,6 +50,7 @@ struct FrameView {
         }
     }
 
+    var eyes: [CGRect] { rectOps(Palette.clawdEyes).first?.rects ?? [] }
     var sweat: [(rects: [CGRect], opacity: Double)] { rectOps(Palette.sweat) }
     var soul: [(rects: [CGRect], opacity: Double)] { rectOps(Palette.soul) }
     /// The floating heart: the love-coloured layer with the heart's 7 runs.
@@ -97,7 +105,7 @@ struct Sprites {
 
 /// A scenario's frames, as the recorder sees them before it blanks the caption.
 func replay(_ s: RecordScenario, seed: UInt64, numberWidth: Double = 32) -> [AnimationFrame] {
-    let run = ScenarioRun(s, seed: seed, config: Scenarios.config)
+    let run = ScenarioRun(s, seed: seed)
     var frames: [AnimationFrame] = []
     while let f = run.next(numberWidth: numberWidth) { frames.append(f.animation) }
     return frames

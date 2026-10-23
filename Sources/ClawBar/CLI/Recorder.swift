@@ -23,32 +23,32 @@ enum Recorder {
     }
 
     static func record(_ s: RecordScenario, maxFrames: Int = .max, seed: UInt64 = 42) -> [CGImage] {
-        let run = ScenarioRun(s, seed: seed, config: Scenarios.config)
+        let run = ScenarioRun(s, seed: seed)
         let layout = LayoutModel()
-        var view = presenter(run.data, now: Samples.now)
+        var view = presenter(run.data, now: Samples.now, config: run.config)
         // A first pass measures the number, which sets the play area Clawd walks in.
         _ = CardRenderer.render(CardRenderer.Input(view: view), scale: 1, layout: layout)
 
         var cards: [CGImage] = []
         var cropHeight: Int?
         while cards.count < maxFrames, let f = run.next(numberWidth: layout.numberWidth) {
-            if let data = f.data { view = presenter(data, now: f.at) }
+            if let data = f.data { view = presenter(data, now: f.at, config: run.config) }
             var animation = f.animation
             // The recorder collapses the developer caption.
             animation.clawd.devCaption = ""
-            let card = CardRenderer.Input(view: view, mascotVisible: run.mascotVisible, skyVisible: run.skyVisible, animation: animation)
+            let card = CardRenderer.Input(view: view, animation: animation)
             guard let image = CardRenderer.render(card, scale: 1, layout: layout) else { break }
-            if run.script.crop, cropHeight == nil, let reset = layout.rects[.reset] {
+            if run.crop, cropHeight == nil, let reset = layout.rects[.reset] {
                 cropHeight = Int(((reset.maxY + 9) * 2).rounded(.up))
             }
             cards.append(image)
         }
-        return compose(cards, cropHeight: run.script.crop ? cropHeight : nil)
+        return compose(cards, cropHeight: run.crop ? cropHeight : nil)
     }
 
-    private static func presenter(_ data: DataSnapshot, now: Date) -> WidgetViewState {
+    private static func presenter(_ data: DataSnapshot, now: Date, config: Config) -> WidgetViewState {
         WidgetPresenter.make(PresenterInput(
-            config: Scenarios.config, now: now, timeZone: Samples.timeZone, data: data, appVersion: AppInfo.version,
+            config: config, now: now, timeZone: Samples.timeZone, data: data, appVersion: AppInfo.version,
             homeDirectory: Samples.home
         ))
     }

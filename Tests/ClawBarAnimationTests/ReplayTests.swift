@@ -10,7 +10,7 @@ import ClawBarShared
         let a = replay(scenario, seed: 2026), b = replay(scenario, seed: 2026)
         #expect(a.count > 90)
         #expect(a == b)
-        #expect(a.count == ScenarioPlayer.frameCount(Scenarios.script(scenario)))
+        #expect(a.count == Scenarios.frameCount(Scenarios.script(scenario)))
     }
 
     @Test func anotherSeedChangesTheRun() {
@@ -90,7 +90,7 @@ import ClawBarShared
     }
 
     @Test func aRunHandsBackTheDataOnTheFramesAStepRan() throws {
-        let run = ScenarioRun(.sleep, seed: 7, config: Scenarios.config)
+        let run = ScenarioRun(.sleep, seed: 7)
         #expect(run.data.sessions.isEmpty && run.data.usage == nil)
         let first = try #require(run.next(numberWidth: 32))
         #expect(first.at == Samples.now && first.data?.sessions.map(\.name) == ["api"])
@@ -111,7 +111,7 @@ import ClawBarShared
         #expect(count == 100)
 
         // A click changes no data, and Update-Widget still ran: the data comes back on those frames too.
-        let clicks = ScenarioRun(.clicks, seed: 7, config: Scenarios.config)
+        let clicks = ScenarioRun(.clicks, seed: 7)
         var withData: [Int] = []
         var n = 0
         while let f = clicks.next(numberWidth: 32) {

@@ -64,7 +64,7 @@ private func pinSky() {
     let inputs = SkyInputs(
         now: Date(), timeZone: .gmt, sun: .fallback, weather: nil, latitude: 50, forcedPhase: nil
     )
-    let _: SkyFrame = sky.step(size: CGSize(width: 236, height: 43), inputs: inputs)
+    let _: SkyFrame = sky.step(size: PlayArea.skySize, inputs: inputs)
     let _: SkyWeather? = SkyInfo.skyWeather(nil, now: Date(), dev: SkyDevState())
     let (_, _): (SunTimes, TimeZone) = SkyInfo.sunTimes(nil, place: nil, now: Date(), localZone: .gmt)
     let _: Double = SkyInfo.latitude(place: nil)
@@ -84,12 +84,11 @@ private func pinAnimation() {
     let _: Bool = engine.skyVisible
     let _: [DevMenuNode] = engine.developerMenu()
     let _: String = engine.skyTooltip(now: Date(), timeZone: .gmt)
-    let run = ScenarioRun(.tour, seed: 42, config: Scenarios.config)
+    let run = ScenarioRun(.tour, seed: 42)
     let _: ScenarioFrame? = run.next(numberWidth: 32)
-    let _: Bool = run.mascotVisible
-    let _: Bool = run.skyVisible
+    let _: Config = run.config
     let _: DataSnapshot = run.data
-    let _: ScenarioScript = run.script
+    let _: Bool = run.crop
 }
 
 @Suite struct APIPinTests {

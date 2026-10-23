@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+@testable import ClawBarAnimation
 import ClawBarShared
 
 @Suite struct ScenarioScriptTests {
@@ -40,42 +41,26 @@ import ClawBarShared
     }
 }
 
-@Suite struct ScenarioPlayerTests {
-    @Test func stepsApplyOnTheFirstFrameAtOrAfterTheirTime() {
-        let start = Samples.now
-        let player = ScenarioPlayer(Scenarios.script(.sleep))
-        #expect(player.advance(frame: 0, now: start).count == 3)
-        #expect(player.advance(frame: 16, now: start).isEmpty)
-        // 1.5 s is frame 16.67: the sessions empty out on frame 17.
-        #expect(player.advance(frame: 17, now: start) == [.sessions([])])
-        #expect(!player.finished)
-        _ = player.advance(frame: 100, now: start)
-        #expect(player.finished)
-    }
-
+@Suite struct ScenarioRunTests {
     @Test func aRecordingHasOneFramePerTickBeforeTheEnd() {
         // record-gif.ps1 captures while frame × 0.09 is short of the last step's time.
-        #expect(ScenarioPlayer.frameCount(Scenarios.script(.sleep)) == 100)
-        #expect(ScenarioPlayer.frameCount(Scenarios.script(.tour)) == 162)
-        #expect(ScenarioPlayer.frameCount(Scenarios.script(.limit)) == 106)
+        #expect(Scenarios.frameCount(Scenarios.script(.sleep)) == 100)
+        #expect(Scenarios.frameCount(Scenarios.script(.tour)) == 162)
+        #expect(Scenarios.frameCount(Scenarios.script(.limit)) == 106)
     }
 
     @Test func theFakeDataIsSetUsagesShape() throws {
         let start = Samples.now
-        let player = ScenarioPlayer(Scenarios.script(.reset))
-        _ = player.advance(frame: 0, now: start)
-        let u = try #require(player.snapshot(now: start).usage)
+        let run = ScenarioRun(.reset, seed: 1)
+        #expect(run.config.showMascot && run.config.showSky && run.crop)
+        _ = run.next(numberWidth: 32)
+        let u = try #require(run.data.usage)
         #expect(u.sessionPercent == 96 && u.weekPercent == 41)
         #expect(u.modelWeeks == [ModelWeek(name: "Fable", percent: 18, reset: start.addingTimeInterval(2.4 * 86400))])
         #expect(u.sessionReset == start.addingTimeInterval(3 * 60))
-        let s = player.snapshot(now: start)
+        let s = run.data
         #expect(s.sessions.map(\.name) == ["api"] && s.sessions[0].state == .busy)
         #expect(s.sessionsRead && s.usageProbeCompleted)
         #expect(s.status?.indicator == "none" && s.statusAt == start)
-    }
-
-    @Test func theSkyOverrideIsHandedBackForTheEngine() {
-        let player = ScenarioPlayer(Scenarios.script(.reset))
-        #expect(player.advance(frame: 0, now: Samples.now).first == .sky(.day, 1))
     }
 }

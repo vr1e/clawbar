@@ -28,7 +28,7 @@ import ClawBarSky
         var now = t0
         for _ in 0 ..< 40 {
             let expected = AnimationFrame(
-                clawd: clawd.step(ClawdStepEnv(areaWidth: 194, mouseOverWindow: false, mouseX: nil, now: now, lang: .en)),
+                clawd: clawd.step(ClawdStepEnv(areaWidth: PlayArea.width(numberWidth: 32), mouseOverWindow: false, mouseX: nil, now: now, lang: .en)),
                 sky: sky.step(size: PlayArea.skySize, inputs: SkyInfo.inputs(
                     nil, place: snapshot.place, now: now, localZone: Samples.timeZone, dev: SkyDevState(weatherCode: 63)
                 ))
@@ -41,14 +41,12 @@ import ClawBarSky
 
     @Test func dataWaitsForTheFirstRegistryRead() {
         // Before the registry's first read an empty session list means nothing; after it, no session puts him to bed.
-        let waiting = engine()
-        waiting.perform(.auto)
+        let waiting = settled()
         waiting.apply(data(sessions: 0, read: false), config: Config(), now: t0)
         let idle = (0 ..< 40).map { _ in FrameView(waiting.step(inputs()).clawd) }
         #expect(idle.allSatisfy { !$0.z })
 
-        let read = engine()
-        read.perform(.auto)
+        let read = settled()
         read.apply(data(sessions: 0, read: true), config: Config(), now: t0)
         let asleep = (0 ..< 40).map { _ in FrameView(read.step(inputs()).clawd) }
         // The 30-tick burrow, then the 'z'.
@@ -56,8 +54,7 @@ import ClawBarSky
     }
 
     @Test func hidingClawdForgetsTheHeartsAndStopsTheTicks() {
-        let engine = engine()
-        engine.perform(.auto)
+        let engine = settled()
         engine.apply(data(sessions: 1, pct: 50), config: Config(), now: t0)
         let shown = engine.step(inputs())
         #expect(shown.clawd.hearts == HeartsFrame(visible: true, shownHalves: 3, tooltip: "tired · 50% of the session limit left"))
@@ -129,10 +126,9 @@ import ClawBarSky
         let sky = SkyEngine(random: random)
         clawd.perform(.auto)
         let snapshot = data(sessions: 1)
-        let env = ClawdStepEnv(areaWidth: 194, mouseOverWindow: false, mouseX: nil, now: t0, lang: .en)
+        let env = ClawdStepEnv(areaWidth: PlayArea.width(numberWidth: 32), mouseOverWindow: false, mouseX: nil, now: t0, lang: .en)
         let rain = SkyInfo.inputs(nil, place: nil, now: t0, localZone: Samples.timeZone, dev: SkyDevState(weatherCode: 63))
-        let engine = engine()
-        engine.perform(.auto)
+        let engine = settled()
         engine.perform(.skyWeather(63))
         var last = SkyFrame.empty
         for shown in [true, false, true] {
@@ -156,8 +152,7 @@ import ClawBarSky
 
         // 50% leaves three halves, a tier that does not sweat by itself: only critPercent makes him.
         func sweats(critPercent: Int) -> Bool {
-            let engine = engine()
-            engine.perform(.auto)
+            let engine = settled()
             engine.apply(data(sessions: 1, pct: 50), config: Config(critPercent: critPercent), now: t0)
             return (0 ..< 5).contains { _ in !FrameView(engine.step(inputs()).clawd).sweat.isEmpty }
         }
@@ -189,12 +184,9 @@ import ClawBarSky
     @Test func thePointerReachesClawd() {
         // Waiting for you with the pointer far to his right, he looks right: his eyes sit further right than when it is left.
         func eyesX(mouseX: Double) -> Double {
-            let engine = engine(seed: 3)
-            engine.perform(.auto)
+            let engine = settled(seed: 3)
             engine.apply(data(waiting: 1), config: Config(), now: t0)
-            let frame = engine.step(inputs(over: true, mouseX: mouseX)).clawd
-            guard case .rects(let eyes, _, _) = frame.ops[1] else { return .nan }
-            return Double(eyes.map(\.minX).min() ?? .nan)
+            return Double(FrameView(engine.step(inputs(over: true, mouseX: mouseX)).clawd).eyes.map(\.minX).min() ?? .nan)
         }
         #expect(eyesX(mouseX: 190) > eyesX(mouseX: 0))
     }
@@ -202,8 +194,7 @@ import ClawBarSky
     @Test func thePointerOverTheWindowKeepsHimFromDozing() {
         // Ten minutes of silence doze him off; a pointer over the window counts as company, even without an x.
         func dozes(over: Bool) -> Bool {
-            let engine = engine()
-            engine.perform(.auto)
+            let engine = settled()
             engine.apply(data(sessions: 1), config: Config(), now: t0)
             return (0 ..< 10).contains { _ in FrameView(engine.step(inputs(now: t0 + 600, over: over)).clawd).z }
         }

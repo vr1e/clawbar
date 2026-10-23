@@ -211,6 +211,7 @@ enum SnapshotMode {
     static func renderCard(_ c: SnapshotCase, lang: Lang, scale k: Double) -> CGImage? {
         let input = input(for: c, lang: lang)
         let engine = AnimationEngine(random: SeededRandomSource(seed: 7), config: input.config, now: Samples.now)
+        engine.apply(c.data, config: input.config, now: Samples.now)
         let layout = LayoutModel()
         var card = CardRenderer.Input(
             view: WidgetPresenter.make(input), mascotVisible: engine.mascotVisible, skyVisible: engine.skyVisible
@@ -220,13 +221,12 @@ enum SnapshotMode {
         }
         // A first pass measures the number, which sets the play area Clawd walks in.
         _ = CardRenderer.render(card, scale: k, layout: layout)
-        card.animation = settle(engine, c, config: input.config, numberWidth: layout.numberWidth)
+        card.animation = settle(engine, c, numberWidth: layout.numberWidth)
         return CardRenderer.render(card, scale: k, layout: layout)
     }
 
     /// Clawd and the sky after 60 ticks from `Samples.now`, the case's sky overrides set as the developer menu would.
-    static func settle(_ engine: AnimationEngine, _ c: SnapshotCase, config: Config, numberWidth: Double) -> AnimationFrame {
-        engine.apply(c.data, config: config, now: Samples.now)
+    static func settle(_ engine: AnimationEngine, _ c: SnapshotCase, numberWidth: Double) -> AnimationFrame {
         if let phase = c.skyDev.phase { engine.perform(.skyPhase(phase)) }
         if let code = c.skyDev.weatherCode { engine.perform(.skyWeather(code)) }
         var now = Samples.now
