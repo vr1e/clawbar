@@ -16,7 +16,8 @@ enum DataEvent: Sendable {
     case sessionsRead([SessionInfo])
     case loginShell(LoginEnvironment?)
     case usage(UsageProbe.Report)
-    case version(local: String?, latest: String?)
+    /// The channel is for `--diagnose`; the engine reads only the versions.
+    case version(local: String?, latest: String?, channel: String = "latest")
     case account(AccountInfo?)
     case status(ServiceStatus?)
     case changelog(String?)
@@ -155,7 +156,7 @@ struct DataEngine: Sendable {
             locate(then: .startDue, now: now)
         case .usage(let report):
             usageAnswered(report, now: now)
-        case .version(let local, let latest):
+        case .version(let local, let latest, _):
             versionAnswered(local: local, latest: latest, now: now)
         case .account(let info):
             account.running = false
@@ -457,7 +458,8 @@ struct DataEngine: Sendable {
 
     private var resolved: Bool { loginRuns > 0 }
 
-    private var configDirectory: String {
+    /// Where Claude Code keeps its files, as far as the engine knows: the account's answer outranks the login shell's.
+    var configDirectory: String {
         ClaudeConfigDir.resolve(account: snapshot.account, login: login, environment: environment, home: home)
     }
 
