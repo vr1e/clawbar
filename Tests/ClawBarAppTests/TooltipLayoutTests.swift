@@ -47,6 +47,37 @@ import ClawBarShared
         #expect(r[.hit(.appVersion)] == (try card.rect(.appVersion)))
     }
 
+    @Test func eachProjectRowHasItsPathAndTheLabelSaysHowTheyAreWeighed() throws {
+        var v = WidgetViewState.sample
+        v.detailsExpanded = true
+        v.history = HistoryView(label: "LIMITS · 7 DAYS")
+        v.projects = ProjectsView(label: "PROJECTS · 7 DAYS", tooltip: "estimated", rows: ["api", "web", "docs"].map {
+            ProjectRow(name: $0, share: "33%", fraction: 0.33, tooltip: "~/code/\($0)")
+        })
+        let card = LaidOutCard(v)
+        let r = regions(card)
+        #expect(r[.hit(.projectsLabel)] == (try card.rect(.projectsLabel)))
+        let block = try card.rect(.projects)
+        let rows = try (0 ..< 3).map { try #require(r[.project($0)], "row \($0)") }
+        #expect(rows.allSatisfy { $0.minX == block.minX && $0.width == block.width })
+        #expect(rows[0].minY == block.minY && abs(rows[2].maxY - block.maxY) < 0.01)
+        #expect(abs(rows[1].minY - rows[0].maxY) < 0.01 && abs(rows[0].height - rows[1].height) < 0.01)
+        #expect(r[.project(3)] == nil)
+        func text(_ id: TooltipID) -> String { TooltipLayout.text(id, view: v, hearts: .hidden) { "" } }
+        #expect(text(.hit(.projectsLabel)) == "estimated")
+        #expect((0 ..< 4).map { text(.project($0)) } == ["~/code/api", "~/code/web", "~/code/docs", ""])
+    }
+
+    @Test func countingProjectsHaveOnlyTheLabelsTooltip() {
+        var v = WidgetViewState.sample
+        v.detailsExpanded = true
+        v.history = HistoryView(label: "LIMITS · 7 DAYS")
+        v.projects = ProjectsView(label: "PROJECTS · 7 DAYS", tooltip: "estimated", caption: "counting...")
+        let r = regions(LaidOutCard(v))
+        #expect(r[.hit(.projectsLabel)] != nil)
+        #expect(r[.project(0)] == nil)
+    }
+
     @Test func theSkysTooltipCoversTheSkyRightOfTheNumber() throws {
         let card = LaidOutCard()
         let row = try card.rect(.percentRow), number = try card.rect(.number)

@@ -12,7 +12,7 @@ import ClawBarShared
             "sample", "expanded", "loading", "no-data", "warn", "crit", "limit", "claude-not-found", "no-limits",
             "flag-rejected", "model-reached", "update-available", "updating", "update-failed", "update-unchanged",
             "status-issues", "maintenance", "status-offline", "logged-out", "stale", "tick-error", "model-weeks", "rows-hidden",
-            "no-mascot", "history", "history-hover", "history-empty", "history-no-limits",
+            "no-mascot", "history", "history-hover", "history-counting", "history-empty", "history-no-limits",
         ] {
             #expect(names.contains(required), "\(required)")
         }

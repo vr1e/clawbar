@@ -111,6 +111,48 @@ public struct HistoryHover: Sendable, Hashable {
     }
 }
 
+/// One project under the 7-day chart: its name, a bar on the track, and its share of the week.
+public struct ProjectRow: Sendable, Hashable {
+    /// The folder's last part, `~` for the home folder, `parent/leaf` beside another shown row of the same leaf.
+    public var name: String
+    /// `42%`.
+    public var share: String
+    /// 0...1 of the track.
+    public var fraction: Double
+    /// The folder, as `~/…` under the home folder.
+    public var tooltip: String
+
+    public init(name: String, share: String, fraction: Double, tooltip: String) {
+        self.name = name
+        self.share = share
+        self.fraction = fraction
+        self.tooltip = tooltip
+    }
+}
+
+/// widget.xaml's ProjPanel under the 7-day chart: the week's heaviest projects, or why there are none yet.
+public struct ProjectsView: Sendable, Hashable {
+    /// Show-Projects' bar track and share column, in base units.
+    public static let trackWidth = 70.0
+    public static let shareWidth = 34.0
+
+    /// PROJECTS · 7 DAYS.
+    public var label: String
+    /// How the shares are estimated, on the label.
+    public var tooltip: String
+    /// The top 4, heaviest first; empty before the first scan.
+    public var rows: [ProjectRow]
+    /// `counting...` in place of the rows before the first scan.
+    public var caption: String
+
+    public init(label: String, tooltip: String = "", rows: [ProjectRow] = [], caption: String = "") {
+        self.label = label
+        self.tooltip = tooltip
+        self.rows = rows
+        self.caption = caption
+    }
+}
+
 /// What clicking the Claude Code version line does.
 public enum VersionAction: Sendable, Hashable {
     case none
@@ -182,6 +224,8 @@ public struct WidgetViewState: Sendable, Hashable {
     public var week7Extra: String
     /// The 7-day chart; nil unless it is switched on and the details are open.
     public var history: HistoryView?
+    /// The week's top projects under the chart; nil with the chart, or once a scan found no usage this week.
+    public var projects: ProjectsView?
     public var versionText: String
     public var versionColor: RGBA
     public var versionTooltip: String
@@ -245,6 +289,7 @@ public struct WidgetViewState: Sendable, Hashable {
         week7Main: String = "",
         week7Extra: String = "",
         history: HistoryView? = nil,
+        projects: ProjectsView? = nil,
         versionText: String = "",
         versionColor: RGBA = Palette.muted,
         versionTooltip: String = "",
@@ -300,6 +345,7 @@ public struct WidgetViewState: Sendable, Hashable {
         self.week7Main = week7Main
         self.week7Extra = week7Extra
         self.history = history
+        self.projects = projects
         self.versionText = versionText
         self.versionColor = versionColor
         self.versionTooltip = versionTooltip

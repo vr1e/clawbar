@@ -82,6 +82,8 @@ public enum Palette {
     public static let chartFill = RGBA("#264ADE80")
     /// The line under the pointer on the 7-day chart.
     public static let chartCursor = RGBA("#66FFFFFF")
+    /// The bars of the week's top projects.
+    public static let projectBar = clawdBody
 
     public static let clawdBody = RGBA("#FFD77757")
     public static let clawdEyes = RGBA("#FF141416")

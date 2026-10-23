@@ -153,6 +153,17 @@ final class LaidOutCard {
         #expect(card.map.chartX(at: CGPoint(x: chart.midX, y: chart.midY)) == nil)
     }
 
+    @Test func theProjectsDragTheWindow() throws {
+        var v = WidgetViewState.sample
+        v.detailsExpanded = true
+        v.history = HistoryView(label: "LIMITS · 7 DAYS")
+        v.projects = ProjectsView(label: "PROJECTS · 7 DAYS", rows: [ProjectRow(name: "api", share: "100%", fraction: 1, tooltip: "~/api")])
+        let card = LaidOutCard(v)
+        for id in [HitID.projectsLabel, .projects] {
+            #expect(card.map.classify(try card.center(id), isSecondary: false) == .drag, "\(id)")
+        }
+    }
+
     @Test func withoutClawdOrTheSkyThereIsNoDeveloperMenu() throws {
         let card = LaidOutCard(mascot: false, sky: false)
         let map = card.map, k = card.k

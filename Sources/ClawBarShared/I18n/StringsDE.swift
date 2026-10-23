@@ -17,6 +17,10 @@ public enum StringsDE {
         .histSession: .text("5h"),
         .histWeek: .text("Woche"),
         .histEmpty: .text("der Verlauf beginnt jetzt"),
+        .uiProjects: .text("PROJEKTE · 7 TAGE"),
+        .histProjTip: .text("Anteil an der Nutzung dieser Woche auf diesem Mac, geschätzt aus Tokens und Modellpreisen"),
+        .histCounting: .text("wird gezählt …"),
+        .histUnpriced: .text("{0} zum Preis des nächsten bekannten Modells geschätzt"),
         .uiPortOf: .text("macOS-Portierung von clawd-usage-winwidget {0}, mit einigen Funktionen späterer Versionen (MIT)"),
 
         .spanD: .text("{0}d {1}h"),
@@ -32,6 +36,7 @@ public enum StringsDE {
         .period: .text("{0}  ·  {1}"),
         .pluralSession: .forms(["Sitzung", "Sitzungen"]),
         .pluralRequest: .forms(["Anfrage", "Anfragen"]),
+        .pluralReply: .forms(["Antwort", "Antworten"]),
 
         .trayNoData: .text("ClawBar: keine Daten"),
         .traySession: .text("Sitzung {0}%"),
@@ -116,7 +121,7 @@ public enum StringsDE {
         .setShowSessions: .text("Laufende Sitzungen"),
         .setShowAccount: .text("Plan und Konto"),
         .setShowStats: .text("Letzte 24 Stunden und 7 Tage (Details)"),
-        .setShowHistory: .text("7-Tage-Verlauf (Details)"),
+        .setShowHistory: .text("7-Tage-Verlauf und Top-Projekte (Details)"),
         .menuQuit: .text("ClawBar beenden"),
         .menuPlay: .text("Clawd Run spielen …"),
 
