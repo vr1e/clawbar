@@ -19,9 +19,11 @@ enum TopProjects {
         let paths = top.map { HomePath.relative($0.path, home: home) }
         let rowNames = names(paths)
         view.rows = top.indices.map { i in
-            let share = top[i].weight / total
+            // Show-Projects multiplies before it divides, which decides which way an exact half rounds.
+            let share = 100 * top[i].weight / total
             return ProjectRow(
-                name: rowNames[i], share: percent(share), fraction: max(2 / ProjectsView.trackWidth, share), tooltip: paths[i]
+                name: rowNames[i], share: percent(share), fraction: max(2 / ProjectsView.trackWidth, share / 100),
+                tooltip: paths[i]
             )
         }
         return view
@@ -29,7 +31,7 @@ enum TopProjects {
 
     /// '{0:0}%' is a .NET format string, which rounds half away from zero, unlike the original's casts.
     static func percent(_ share: Double) -> String {
-        "\(Int((share * 100).rounded(.toNearestOrAwayFromZero)))%"
+        "\(Int(share.rounded(.toNearestOrAwayFromZero)))%"
     }
 
     /// Each `~/…` path's last part, so `~` for the home folder; rows that would read the same also show their parent.

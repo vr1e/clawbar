@@ -267,7 +267,7 @@ private struct StatusRow: View {
     }
 }
 
-/// The 24 h / 7 d stats, the 7-day chart, the Claude Code version line and the ClawBar line.
+/// The 24 h / 7 d stats, the 7-day chart and its top projects, the Claude Code version line and the ClawBar line.
 private struct DetailsBlock: View {
     let v: WidgetViewState
     let app: AppModel
@@ -413,7 +413,7 @@ private struct ProjectsBlock: View {
             if p.rows.isEmpty {
                 WText(p.caption, 10, color: Palette.label)
             } else {
-                // Each Grid has its own tooltip, its 2 below outside it.
+                // Published before the padding, so a row's tooltip leaves out the 2 below it, as the Grid's margin does.
                 ForEach(Array(p.rows.enumerated()), id: \.offset) { i, row in
                     ProjectRowView(row: row)
                         .publish(.project(i), to: layout)

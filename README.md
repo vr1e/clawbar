@@ -204,7 +204,9 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   Without Claude Code or plan limits it says *no data* instead of promising that the history starts now.
 - The week's top projects count each reply once at its final token count, also when a subagent's transcript copies
   it, and weigh it at its own model's list price, cache reads and writes included. Two folders of the same name stay
-  apart and show their parent folder (`work/app`, `play/app`) instead of being added up as one.
+  apart and show their parent folder (`work/app`, `play/app`) instead of being added up as one. A row's tooltip
+  shows its folder under `~`, and the label's tooltip counts the replies whose model the price table lacks, priced
+  as the closest one listed.
 - Clawd Run, the game for a used-up session limit, is ClawBar's own; the original has nothing like it.
 
 ## Development

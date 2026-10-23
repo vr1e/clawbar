@@ -51,6 +51,12 @@ import ClawBarShared
         #expect(p.rows.map(\.share) == ["13%", "38%", "50%"])
     }
 
+    /// 29 of 200 is 14.5 multiplied first, as Show-Projects does, but 14.499… divided first.
+    @Test func aShareMultipliesBeforeItDivides() throws {
+        let p = try #require(projects(usage([("/b", 171), ("/a", 29)])))
+        #expect(p.rows.map(\.share) == ["86%", "15%"])
+    }
+
     /// Math.Max(2, 70 × share) keeps a sliver of bar for the smallest project.
     @Test func aTinyShareKeepsTwoUnitsOfBar() throws {
         let p = try #require(projects(usage([("/big", 999), ("/tiny", 1)])))
