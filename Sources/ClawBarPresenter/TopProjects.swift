@@ -16,11 +16,12 @@ enum TopProjects {
         guard total > 0, total.isFinite else { return nil }
         // The scan sorts heaviest first, ties by path.
         let top = Array(usage.projects.prefix(shown))
-        view.rows = zip(top, names(top.map(\.path), home: home)).map { project, name in
-            let share = project.weight / total
+        let paths = top.map { HomePath.relative($0.path, home: home) }
+        let rowNames = names(paths)
+        view.rows = top.indices.map { i in
+            let share = top[i].weight / total
             return ProjectRow(
-                name: name, share: percent(share), fraction: max(2 / ProjectsView.trackWidth, share),
-                tooltip: HomePath.relative(project.path, home: home)
+                name: rowNames[i], share: percent(share), fraction: max(2 / ProjectsView.trackWidth, share), tooltip: paths[i]
             )
         }
         return view
@@ -31,9 +32,9 @@ enum TopProjects {
         "\(Int((share * 100).rounded(.toNearestOrAwayFromZero)))%"
     }
 
-    /// Each folder's last part, `~` for the home folder; rows that would read the same also show their parent.
-    static func names(_ paths: [String], home: String) -> [String] {
-        let leaves = paths.map { HomePath.relative($0, home: home) == "~" ? "~" : tail($0, 1) }
+    /// Each `~/…` path's last part, so `~` for the home folder; rows that would read the same also show their parent.
+    static func names(_ paths: [String]) -> [String] {
+        let leaves = paths.map { tail($0, 1) }
         return zip(paths, leaves).map { path, leaf in
             leaves.filter { $0 == leaf }.count > 1 ? tail(path, 2) : leaf
         }

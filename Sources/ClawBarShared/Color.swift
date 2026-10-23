@@ -82,8 +82,8 @@ public enum Palette {
     public static let chartFill = RGBA("#264ADE80")
     /// The line under the pointer on the 7-day chart.
     public static let chartCursor = RGBA("#66FFFFFF")
-    /// The bars of the week's top projects.
-    public static let projectBar = clawdBody
+    /// The bars of the week's top projects: Clawd's colour, but history.ps1 keeps it when a skin recolours him.
+    public static let projectBar = RGBA("#FFD77757")
 
     public static let clawdBody = RGBA("#FFD77757")
     public static let clawdEyes = RGBA("#FF141416")

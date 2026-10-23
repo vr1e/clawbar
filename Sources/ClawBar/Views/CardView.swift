@@ -283,9 +283,9 @@ private struct DetailsBlock: View {
             }
             if let history = v.history {
                 HistoryBlock(h: history, app: app, layout: layout)
-                if let projects = v.projects {
-                    ProjectsBlock(p: projects, layout: layout)
-                }
+            }
+            if let projects = v.projects {
+                ProjectsBlock(p: projects, layout: layout)
             }
             Divider(k: k).padding(.bottom, 7 * k)
             HStack(alignment: .top, spacing: 0) {
@@ -413,13 +413,12 @@ private struct ProjectsBlock: View {
             if p.rows.isEmpty {
                 WText(p.caption, 10, color: Palette.label)
             } else {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(p.rows.enumerated()), id: \.offset) { _, row in
-                        ProjectRowView(row: row)
-                            .padding(.bottom, 2 * k)
-                    }
+                // Each Grid has its own tooltip, its 2 below outside it.
+                ForEach(Array(p.rows.enumerated()), id: \.offset) { i, row in
+                    ProjectRowView(row: row)
+                        .publish(.project(i), to: layout)
+                        .padding(.bottom, 2 * k)
                 }
-                .publish(.projects, to: layout)
             }
         }
         .padding(.bottom, 10 * k)

@@ -159,7 +159,7 @@ final class LaidOutCard {
         v.history = HistoryView(label: "LIMITS · 7 DAYS")
         v.projects = ProjectsView(label: "PROJECTS · 7 DAYS", rows: [ProjectRow(name: "api", share: "100%", fraction: 1, tooltip: "~/api")])
         let card = LaidOutCard(v)
-        for id in [HitID.projectsLabel, .projects] {
+        for id in [HitID.projectsLabel, .project(0)] {
             #expect(card.map.classify(try card.center(id), isSecondary: false) == .drag, "\(id)")
         }
     }

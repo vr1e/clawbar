@@ -33,8 +33,6 @@ final class CardHostView: HostView<WidgetRootView> {
 enum TooltipID: Hashable {
     case hit(HitID)
     case sky
-    /// A row of the top projects, by its index.
-    case project(Int)
 }
 
 struct TooltipRegion: Equatable {

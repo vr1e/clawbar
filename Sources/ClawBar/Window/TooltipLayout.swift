@@ -21,13 +21,7 @@ enum TooltipLayout {
         add(.sessions, when: v.sessionsVisible)
         add(.status, when: v.statusVisible)
         add(.projectsLabel, when: v.projects != nil)
-        // Every row is one line and its 2 below, so the block splits evenly into a tooltip per row, as each Grid has its own.
-        if let rows = v.projects?.rows, !rows.isEmpty, let block = rects[.projects] {
-            let h = block.height / Double(rows.count)
-            for i in rows.indices {
-                out.append(TooltipRegion(id: .project(i), rect: CGRect(x: block.minX, y: block.minY + Double(i) * h, width: block.width, height: h)))
-            }
-        }
+        for i in (v.projects?.rows ?? []).indices { add(.project(i)) }
         add(.version, when: v.detailsExpanded && !v.versionText.isEmpty)
         add(.appVersion, when: v.detailsExpanded)
         add(.account, when: !v.accountText.isEmpty)
@@ -42,7 +36,6 @@ enum TooltipLayout {
     static func text(_ id: TooltipID, view v: WidgetViewState, hearts: HeartsFrame, sky: () -> String) -> String {
         switch id {
         case .sky: sky()
-        case .project(let i): v.projects.flatMap { $0.rows.indices.contains(i) ? $0.rows[i].tooltip : nil } ?? ""
         case .hit(let h):
             switch h {
             case .details: v.detailsTooltip
@@ -57,7 +50,9 @@ enum TooltipLayout {
             case .appVersion: v.appVersionTooltip
             case .account: v.accountTooltip
             case .projectsLabel: v.projects?.tooltip ?? ""
-            case .percentRow, .number, .history, .projects: ""
+            // The tooltip may outlive a row that has since gone.
+            case .project(let i): v.projects?.rows.dropFirst(i).first?.tooltip ?? ""
+            case .percentRow, .number, .history: ""
             }
         }
     }

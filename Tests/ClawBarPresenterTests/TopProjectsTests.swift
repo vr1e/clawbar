@@ -72,6 +72,12 @@ import ClawBarShared
         #expect(p.rows.map(\.name) == ["work/app", "play/app", "docs"])
     }
 
+    /// A folder right in the home folder names its parent `~`, as its tooltip does.
+    @Test func aParentThatIsTheHomeFolderIsATilde() throws {
+        let p = try #require(projects(usage([("\(Samples.home)/app", 2), ("/srv/app", 1)])))
+        #expect(p.rows.map(\.name) == ["~/app", "srv/app"])
+    }
+
     /// A folder whose replies named no working folder keeps its transcript folder's name.
     @Test func aTranscriptFolderNameStaysWhole() throws {
         let p = try #require(projects(usage([("-Users-example-gone", 1)])))
