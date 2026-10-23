@@ -30,7 +30,7 @@ final class ScriptedRandom: RandomSource {
 let t0 = Samples.now
 
 func env(width: Double = 180, over: Bool = false, mouseX: Double? = nil, at now: Date = t0, lang: Lang = .en) -> ClawdStepEnv {
-    ClawdStepEnv(areaWidth: width, areaHeight: 43, mouseOverWindow: over, mouseX: mouseX, now: now, lang: lang)
+    ClawdStepEnv(areaWidth: width, mouseOverWindow: over, mouseX: mouseX, now: now, lang: lang)
 }
 
 func input(busy: Int = 0, waiting: Int = 0, sessions: Int? = nil, pct: Int? = nil, reset: Date? = nil, crit: Int = 85) -> ClawdDataInput {

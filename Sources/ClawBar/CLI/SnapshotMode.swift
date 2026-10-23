@@ -1,11 +1,11 @@
 import AppKit
 import CoreGraphics
 import Foundation
+import ClawBarAnimation
 import ClawBarClawd
 import ClawBarGame
 import ClawBarPresenter
 import ClawBarShared
-import ClawBarSky
 
 /// One state of the widget for `--snapshot`: the data and settings the presenter sees.
 struct SnapshotCase {
@@ -210,45 +210,32 @@ enum SnapshotMode {
     /// The card at 2 pixels per point, with Clawd and the sky after a few seeded ticks.
     static func renderCard(_ c: SnapshotCase, lang: Lang, scale k: Double) -> CGImage? {
         let input = input(for: c, lang: lang)
-        let view = WidgetPresenter.make(input)
+        let engine = AnimationEngine(random: SeededRandomSource(seed: 7), config: input.config, now: Samples.now)
+        engine.apply(c.data, config: input.config, now: Samples.now)
         let layout = LayoutModel()
-        var scene = CardRenderer.Scene(view: view, mascotVisible: c.config.showMascot, skyVisible: c.config.showMascot && c.config.showSky)
-        if let x = c.hoverX, let chart = view.history {
-            scene.historyHover = HistoryReadout.hover(x: x, chart: chart, input: input)
+        var card = CardRenderer.Input(
+            view: WidgetPresenter.make(input), mascotVisible: engine.mascotVisible, skyVisible: engine.skyVisible
+        )
+        if let x = c.hoverX, let chart = card.view.history {
+            card.historyHover = HistoryReadout.hover(x: x, chart: chart, input: input)
         }
         // A first pass measures the number, which sets the play area Clawd walks in.
-        _ = CardRenderer.render(scene, scale: k, layout: layout)
-        if scene.mascotVisible {
-            scene.clawd = clawdFrame(c, lang: lang, numberWidth: layout.numberWidth)
-        }
-        if scene.skyVisible {
-            scene.sky = skyFrame(c)
-        }
-        return CardRenderer.render(scene, scale: k, layout: layout)
+        _ = CardRenderer.render(card, scale: k, layout: layout)
+        card.animation = settle(engine, c, numberWidth: layout.numberWidth)
+        return CardRenderer.render(card, scale: k, layout: layout)
     }
 
-    static func clawdFrame(_ c: SnapshotCase, lang: Lang, numberWidth: Double) -> ClawdFrame {
+    /// Clawd and the sky after 60 ticks from `Samples.now`, the case's sky overrides set as the developer menu would.
+    static func settle(_ engine: AnimationEngine, _ c: SnapshotCase, numberWidth: Double) -> AnimationFrame {
+        if let phase = c.skyDev.phase { engine.perform(.skyPhase(phase)) }
+        if let code = c.skyDev.weatherCode { engine.perform(.skyWeather(code)) }
         var now = Samples.now
-        let engine = ClawdEngine(random: SeededRandomSource(seed: 7), now: now)
-        if c.data.sessionsRead { engine.apply(ClawdDataInput(c.data, critPercent: c.config.critPercent), now: now) }
-        var frame = ClawdFrame.empty
         for _ in 0 ..< 60 {
-            frame = engine.step(ClawdStepEnv(
-                areaWidth: PlayArea.width(numberWidth: numberWidth), areaHeight: PlayArea.height,
-                mouseOverWindow: false, mouseX: nil, now: now, lang: lang
-            ))
-            now = now.addingTimeInterval(Double(engine.tickMilliseconds) / 1000)
+            engine.step(AnimationInputs(now: now, timeZone: Samples.timeZone, numberWidth: numberWidth))
+            guard let ms = engine.tickMilliseconds else { break }
+            now = now.addingTimeInterval(Double(ms) / 1000)
         }
-        return frame
-    }
-
-    static func skyFrame(_ c: SnapshotCase) -> SkyFrame {
-        let now = Samples.now
-        let inputs = SkyInfo.inputs(c.data.weather, place: c.data.place, now: now, localZone: Samples.timeZone, dev: c.skyDev)
-        let sky = SkyEngine(random: SeededRandomSource(seed: 7))
-        var frame = SkyFrame.empty
-        for _ in 0 ..< 30 { frame = sky.step(size: CGSize(width: CardView.content, height: PlayArea.height), inputs: inputs) }
-        return frame
+        return engine.frame
     }
 
     /// The menu bar item on a light and a dark bar, at 2 pixels per point; `no-clawd` is the pill alone.

@@ -53,20 +53,3 @@ struct WidgetHitMap {
         return map
     }
 }
-
-/// Clawd's play area: right of the number with MascotArea's margin 10, its bottom edge 3 below the row.
-enum PlayArea {
-    /// The percent row's 40 plus the 3 it reaches below it: its bottom is the ground line.
-    static let height = 43.0
-    /// MascotArea's left margin after the number.
-    static let margin = 10.0
-
-    static func width(numberWidth: Double) -> Double {
-        max(0, CardView.content - numberWidth - margin)
-    }
-
-    /// The play area's left end of the ground line in card space.
-    static func ground(row: CGRect, numberWidth: Double, scale k: Double) -> CGPoint {
-        CGPoint(x: row.minX + (numberWidth + margin) * k, y: row.minY + height * k)
-    }
-}

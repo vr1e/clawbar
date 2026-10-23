@@ -4,25 +4,20 @@ import Testing
 import ClawBarShared
 import ClawBarSky
 
-/// record-gif's `weather` scenario, driven the way the app drives the sky: day 63, night 73, dusk 95 and dawn 2,
-/// each a developer override (so the app calls invalidate()), 100 ticks of 90 ms each.
+/// The engine alone through the `weather` recording's four skies: day 63, night 73, dusk 95 and dawn 2, each a
+/// developer override the key picks up on its first tick, 100 ticks of 90 ms each over the sample's weather.
 @Suite struct DeterminismTests {
-    static let scenes: [(SkyPhase, Int)] = [(.day, 63), (.night, 73), (.dusk, 95), (.dawn, 2)]
+    static let skies: [(SkyPhase, Int)] = [(.day, 63), (.night, 73), (.dusk, 95), (.dawn, 2)]
 
-    private func play(seed: UInt64, ticksPerScene: Int = 100) -> [SkyFrame] {
+    private func play(seed: UInt64, ticksPerSky: Int = 100) -> [SkyFrame] {
         let sky = SkyEngine(random: SeededRandomSource(seed: seed))
         let data = DataSnapshot.sample
         var now = Samples.now
         var frames: [SkyFrame] = []
-        for (phase, code) in Self.scenes {
+        for (phase, code) in Self.skies {
             let dev = SkyDevState(phase: phase, weatherCode: code)
-            sky.invalidate()
-            for _ in 0 ..< ticksPerScene {
-                let (sun, zone) = SkyInfo.sunTimes(data.weather, place: data.place, now: now, localZone: Zones.utc)
-                let input = SkyInputs(
-                    now: now, timeZone: zone, sun: sun, weather: SkyInfo.skyWeather(data.weather, now: now, dev: dev),
-                    latitude: SkyInfo.latitude(place: data.place), forcedPhase: dev.phase
-                )
+            for _ in 0 ..< ticksPerSky {
+                let input = SkyInfo.inputs(data.weather, place: data.place, now: now, localZone: Zones.utc, dev: dev)
                 frames.append(sky.step(size: skySize, inputs: input))
                 now = now.addingTimeInterval(0.09)
             }
@@ -37,7 +32,7 @@ import ClawBarSky
         #expect(a != play(seed: 43))
     }
 
-    @Test func eachSceneSettlesIntoItsWeather() throws {
+    @Test func eachSkySettlesIntoItsWeather() throws {
         let frames = play(seed: 42)
         // Day, rain: 20 drops, 8 clouds faded in, the sun hidden by 0.9 cover.
         let day = Sprites(frames[99])
