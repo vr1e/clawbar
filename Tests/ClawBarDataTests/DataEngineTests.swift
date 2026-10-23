@@ -574,5 +574,22 @@ import ClawBarShared
         _ = latched.handle(.account(AccountInfo(loggedIn: true)), now: t0)
         _ = latched.handle(.status(ServiceStatus(indicator: "none")), now: t0)
         #expect(latched.handle(.tick, now: t0).isEmpty)
+        // A tripped guard while the version is unknown asks for one more look; unkeyed, the latch holds unsaved.
+        var unknown = engine()
+        start(&unknown, now: t0)
+        _ = unknown.handle(.version(local: nil, latest: "2.1.302"), now: t0)
+        #expect(kinds(unknown.handle(issue(.flagRejected("--x")), now: t0)) == ["probeVersion", "log"])
+        _ = unknown.handle(.version(local: nil, latest: "2.1.302"), now: t0)
+        _ = unknown.handle(.account(AccountInfo(loggedIn: true)), now: t0)
+        _ = unknown.handle(.status(ServiceStatus(indicator: "none")), now: t0)
+        #expect(unknown.handle(.tick, now: t0).isEmpty)
+        #expect(unknown.snapshot.usageIssue == .flagRejected("--x"))
+        // A shell without an answer and no claude anywhere: looked for once.
+        var missing = engine()
+        _ = missing.handle(.tick, now: t0)
+        _ = missing.handle(.loginShell(nil), now: t0)
+        _ = missing.handle(.located(nil, installHint: nil), now: t0)
+        _ = missing.handle(.status(ServiceStatus(indicator: "none")), now: t0)
+        #expect(missing.handle(.tick, now: t0).isEmpty)
     }
 }

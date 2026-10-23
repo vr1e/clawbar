@@ -114,7 +114,30 @@ import ClawBarShared
         #expect(!FileManager.default.fileExists(atPath: h.paths.historyFile.path))
     }
 
-    @Test func theEnginesLogLinesFollowTheAnswersTheyAreAbout() async {
+    @Test func aTrippedGuardWithoutAVersionIsLookedAtAgainAndNotSaved() async {
+        let h = Harness()
+        h.runner.reply(.version, stdout: "", exit: 1)
+        h.runner.reply(.usage, data: Fixture.data("usage/model-reached.json"))
+        let text = await Diagnostics.run(config: h.config, paths: h.paths, deps: h.deps).text
+        // The engine asks for one more look to key the latch; without a version it stays unkeyed and unsaved.
+        #expect(text.components(separatedBy: "version: unknown · channel latest · latest 2.1.302 · up to date\n").count == 3)
+        #expect(text.contains("usage guard: num_turns 1 · total_cost_usd 0.0123 · tokens 1285 · modelUsage 1 · TRIPPED"))
+        #expect(h.runner.count(.version) == 2)
+        #expect(LatchStore(url: h.paths.stateFile).load() == nil)
+    }
+
+    @Test func aLatchTheVersionOutlivedIsClearedAsTheAppWouldClearIt() async throws {
+        let h = Harness()
+        try LatchStore(url: h.paths.stateFile).save(UsageLatch(version: "2.1.301", issue: .flagRejected("--no-session-persistence")))
+        h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
+        let text = await Diagnostics.run(config: h.config, paths: h.paths, deps: h.deps).text
+        #expect(text.contains("usage: session 50%"))
+        #expect(!text.contains("latched"))
+        #expect(h.runner.count(.usage) == 1)
+        #expect(LatchStore(url: h.paths.stateFile).load() == nil)
+    }
+
+    @Test func theEnginesLogLinesAreInTheReport() async {
         let h = Harness()
         h.http.answer("status.claude.com", nil)
         h.runner.reply(.usage, data: Data(), exit: 1, stderr: "boom")
