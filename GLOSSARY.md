@@ -36,6 +36,10 @@ _Avoid_: animator, stepper, ticker
 Everything one animation tick drew: Clawd with his hearts, and the sky.
 _Avoid_: scene (upstream's animated themes), picture
 
+**Theme palette**:
+The colours a theme changes, one per role: the background, the text tiers (secondary, muted, label, footer), the accent, the model-week bar and the empty heart. The presenter resolves it into the view state; the levels, Clawd, the sky and the card's border, tracks and chart stay fixed.
+_Avoid_: theme (the config's choice of look), colour scheme, skin
+
 **Play area**:
 The strip of the percent row right of the number where Clawd walks: as wide as the number leaves it, reaching 3 below the row to the ground line he stands on. The sky spans the whole row behind it.
 _Avoid_: mascot area, stage

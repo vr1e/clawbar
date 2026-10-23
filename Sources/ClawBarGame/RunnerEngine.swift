@@ -254,7 +254,8 @@ public final class RunnerEngine {
 
     /// The scene, back to front: clouds, ground, obstacles, Clawd, then the score and messages.
     /// `caption` goes top left (the reset time); a paused round shows a note in place of the phase's.
-    public func frame(lang: Lang, caption: String) -> RunnerFrame {
+    /// The background and the text take the card's themed colours; the art keeps its own.
+    public func frame(lang: Lang, caption: String, palette: ThemePalette) -> RunnerFrame {
         var ops: [DrawOp] = []
         func fill(_ rects: [CGRect], _ color: RGBA) {
             ops.append(.rects(rects, color, opacity: 1))
@@ -262,7 +263,8 @@ public final class RunnerEngine {
         func text(_ s: String, x: Double, y: Double, size: Double, weight: FontWeight = .regular, color: RGBA, anchor: TextAnchor) {
             ops.append(.text(s, at: CGPoint(x: x, y: y), size: size, weight: weight, color: color, opacity: 1, anchor: anchor))
         }
-        func message(_ key: L10nKey, y: Double, size: Double = 13, weight: FontWeight = .regular, color: RGBA = Palette.secondary) {
+        func message(_ key: L10nKey, y: Double, size: Double = 13, weight: FontWeight = .regular, color: RGBA? = nil) {
+            let color = color ?? palette.secondary
             text(L10n.t(key, lang), x: T.width / 2, y: y, size: size, weight: weight, color: color, anchor: .top)
         }
 
@@ -281,9 +283,9 @@ public final class RunnerEngine {
         let blinkOff = phase == .running && !paused && milestoneLeft > 0 && (milestoneLeft / 8) % 2 == 1
         var hud = highScore > 0 ? "HI \(Self.digits(highScore))  " : ""
         hud += blinkOff ? "     " : Self.digits(score)
-        text(hud, x: T.width - 12, y: 8, size: 12, weight: .semibold, color: Palette.secondary, anchor: .topTrailing)
-        text(caption, x: 12, y: 8, size: 10, color: Palette.muted, anchor: .topLeading)
-        text(L10n.t(.gameHint, lang), x: 12, y: T.groundY + 9, size: 9, color: Palette.footer, anchor: .topLeading)
+        text(hud, x: T.width - 12, y: 8, size: 12, weight: .semibold, color: palette.secondary, anchor: .topTrailing)
+        text(caption, x: 12, y: 8, size: 10, color: palette.muted, anchor: .topLeading)
+        text(L10n.t(.gameHint, lang), x: 12, y: T.groundY + 9, size: 9, color: palette.footer, anchor: .topLeading)
 
         if paused {
             message(.gamePaused, y: 44)
@@ -292,11 +294,11 @@ public final class RunnerEngine {
             case .ready: message(.gameStart, y: 44)
             case .over:
                 message(.gameOver, y: 36, size: 16, weight: .semibold)
-                if overTicks >= T.restartDelayTicks { message(.gameRestart, y: 62, size: 11, color: Palette.muted) }
+                if overTicks >= T.restartDelayTicks { message(.gameRestart, y: 62, size: 11, color: palette.muted) }
             case .running: break
             }
         }
-        return RunnerFrame(ops: ops)
+        return RunnerFrame(background: palette.background, ops: ops)
     }
 
     /// Five digits, zero-padded, like the dinosaur's counter.
@@ -322,21 +324,23 @@ public final class RunnerEngine {
 
     /// The screens `--snapshot` draws, from one seeded round of the demo player so every run draws the same: the start,
     /// mid-round with a bug in view, paused, and after a crash with `back` in the corner.
-    public static func showcase(lang: Lang, caption: String, back: String) -> [(name: String, frame: RunnerFrame)] {
+    public static func showcase(
+        lang: Lang, caption: String, back: String, palette: ThemePalette
+    ) -> [(name: String, frame: RunnerFrame)] {
         let e = RunnerEngine(random: SeededRandomSource(seed: 2), highScore: 1234)
-        var frames = [(name: "ready", frame: e.frame(lang: lang, caption: caption))]
+        var frames = [(name: "ready", frame: e.frame(lang: lang, caption: caption, palette: palette))]
         e.step(RunnerInput(jump: true))
         while e.phase == .running, !e.obstacles.contains(where: { $0.kind == .bug && $0.x < T.width / 2 }) {
             e.step(e.demoInput)
         }
-        frames.append((name: "running", frame: e.frame(lang: lang, caption: caption)))
+        frames.append((name: "running", frame: e.frame(lang: lang, caption: caption, palette: palette)))
         e.pause()
-        frames.append((name: "paused", frame: e.frame(lang: lang, caption: caption)))
+        frames.append((name: "paused", frame: e.frame(lang: lang, caption: caption, palette: palette)))
         e.step(RunnerInput(jump: true))
         while e.phase == .running { e.step(RunnerInput()) }
         // A second on, past the restart delay, so the restart note shows.
         for _ in 0 ..< Int(T.ticksPerSecond) { e.step(RunnerInput()) }
-        frames.append((name: "over", frame: e.frame(lang: lang, caption: back)))
+        frames.append((name: "over", frame: e.frame(lang: lang, caption: back, palette: palette)))
         return frames
     }
 
