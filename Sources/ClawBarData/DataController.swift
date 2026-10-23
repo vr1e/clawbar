@@ -11,6 +11,7 @@ public final class DataController {
     public var onChange: (@MainActor () -> Void)?
 
     private var engine: DataEngine
+    private let deps: CommandRecipes.Dependencies
     private let recipes: CommandRecipes
     private let log: ErrorLog
     private let weather: WeatherService
@@ -22,18 +23,17 @@ public final class DataController {
     }
 
     init(config: Config, paths: AppPaths, deps: CommandRecipes.Dependencies) {
+        self.deps = deps
         recipes = CommandRecipes(deps: deps, paths: paths)
         log = ErrorLog(url: paths.errorLog)
         engine = DataEngine(
             config: config, environment: deps.environment, home: deps.home,
-            latch: recipes.savedLatch(), history: recipes.savedHistory(now: deps.clock())
+            latch: recipes.savedLatch(), history: recipes.savedHistory()
         )
         weather = WeatherService(http: deps.http, clock: deps.clock, log: { _ in })
         weather.onUpdate = { [weak self] in self?.weatherChanged() }
         weather.log = { [weak self] in self?.complete(.weatherFailed($0)) }
     }
-
-    private var deps: CommandRecipes.Dependencies { recipes.deps }
 
     // MARK: - Public API
 
@@ -111,7 +111,7 @@ public final class DataController {
     }
 
     /// Runs `work` off the main actor, feeds its event back on it, and forgets the task when it ends.
-    private func spawn(priority: TaskPriority? = nil, _ work: @escaping @Sendable () async -> DataEvent) {
+    private func spawn(priority: TaskPriority?, _ work: @escaping @Sendable () async -> DataEvent) {
         let id = nextTask
         nextTask += 1
         tasks[id] = Task(priority: priority) { [weak self] in

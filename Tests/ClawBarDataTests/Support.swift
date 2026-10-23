@@ -140,6 +140,9 @@ final class Harness {
 
     func recipes() -> CommandRecipes { CommandRecipes(deps: deps, paths: paths) }
 
+    /// The report `--diagnose` prints.
+    func diagnose() async -> String { await Diagnostics.run(config: config, paths: paths, deps: deps).text }
+
     func session(_ pid: Int32, in configDir: String, status: String = "busy", _ extra: [String: Any] = [:]) {
         let j: [String: Any] = ["pid": pid, "sessionId": "s\(pid)", "cwd": "/Users/example/p\(pid)", "status": status, "kind": "interactive"]
             .merging(extra) { $1 }

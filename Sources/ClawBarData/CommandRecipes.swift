@@ -42,7 +42,7 @@ struct CommandRecipes: Sendable {
         case later(priority: TaskPriority? = nil, work: @Sendable () async -> DataEvent)
     }
 
-    let deps: Dependencies
+    private let deps: Dependencies
     private let latchStore: LatchStore
     private let historyStore: UsageHistoryStore
     private let updateLog: URL
@@ -62,7 +62,7 @@ struct CommandRecipes: Sendable {
 
     /// What the engine starts from.
     func savedLatch() -> UsageLatch? { latchStore.load() }
-    func savedHistory(now: Date) -> [UsageSample] { historyStore.load(now: now) }
+    func savedHistory() -> [UsageSample] { historyStore.load(now: deps.clock()) }
 
     /// The recipe for one command; nil for the log line and the cancel, which are the adapter's own.
     func recipe(for command: DataCommand, now: Date) -> Recipe? {
@@ -121,9 +121,9 @@ struct CommandRecipes: Sendable {
         }
     }
 
-    /// Runs the recipe to its answer, whichever way it answers; nil for a command without one.
-    func answer(_ command: DataCommand, now: Date) async -> DataEvent? {
-        switch recipe(for: command, now: now) {
+    /// Runs the recipe at the clock to its answer, whichever way it answers; nil for a command without one.
+    func answer(_ command: DataCommand) async -> DataEvent? {
+        switch recipe(for: command, now: deps.clock()) {
         case .now(let event)?: event
         case .later(_, let work)?: await work()
         case nil: nil

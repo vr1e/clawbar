@@ -549,10 +549,7 @@ import ClawBarShared
 
     /// What `--diagnose` relies on: at one instant every slot starts once and the next tick asks for nothing.
     @Test func atOneInstantEverySlotStartsOnceAndThenNothingIsDue() {
-        var e = engine {
-            $0.showHistory = true
-            $0.expanded = true
-        }
+        var e = engine { $0 = $0.everyBlockOn() }
         #expect(kinds(start(&e, now: t0)) == ["probeStatus", "runLoginShell", "readSessions", "locate", "scanProjects", "probeVersion", "probeUsage", "probeAccount"])
         #expect(e.handle(.version(local: "2.1.301", latest: "2.1.303"), now: t0) == [.fetchChangelog])
         _ = e.handle(.changelog(nil), now: t0)

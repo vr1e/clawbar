@@ -20,29 +20,20 @@ public enum Diagnostics {
     private struct Pass {
         let deps: CommandRecipes.Dependencies
         let recipes: CommandRecipes
-        let config: Config
         let now: Date
         let latch: UsageLatch?
         var engine: DataEngine
         var lines = ["\(AppInfo.title) · diagnostics"]
-        /// The last registry read: the account's answer may move the directory mid-pass.
-        var sessions: [SessionInfo] = []
         var probedUsage = false
 
-        init(config raw: Config, paths: AppPaths, deps: CommandRecipes.Dependencies) {
+        init(config: Config, paths: AppPaths, deps: CommandRecipes.Dependencies) {
             self.deps = deps
             recipes = CommandRecipes(deps: deps, paths: paths)
-            // Every block on: a hidden row is still worth a look here.
-            var config = raw.clamped()
-            config.showStatus = true
-            config.showAccount = true
-            config.showSessions = true
-            config.showHistory = true
-            config.expanded = true
-            self.config = config
             now = deps.clock()
             latch = recipes.savedLatch()
-            engine = DataEngine(config: config, environment: deps.environment, home: deps.home, latch: latch, history: [])
+            engine = DataEngine(
+                config: config.everyBlockOn(), environment: deps.environment, home: deps.home, latch: latch, history: []
+            )
         }
 
         mutating func run() async {
@@ -53,6 +44,7 @@ public enum Diagnostics {
                 await drive(engine.handle(.pollSessions, now: now))
             }
             say("config dir: \(engine.configDirectory)")
+            let sessions = engine.snapshot.sessions
             let names = sessions.map { s in
                 let state = s.state == .waiting && s.waitingFor != nil ? "waiting: \(s.waitingFor!)" : s.state.rawValue
                 return "\(s.name) (\(state))"
@@ -74,9 +66,9 @@ public enum Diagnostics {
                     // A look, not a sample: usage-history.json is the app's record of what it showed.
                     break
                 default:
-                    // The recipe sees the clock: a session started during the pass is as old as it is by then.
+                    // At the clock, not the pass instant: a session started during the pass is as old as it is by then.
                     let started = ContinuousClock.now
-                    guard let event = await recipes.answer(command, now: deps.clock()) else { continue }
+                    guard let event = await recipes.answer(command) else { continue }
                     let next = engine.handle(event, now: now)
                     report(event, took: ContinuousClock.now - started)
                     await drive(next)
@@ -95,8 +87,6 @@ public enum Diagnostics {
                 guard let found else { return say("claude: not found") }
                 say("claude: \(found.path) (\(found.source.rawValue))")
                 say("install hint: \(hint?.rawValue ?? "none")")
-            case .sessionsRead(let read):
-                sessions = read
             case .version(let local, let latest, let channel):
                 let state = VersionState(local: local, latest: latest)
                 say("version: \(local ?? "unknown") · channel \(channel) · latest \(latest ?? "unknown") · \(state.updateAvailable ? "update available" : "up to date")")
@@ -145,6 +135,7 @@ public enum Diagnostics {
 
         /// The weather is not an engine slot yet: one lookup outside the pass.
         private mutating func weather() async {
+            let config = engine.config
             let (place, wx, provider) = await WeatherService.fetchOnce(config: config, http: deps.http, now: deps.clock)
             guard let place else { return say("weather: no location") }
             var parts = [config.weatherLat != nil && config.weatherLon != nil ? "configured coordinates" : "IP location"]
@@ -179,5 +170,21 @@ public enum Diagnostics {
             let c = cal.dateComponents([.year, .month, .day, .hour, .minute], from: d)
             return String(format: "%04d-%02d-%02d %02d:%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0, c.hour ?? 0, c.minute ?? 0)
         }
+    }
+}
+
+extension Config {
+    /// Every block shown and the details open, whatever config.json says: `--diagnose` looks at hidden rows too.
+    func everyBlockOn() -> Config {
+        var c = self
+        c.showStats = true
+        c.showStatus = true
+        c.showSessions = true
+        c.showAccount = true
+        c.showMascot = true
+        c.showSky = true
+        c.showHistory = true
+        c.expanded = true
+        return c
     }
 }

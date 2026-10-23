@@ -44,7 +44,7 @@ import ClawBarShared
         let claude = try #require(h.config.claudePath)
         let login = LoginEnvironment(path: "/Users/example/.nvm/bin:/usr/bin", claudeConfigDir: "/Users/example/.claude-alt")
         let env = ChildEnv.make(inherited: h.deps.environment, login: login, claude: claude)
-        guard case .usage(let report)? = await h.recipes().answer(.probeUsage(claude: claude, environment: env), now: t0),
+        guard case .usage(let report)? = await h.recipes().answer(.probeUsage(claude: claude, environment: env)),
               case .usage(let u) = report.outcome
         else {
             Issue.record("no usage answer")
@@ -67,7 +67,7 @@ import ClawBarShared
         h.http.answer("downloads.claude.ai", Data("2.1.303\n".utf8))
         let r = h.recipes()
         let command = DataCommand.probeVersion(claude: h.config.claudePath ?? "", environment: [:], configDirectory: h.home + "/.claude-work")
-        guard case .version(let local, let latest, let channel)? = await r.answer(command, now: t0) else {
+        guard case .version(let local, let latest, let channel)? = await r.answer(command) else {
             Issue.record("no version answer")
             return
         }
@@ -76,7 +76,7 @@ import ClawBarShared
         // A failed claude and a dead release host each answer nil, for the engine to keep what it had.
         h.runner.reply(.version, stdout: "", exit: 1)
         h.http.answer("downloads.claude.ai", nil)
-        guard case .version(let none, let noLatest, _)? = await r.answer(command, now: t0) else {
+        guard case .version(let none, let noLatest, _)? = await r.answer(command) else {
             Issue.record("no version answer")
             return
         }
@@ -91,8 +91,8 @@ import ClawBarShared
         h.session(4343, in: dir, status: "waiting")
         h.dir.write("home/.claude/sessions/4343.key", "secret")
         h.runner.setOwn([4242])
-        let directory = URL(fileURLWithPath: dir).appendingPathComponent("sessions")
-        guard case .sessionsRead(let sessions)? = await h.recipes().answer(.readSessions(directory: directory), now: t0) else {
+        let directory = SessionRegistry.directory(configDir: dir, home: h.home)
+        guard case .sessionsRead(let sessions)? = await h.recipes().answer(.readSessions(directory: directory)) else {
             Issue.record("no sessions answer")
             return
         }
@@ -104,12 +104,12 @@ import ClawBarShared
     @Test func theLocatorAnswersWithWhereClaudeIsAndHowItWasInstalled() async {
         let h = Harness(claude: false)
         let r = h.recipes()
-        guard case .located(.none, .none)? = await r.answer(.locate(configPath: nil, login: nil), now: t0) else {
+        guard case .located(.none, .none)? = await r.answer(.locate(configPath: nil, login: nil)) else {
             Issue.record("claude should be missing")
             return
         }
         let npm = h.installClaude("lib/node_modules/@anthropic-ai/claude-code/cli.js")
-        guard case .located(let found?, let hint)? = await r.answer(.locate(configPath: npm, login: nil), now: t0) else {
+        guard case .located(let found?, let hint)? = await r.answer(.locate(configPath: npm, login: nil)) else {
             Issue.record("claude should be found")
             return
         }
@@ -124,10 +124,10 @@ import ClawBarShared
         h.http.answer("raw.githubusercontent.com", Fixture.data("version/CHANGELOG.md"))
         let r = h.recipes()
         let claude = h.config.claudePath ?? ""
-        guard case .loginShell(let login)? = await r.answer(.runLoginShell, now: t0),
-              case .account(let account)? = await r.answer(.probeAccount(claude: claude, environment: [:]), now: t0),
-              case .status(let status)? = await r.answer(.probeStatus, now: t0),
-              case .changelog(let text)? = await r.answer(.fetchChangelog, now: t0)
+        guard case .loginShell(let login)? = await r.answer(.runLoginShell),
+              case .account(let account)? = await r.answer(.probeAccount(claude: claude, environment: [:])),
+              case .status(let status)? = await r.answer(.probeStatus),
+              case .changelog(let text)? = await r.answer(.fetchChangelog)
         else {
             Issue.record("an answer is missing")
             return
@@ -138,7 +138,7 @@ import ClawBarShared
         #expect(text == Fixture.text("version/CHANGELOG.md"))
         // A host without an answer is nil, for the engine to keep the last good value.
         h.http.answer("status.claude.com", nil)
-        guard case .status(.none)? = await r.answer(.probeStatus, now: t0) else {
+        guard case .status(.none)? = await r.answer(.probeStatus) else {
             Issue.record("the status should be nil")
             return
         }
@@ -152,7 +152,7 @@ import ClawBarShared
         h.runner.reply(.update, data: Data(), exit: 1)
         let r = h.recipes()
         let command = DataCommand.runUpdate(claude: h.config.claudePath ?? "", environment: [:])
-        guard case .update(let failure, let tail)? = await r.answer(command, now: t0) else {
+        guard case .update(let failure, let tail)? = await r.answer(command) else {
             Issue.record("no update answer")
             return
         }
@@ -163,7 +163,7 @@ import ClawBarShared
         #expect(spec.timeout == 900)
         // A clean exit is no failure; the tail still comes back for the next look to judge.
         h.runner.reply(.update, data: Data())
-        guard case .update(.none, let cleanTail)? = await r.answer(command, now: t0) else {
+        guard case .update(.none, let cleanTail)? = await r.answer(command) else {
             Issue.record("no update answer")
             return
         }
@@ -174,13 +174,13 @@ import ClawBarShared
         let h = Harness()
         h.dir.write("home/.claude/projects/-Users-example-api/s1.jsonl", assistantLine("msg_1", at: t0, output: 1000) + "\n")
         let r = h.recipes()
-        let command = DataCommand.scanProjects(root: h.home + "/.claude/projects")
+        let command = DataCommand.scanProjects(root: TranscriptScanner.root(configDir: h.home + "/.claude"))
         guard case .later(let priority, _)? = r.recipe(for: command, now: t0) else {
             Issue.record("the scan should run later")
             return
         }
         #expect(priority == .utility)
-        guard case .projects(let scan)? = await r.answer(command, now: t0) else {
+        guard case .projects(let scan)? = await r.answer(command) else {
             Issue.record("no scan answer")
             return
         }
@@ -193,22 +193,22 @@ import ClawBarShared
         let r = h.recipes()
         let latch = UsageLatch(version: "2.1.302", issue: .flagRejected("--no-session-persistence"))
         let sample = UsageSample(minute: UsageSample.minute(of: t0), session: 50, week: 68)
-        guard case .latchSaved(let latchFailure)? = await r.answer(.saveLatch(latch), now: t0),
-              case .historySaved(let historyFailure)? = await r.answer(.saveHistory([sample]), now: t0)
+        guard case .latchSaved(let latchFailure)? = await r.answer(.saveLatch(latch)),
+              case .historySaved(let historyFailure)? = await r.answer(.saveHistory([sample]))
         else {
             Issue.record("a save did not answer")
             return
         }
         #expect(latchFailure == nil && historyFailure == nil)
         #expect(r.savedLatch() == latch)
-        #expect(r.savedHistory(now: t0) == [sample])
+        #expect(r.savedHistory() == [sample])
         // A path that cannot be written names the problem; the engine logs it once.
         let blocked = TempDir("cb-blocked")
         try FileManager.default.createDirectory(at: blocked.paths.stateFile, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: blocked.paths.historyFile, withIntermediateDirectories: true)
         let b = CommandRecipes(deps: h.deps, paths: blocked.paths)
-        guard case .latchSaved(let f1)? = await b.answer(.saveLatch(latch), now: t0),
-              case .historySaved(let f2)? = await b.answer(.saveHistory([sample]), now: t0)
+        guard case .latchSaved(let f1)? = await b.answer(.saveLatch(latch)),
+              case .historySaved(let f2)? = await b.answer(.saveHistory([sample]))
         else {
             Issue.record("a save did not answer")
             return
