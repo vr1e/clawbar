@@ -263,8 +263,7 @@ public final class RunnerEngine {
         func text(_ s: String, x: Double, y: Double, size: Double, weight: FontWeight = .regular, color: RGBA, anchor: TextAnchor) {
             ops.append(.text(s, at: CGPoint(x: x, y: y), size: size, weight: weight, color: color, opacity: 1, anchor: anchor))
         }
-        func message(_ key: L10nKey, y: Double, size: Double = 13, weight: FontWeight = .regular, color: RGBA? = nil) {
-            let color = color ?? palette.secondary
+        func message(_ key: L10nKey, y: Double, size: Double = 13, weight: FontWeight = .regular, color: RGBA = palette.secondary) {
             text(L10n.t(key, lang), x: T.width / 2, y: y, size: size, weight: weight, color: color, anchor: .top)
         }
 
@@ -328,19 +327,20 @@ public final class RunnerEngine {
         lang: Lang, caption: String, back: String, palette: ThemePalette
     ) -> [(name: String, frame: RunnerFrame)] {
         let e = RunnerEngine(random: SeededRandomSource(seed: 2), highScore: 1234)
-        var frames = [(name: "ready", frame: e.frame(lang: lang, caption: caption, palette: palette))]
+        func shot(_ corner: String) -> RunnerFrame { e.frame(lang: lang, caption: corner, palette: palette) }
+        var frames = [(name: "ready", frame: shot(caption))]
         e.step(RunnerInput(jump: true))
         while e.phase == .running, !e.obstacles.contains(where: { $0.kind == .bug && $0.x < T.width / 2 }) {
             e.step(e.demoInput)
         }
-        frames.append((name: "running", frame: e.frame(lang: lang, caption: caption, palette: palette)))
+        frames.append((name: "running", frame: shot(caption)))
         e.pause()
-        frames.append((name: "paused", frame: e.frame(lang: lang, caption: caption, palette: palette)))
+        frames.append((name: "paused", frame: shot(caption)))
         e.step(RunnerInput(jump: true))
         while e.phase == .running { e.step(RunnerInput()) }
         // A second on, past the restart delay, so the restart note shows.
         for _ in 0 ..< Int(T.ticksPerSecond) { e.step(RunnerInput()) }
-        frames.append((name: "over", frame: e.frame(lang: lang, caption: back, palette: palette)))
+        frames.append((name: "over", frame: shot(back)))
         return frames
     }
 

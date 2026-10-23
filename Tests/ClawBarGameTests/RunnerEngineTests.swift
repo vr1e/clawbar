@@ -27,11 +27,18 @@ private func pass(
     return e.phase
 }
 
-private func texts(_ f: RunnerFrame) -> [String] {
-    f.ops.compactMap { op -> String? in
-        if case let .text(s, _, _, _, _, _, _) = op { return s }
+private func lines(_ f: RunnerFrame) -> [(text: String, color: RGBA)] {
+    f.ops.compactMap { op in
+        if case let .text(s, _, _, _, color, _, _) = op { return (s, color) }
         return nil
     }
+}
+
+private func texts(_ f: RunnerFrame) -> [String] { lines(f).map(\.text) }
+
+/// Classic colours for the tests the palette is no concern of.
+private extension RunnerEngine {
+    func frame(lang: Lang, caption: String) -> RunnerFrame { frame(lang: lang, caption: caption, palette: .classic) }
 }
 
 private func stand(_ e: RunnerEngine) -> RunnerInput { RunnerInput() }
@@ -156,9 +163,9 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
     @Test func aPausedRoundStandsStillUnderItsNote() {
         let e = running()
         e.pause()
-        let before = e.frame(lang: .de, caption: "", palette: .classic)
+        let before = e.frame(lang: .de, caption: "")
         for _ in 0 ..< 60 { e.step(RunnerInput(duck: true)) }
-        #expect(e.frame(lang: .de, caption: "", palette: .classic) == before)
+        #expect(e.frame(lang: .de, caption: "") == before)
         #expect(texts(before).contains(L10n.t(.gamePaused, .de)))
     }
 
@@ -178,13 +185,13 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
         while e.score < 100 { e.step(e.demoInput) }
         // The blink starts dark, so this frame would show no score.
         e.pause()
-        #expect(texts(e.frame(lang: .en, caption: "", palette: .classic)).contains(RunnerEngine.digits(e.score)))
+        #expect(texts(e.frame(lang: .en, caption: "")).contains(RunnerEngine.digits(e.score)))
         e.step(RunnerInput(jump: true))
         e.place(.cactusLarge, x: RunnerTuning.clawdX + e.speed, bottom: RunnerTuning.groundY - e.lift)
         e.step(RunnerInput())
         #expect(e.phase == .over)
         let score = RunnerEngine.digits(e.score)
-        #expect(texts(e.frame(lang: .en, caption: "", palette: .classic)).contains("HI \(score)  \(score)"))
+        #expect(texts(e.frame(lang: .en, caption: "")).contains("HI \(score)  \(score)"))
     }
 
     @Test func aNewRoundStartsOverAndKeepsTheHighScore() {
@@ -205,7 +212,7 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
             e.step(RunnerInput(jump: true))
             return (0 ..< 900).map { _ in
                 e.step(e.demoInput)
-                return e.frame(lang: .en, caption: "", palette: .classic)
+                return e.frame(lang: .en, caption: "")
             }
         }
         #expect(play() == play())
@@ -213,15 +220,15 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
 
     @Test func theFrameShowsWhatThePhaseAsksFor() {
         let e = RunnerEngine(random: SeededRandomSource(seed: 3), highScore: 42)
-        #expect(texts(e.frame(lang: .en, caption: "resets in 1h 05m", palette: .classic)).contains("Press Space or click to jump"))
-        #expect(texts(e.frame(lang: .en, caption: "resets in 1h 05m", palette: .classic)).contains("resets in 1h 05m"))
-        #expect(texts(e.frame(lang: .en, caption: "", palette: .classic)).contains("HI 00042  00000"))
+        #expect(texts(e.frame(lang: .en, caption: "resets in 1h 05m")).contains("Press Space or click to jump"))
+        #expect(texts(e.frame(lang: .en, caption: "resets in 1h 05m")).contains("resets in 1h 05m"))
+        #expect(texts(e.frame(lang: .en, caption: "")).contains("HI 00042  00000"))
         e.step(RunnerInput(jump: true))
         while e.phase == .running { e.step(RunnerInput()) }
-        #expect(texts(e.frame(lang: .de, caption: "", palette: .classic)).contains("SPIEL VORBEI"))
-        #expect(!texts(e.frame(lang: .en, caption: "", palette: .classic)).contains("Space or click to run again"))
+        #expect(texts(e.frame(lang: .de, caption: "")).contains("SPIEL VORBEI"))
+        #expect(!texts(e.frame(lang: .en, caption: "")).contains("Space or click to run again"))
         for _ in 0 ..< RunnerTuning.restartDelayTicks { e.step(RunnerInput()) }
-        #expect(texts(e.frame(lang: .en, caption: "", palette: .classic)).contains("Space or click to run again"))
+        #expect(texts(e.frame(lang: .en, caption: "")).contains("Space or click to run again"))
     }
 
     @Test func theScoreHasFiveDigits() {
@@ -251,9 +258,6 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
         let classic = RunnerEngine.showcase(lang: .en, caption: "c", back: "b", palette: .classic)
         let themed = RunnerEngine.showcase(lang: .en, caption: "c", back: "b", palette: p)
         func art(_ f: RunnerFrame) -> [DrawOp] { f.ops.filter { if case .rects = $0 { true } else { false } } }
-        func lines(_ f: RunnerFrame) -> [(text: String, color: RGBA)] {
-            f.ops.compactMap { if case let .text(s, _, _, _, color, _, _) = $0 { (s, color) } else { nil } }
-        }
         for (a, b) in zip(classic, themed) {
             #expect(b.frame.background == p.background)
             #expect(art(b.frame) == art(a.frame))

@@ -16,9 +16,10 @@ struct GameView: View {
     let model: GameModel
 
     var body: some View {
-        let layers = DrawOpRenderer.layers(model.frame.ops)
+        let frame = model.frame
+        let layers = DrawOpRenderer.layers(frame.ops)
         Canvas { ctx, size in
-            ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(rgba: model.frame.background)))
+            ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(rgba: frame.background)))
             let k = min(size.width / RunnerTuning.width, size.height / RunnerTuning.height)
             ctx.translateBy(x: (size.width - RunnerTuning.width * k) / 2, y: (size.height - RunnerTuning.height * k) / 2)
             ctx.scaleBy(x: k, y: k)

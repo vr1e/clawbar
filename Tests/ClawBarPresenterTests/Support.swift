@@ -1,18 +1,19 @@
 import Foundation
-import ClawBarPresenter
+@testable import ClawBarPresenter
 import ClawBarShared
 
-/// The sample's world: Berlin at `Samples.now`, the example home directory.
+/// The sample's world: Berlin at `Samples.now`, the example home directory. A `palette` replaces the config's.
 func render(
     _ data: DataSnapshot = .sample, config: Config = Config(), lang: Lang = .en,
-    now: Date = Samples.now, tickError: Bool = false
+    now: Date = Samples.now, tickError: Bool = false, palette: ThemePalette? = nil
 ) -> WidgetViewState {
     var config = config
     config.language = lang.rawValue
-    return WidgetPresenter.make(PresenterInput(
+    let input = PresenterInput(
         config: config, now: now, timeZone: Samples.timeZone, data: data, tickError: tickError,
         homeDirectory: Samples.home
-    ))
+    )
+    return palette.map { WidgetPresenter.make(input, palette: $0) } ?? WidgetPresenter.make(input)
 }
 
 /// The sample with its usage changed.
