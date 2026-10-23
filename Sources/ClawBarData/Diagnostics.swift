@@ -1,149 +1,182 @@
 import Foundation
 import ClawBarShared
 
-/// `ClawBar --diagnose`: every probe once, in the live environment, one redacted line per finding.
+/// `ClawBar --diagnose`: the data engine run once at one instant with every block on, one redacted line per finding.
 public enum Diagnostics {
     /// Runs every probe once in the live environment and reports what it found, redacted.
     public static func run(config: Config, paths: AppPaths) async -> DiagnosticsReport {
         await run(config: config, paths: paths, deps: .live())
     }
 
-    static func run(config raw: Config, paths: AppPaths, deps: DataController.Dependencies) async -> DiagnosticsReport {
-        let config = raw.clamped()
-        let home = deps.home
-        var lines = ["\(AppInfo.title) · diagnostics"]
-        func say(_ s: String) { lines.append(Redact.text(s, home: home)) }
+    static func run(config: Config, paths: AppPaths, deps: CommandRecipes.Dependencies) async -> DiagnosticsReport {
         defer { deps.runner.shutdown() }
+        var pass = Pass(config: config, paths: paths, deps: deps)
+        await pass.run()
+        return DiagnosticsReport(lines: pass.lines)
+    }
 
-        let login = await deps.loginShell(deps.runner, deps.environment, home)
-        if let login {
-            let folders = (login.path ?? "").split(separator: ":").count
-            say("login shell: \(LoginShell.shell(environment: deps.environment)) · PATH \(folders) folders · CLAUDE_CONFIG_DIR \(login.claudeConfigDir ?? "unset")")
-        } else {
-            say("login shell: no answer")
+    /// One pass of the engine, driven as the app drives it: a tick, its commands in order, then a sessions poll,
+    /// until a tick asks for nothing. At one instant, so a slot that started is never due again.
+    private struct Pass {
+        let deps: CommandRecipes.Dependencies
+        let recipes: CommandRecipes
+        let config: Config
+        let now: Date
+        let latch: UsageLatch?
+        var engine: DataEngine
+        var lines = ["\(AppInfo.title) · diagnostics"]
+        /// The last registry read: the account's answer may move the directory mid-pass.
+        var sessions: [SessionInfo] = []
+        var probedUsage = false
+
+        init(config raw: Config, paths: AppPaths, deps: CommandRecipes.Dependencies) {
+            self.deps = deps
+            recipes = CommandRecipes(deps: deps, paths: paths)
+            // Every block on: a hidden row is still worth a look here.
+            var config = raw.clamped()
+            config.showStatus = true
+            config.showAccount = true
+            config.showSessions = true
+            config.showHistory = true
+            config.expanded = true
+            self.config = config
+            now = deps.clock()
+            latch = recipes.savedLatch()
+            engine = DataEngine(config: config, environment: deps.environment, home: deps.home, latch: latch, history: [])
         }
 
-        guard let claude = ClaudeLocator(home: home, candidates: deps.candidates).locate(configPath: config.claudePath, login: login)
-        else {
-            say("claude: not found")
-            await tail(config: config, deps: deps, account: nil, login: login, say: say)
-            return DiagnosticsReport(lines: lines)
+        mutating func run() async {
+            while true {
+                let asked = engine.handle(.tick, now: now)
+                if asked.isEmpty { break }
+                await drive(asked)
+                await drive(engine.handle(.pollSessions, now: now))
+            }
+            say("config dir: \(engine.configDirectory)")
+            let names = sessions.map { s in
+                let state = s.state == .waiting && s.waitingFor != nil ? "waiting: \(s.waitingFor!)" : s.state.rawValue
+                return "\(s.name) (\(state))"
+            }
+            say("sessions: \(sessions.count)" + (names.isEmpty ? "" : " · " + names.joined(separator: ", ")))
+            if !probedUsage, let latch, let issue = engine.snapshot.usageIssue, issue.isLatched {
+                say("usage: latched for \(latch.version): \(DataEngine.describe(issue))")
+            }
+            await weather()
         }
-        say("claude: \(claude.path) (\(claude.source.rawValue))")
-        say("install hint: \(UpdateRunner.installHint(claudePath: claude.path)?.rawValue ?? "none")")
-        let env = ChildEnv.make(inherited: deps.environment, login: login, claude: claude.path)
 
-        // The account first: its configDirectory decides where settings.json and the sessions live.
-        let account = AccountProbe.interpret(await deps.runner.run(AccountProbe.spec(claude: claude.path, environment: env, home: home)))
-        let configDir = ClaudeConfigDir.resolve(account: account, login: login, environment: deps.environment, home: deps.home)
-
-        let local = VersionProbe.local(await deps.runner.run(VersionProbe.spec(claude: claude.path, environment: env, home: home)))
-        let channel = VersionProbe.channel(settings: try? Data(contentsOf: URL(fileURLWithPath: configDir).appendingPathComponent("settings.json")))
-        let body = try? await deps.http.get(VersionProbe.latestURL(channel: channel), timeout: 15)
-        let latest = body.flatMap { VersionProbe.latest(String(decoding: $0, as: UTF8.self)) }
-        let state = VersionState(local: local, latest: latest)
-        say("version: \(local ?? "unknown") · channel \(channel) · latest \(latest ?? "unknown") · \(state.updateAvailable ? "update available" : "up to date")")
-
-        let store = LatchStore(url: paths.stateFile)
-        if let latch = store.load(), let local, latch.holds(forVersion: local) {
-            say("usage: latched for \(latch.version): \(DataEngine.describe(latch.issue))")
-        } else {
-            let result = await deps.runner.run(UsageProbe.spec(claude: claude.path, environment: env, home: home))
-            let report = UsageProbe.interpret(result, now: deps.clock(), timeZone: deps.timeZone)
-            switch report.outcome {
-            case .usage(let u):
-                say("usage: " + usageLine(u, zone: deps.timeZone))
-                if !report.unreadStamps.isEmpty {
-                    say("usage stamps without a date: " + report.unreadStamps.map { "\"\($0)\"" }.joined(separator: ", "))
+        /// Depth-first: an answer's commands run before the next command of the batch, as the app would have them.
+        private mutating func drive(_ commands: [DataCommand]) async {
+            for command in commands {
+                switch command {
+                case .log(let line):
+                    say("log: \(line)")
+                case .saveHistory:
+                    // A look, not a sample: usage-history.json is the app's record of what it showed.
+                    break
+                default:
+                    let started = ContinuousClock.now
+                    guard let event = await recipes.answer(command, now: now) else { continue }
+                    let next = engine.handle(event, now: now)
+                    report(event, took: ContinuousClock.now - started)
+                    await drive(next)
                 }
-                if let d = u.day { say("usage 24h: \(d.requests) requests · \(d.sessions) sessions · \(d.lines.count) lines") }
-                if let w = u.week7 { say("usage 7d: \(w.requests) requests · \(w.sessions) sessions · \(w.lines.count) lines") }
-            case .issue(let issue):
-                say("usage: \(DataEngine.describe(issue))")
-                if let local, let latch = UsageLatch(version: local, issue: issue) { try? store.save(latch) }
-            }
-            if let e = report.envelope {
-                let cost = e.costUSD == 0 ? "0" : "\(e.costUSD)"
-                say("usage guard: num_turns \(e.numTurns) · total_cost_usd \(cost) · tokens \(e.tokens) · modelUsage \(e.modelUsageCount) · \(e.spentNothing ? "ok" : "TRIPPED")")
             }
         }
 
-        if let account {
-            let who = account.loggedIn ? [account.plan, Redact.email(account.email)].filter { !$0.isEmpty }.joined(separator: " · ") : "not logged in"
-            say("account: \(who)")
-        } else {
-            say("account: no answer from claude auth status")
+        /// One answer in the report's words.
+        private mutating func report(_ event: DataEvent, took: Duration) {
+            switch event {
+            case .loginShell(let login):
+                guard let login else { return say("login shell: no answer") }
+                let folders = (login.path ?? "").split(separator: ":").count
+                say("login shell: \(LoginShell.shell(environment: deps.environment)) · PATH \(folders) folders · CLAUDE_CONFIG_DIR \(login.claudeConfigDir ?? "unset")")
+            case .located(let found, let hint):
+                guard let found else { return say("claude: not found") }
+                say("claude: \(found.path) (\(found.source.rawValue))")
+                say("install hint: \(hint?.rawValue ?? "none")")
+            case .sessionsRead(let read):
+                sessions = read
+            case .version(let local, let latest, let channel):
+                let state = VersionState(local: local, latest: latest)
+                say("version: \(local ?? "unknown") · channel \(channel) · latest \(latest ?? "unknown") · \(state.updateAvailable ? "update available" : "up to date")")
+            case .changelog(let body):
+                guard body != nil else { return say("changelog: no answer from \(AppInfo.changelogRaw.host ?? "")") }
+                say("changelog: \(engine.snapshot.version.changes?.items.count ?? 0) items")
+            case .usage(let report):
+                probedUsage = true
+                switch report.outcome {
+                case .usage(let u):
+                    say("usage: " + Self.usageLine(u, zone: deps.timeZone))
+                    if !report.unreadStamps.isEmpty {
+                        say("usage stamps without a date: " + report.unreadStamps.map { "\"\($0)\"" }.joined(separator: ", "))
+                    }
+                    if let d = u.day { say("usage 24h: \(d.requests) requests · \(d.sessions) sessions · \(d.lines.count) lines") }
+                    if let w = u.week7 { say("usage 7d: \(w.requests) requests · \(w.sessions) sessions · \(w.lines.count) lines") }
+                case .issue(let issue):
+                    say("usage: \(DataEngine.describe(issue))")
+                }
+                if let e = report.envelope {
+                    let cost = e.costUSD == 0 ? "0" : "\(e.costUSD)"
+                    say("usage guard: num_turns \(e.numTurns) · total_cost_usd \(cost) · tokens \(e.tokens) · modelUsage \(e.modelUsageCount) · \(e.spentNothing ? "ok" : "TRIPPED")")
+                }
+            case .account(let account):
+                guard let account else { return say("account: no answer from claude auth status") }
+                let who = account.loggedIn ? [account.plan, Redact.email(account.email)].filter { !$0.isEmpty }.joined(separator: " · ") : "not logged in"
+                say("account: \(who)")
+            case .status(let status):
+                guard let s = status else { return say("status: no answer from \(AppInfo.statusSummary.host ?? "")") }
+                say("status: \(s.indicator) · incidents \(s.incidents.count) · broken \(s.broken.count)")
+            case .projects(let scan):
+                // Counts only: which projects ran this week is the user's business.
+                var parts = [
+                    "\(scan.files) transcripts", String(format: "%.0f MB", Double(scan.bytes) / 1_048_576), "\(scan.usage.projects.count) projects",
+                    String(format: "%.1f s", took / .seconds(1)),
+                ]
+                if scan.usage.unpriced > 0 {
+                    parts.append("\(scan.usage.unpriced) replies without a list price (\(scan.unpricedModels.joined(separator: ", ")))")
+                }
+                if scan.unreadable > 0 { parts.append("\(scan.unreadable) unreadable") }
+                say("projects: " + parts.joined(separator: " · "))
+            default:
+                break
+            }
         }
-        await tail(config: config, deps: deps, account: account, login: login, say: say)
-        return DiagnosticsReport(lines: lines)
-    }
 
-    /// The probes that need no claude: sessions, status, weather.
-    private static func tail(
-        config: Config, deps: DataController.Dependencies, account: AccountInfo?, login: LoginEnvironment?,
-        say: (String) -> Void
-    ) async {
-        let configDir = ClaudeConfigDir.resolve(account: account, login: login, environment: deps.environment, home: deps.home)
-        say("config dir: \(configDir)")
-        let registry = SessionRegistry(
-            directory: SessionRegistry.directory(configDir: configDir, home: deps.home), table: deps.table, readFile: deps.readFile
-        )
-        let sessions = registry.read(excluding: deps.runner.childPIDs, now: deps.clock())
-        let names = sessions.map { s in
-            let state = s.state == .waiting && s.waitingFor != nil ? "waiting: \(s.waitingFor!)" : s.state.rawValue
-            return "\(s.name) (\(state))"
-        }
-        say("sessions: \(sessions.count)" + (names.isEmpty ? "" : " · " + names.joined(separator: ", ")))
-
-        // Counts only: which projects ran this week is the user's business.
-        let started = ContinuousClock.now
-        let scan = await TranscriptScanner().scan(root: TranscriptScanner.root(configDir: configDir), now: deps.clock())
-        var projects = [
-            "\(scan.files) transcripts", String(format: "%.0f MB", Double(scan.bytes) / 1_048_576), "\(scan.usage.projects.count) projects",
-            String(format: "%.1f s", (ContinuousClock.now - started) / .seconds(1)),
-        ]
-        if scan.usage.unpriced > 0 {
-            projects.append("\(scan.usage.unpriced) replies without a list price (\(scan.unpricedModels.joined(separator: ", ")))")
-        }
-        if scan.unreadable > 0 { projects.append("\(scan.unreadable) unreadable") }
-        say("projects: " + projects.joined(separator: " · "))
-
-        if let body = try? await deps.http.get(AppInfo.statusSummary, timeout: 15), let s = StatusProbe.parse(body) {
-            say("status: \(s.indicator) · incidents \(s.incidents.count) · broken \(s.broken.count)")
-        } else {
-            say("status: no answer from \(AppInfo.statusSummary.host ?? "")")
+        /// The weather is not an engine slot yet: one lookup outside the pass.
+        private mutating func weather() async {
+            let (place, wx, provider) = await WeatherService.fetchOnce(config: config, http: deps.http, now: deps.clock)
+            guard let place else { return say("weather: no location") }
+            var parts = [config.weatherLat != nil && config.weatherLon != nil ? "configured coordinates" : "IP location"]
+            if let city = place.city { parts.append(city) }
+            if let provider { parts.append(provider) }
+            if let zone = wx?.timeZoneID ?? place.timeZoneID { parts.append(zone) }
+            if let wx {
+                parts.append("code \(wx.code) (\(WeatherKinds.name(code: wx.code, lang: .en)))")
+                parts.append(String(format: "%.1f °C", wx.tempC))
+                parts.append(String(format: "wind %.1f km/h", wx.windKmh))
+            } else {
+                parts.append("no weather")
+            }
+            say("weather: " + parts.joined(separator: " · "))
         }
 
-        let (place, wx, provider) = await WeatherService.fetchOnce(config: config, http: deps.http, now: deps.clock)
-        guard let place else { return say("weather: no location") }
-        var parts = [config.weatherLat != nil && config.weatherLon != nil ? "configured coordinates" : "IP location"]
-        if let city = place.city { parts.append(city) }
-        if let provider { parts.append(provider) }
-        if let zone = wx?.timeZoneID ?? place.timeZoneID { parts.append(zone) }
-        if let wx {
-            parts.append("code \(wx.code) (\(WeatherKinds.name(code: wx.code, lang: .en)))")
-            parts.append(String(format: "%.1f °C", wx.tempC))
-            parts.append(String(format: "wind %.1f km/h", wx.windKmh))
-        } else {
-            parts.append("no weather")
+        private mutating func say(_ s: String) { lines.append(Redact.text(s, home: deps.home)) }
+
+        private static func usageLine(_ u: UsageSnapshot, zone: TimeZone) -> String {
+            var parts: [String] = []
+            if let p = u.sessionPercent { parts.append("session \(p)%") }
+            if let r = u.sessionReset { parts.append("resets \(stamp(r, zone))") }
+            if let p = u.weekPercent { parts.append("week \(p)%") }
+            if let r = u.weekReset { parts.append("resets \(stamp(r, zone))") }
+            for m in u.modelWeeks { parts.append("\(m.name) \(m.percent)%") }
+            return parts.joined(separator: " · ")
         }
-        say("weather: " + parts.joined(separator: " · "))
-    }
 
-    private static func usageLine(_ u: UsageSnapshot, zone: TimeZone) -> String {
-        var parts: [String] = []
-        if let p = u.sessionPercent { parts.append("session \(p)%") }
-        if let r = u.sessionReset { parts.append("resets \(stamp(r, zone))") }
-        if let p = u.weekPercent { parts.append("week \(p)%") }
-        if let r = u.weekReset { parts.append("resets \(stamp(r, zone))") }
-        for m in u.modelWeeks { parts.append("\(m.name) \(m.percent)%") }
-        return parts.joined(separator: " · ")
-    }
-
-    private static func stamp(_ d: Date, _ zone: TimeZone) -> String {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = zone
-        let c = cal.dateComponents([.year, .month, .day, .hour, .minute], from: d)
-        return String(format: "%04d-%02d-%02d %02d:%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0, c.hour ?? 0, c.minute ?? 0)
+        private static func stamp(_ d: Date, _ zone: TimeZone) -> String {
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = zone
+            let c = cal.dateComponents([.year, .month, .day, .hour, .minute], from: d)
+            return String(format: "%04d-%02d-%02d %02d:%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0, c.hour ?? 0, c.minute ?? 0)
+        }
     }
 }

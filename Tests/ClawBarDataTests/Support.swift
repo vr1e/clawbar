@@ -94,3 +94,57 @@ func assistantLine(
 func weights(_ usage: ProjectUsage) -> [String: Double] {
     Dictionary(uniqueKeysWithValues: usage.projects.map { ($0.path, ($0.weight * 1e6).rounded() / 1e6) })
 }
+
+/// The data side over fakes: a fake claude on disk (never run), a fake runner, fake HTTP and a clock stopped at t0.
+/// The recipes, the controller and `--diagnose` all take `deps` from it.
+@MainActor
+final class Harness {
+    static let t0 = utc("2026-10-16T22:30:00Z")
+    let dir = TempDir("cb-dc")
+    let runner = FakeRunner()
+    let http = FakeHTTP()
+    let spy = ReadSpy()
+    var table = FakeTable(starts: [:])
+    var shell: LoginEnvironment?
+    var config = Config()
+    /// Added to the environment the controller inherits.
+    var extraEnvironment: [String: String] = [:]
+
+    var home: String { dir.url.appendingPathComponent("home").path }
+    var paths: AppPaths { dir.paths }
+
+    init(claude: Bool = true) {
+        config.showSky = false
+        if claude { config.claudePath = installClaude("tools/claude") }
+        runner.reply(.version, stdout: "2.1.302 (Claude Code)\n")
+        // No configDirectory: the auth probe's outranks the shell's, so one would move the sessions mid-test.
+        runner.reply(.account, stdout: #"{"loggedIn": true, "subscriptionType": "team", "email": "user@example.com"}"#)
+        http.answer("status.claude.com", Fixture.data("status/ok.json"))
+        http.answer("downloads.claude.ai", Data("2.1.302\n".utf8))
+    }
+
+    func installClaude(_ relative: String) -> String {
+        dir.write("home/\(relative)", "#!/bin/sh\nexit 0\n", executable: true).path
+    }
+
+    var deps: CommandRecipes.Dependencies {
+        let shell = shell, t0 = Harness.t0
+        return CommandRecipes.Dependencies(
+            runner: runner, http: http, clock: { t0 }, timeZone: berlin,
+            environment: ["HOME": home, "PATH": "/usr/bin:/bin", "CLAUDECODE": "1"].merging(extraEnvironment) { $1 }, home: home,
+            table: table, readFile: spy.reader, loginShell: { _, _, _ in shell }, candidates: []
+        )
+    }
+
+    func make() -> DataController { DataController(config: config, paths: paths, deps: deps) }
+
+    func recipes() -> CommandRecipes { CommandRecipes(deps: deps, paths: paths) }
+
+    func session(_ pid: Int32, in configDir: String, status: String = "busy", _ extra: [String: Any] = [:]) {
+        let j: [String: Any] = ["pid": pid, "sessionId": "s\(pid)", "cwd": "/Users/example/p\(pid)", "status": status, "kind": "interactive"]
+            .merging(extra) { $1 }
+        let url = URL(fileURLWithPath: configDir).appendingPathComponent("sessions/\(pid).json")
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? JSONSerialization.data(withJSONObject: j).write(to: url)
+    }
+}

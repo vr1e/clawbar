@@ -544,4 +544,35 @@ import ClawBarShared
         start(&current, now: t0)
         #expect(current.handle(.version(local: "2.1.303", latest: "2.1.303"), now: t0).isEmpty)
     }
+
+    // MARK: - One instant
+
+    /// What `--diagnose` relies on: at one instant every slot starts once and the next tick asks for nothing.
+    @Test func atOneInstantEverySlotStartsOnceAndThenNothingIsDue() {
+        var e = engine {
+            $0.showHistory = true
+            $0.expanded = true
+        }
+        #expect(kinds(start(&e, now: t0)) == ["probeStatus", "runLoginShell", "readSessions", "locate", "scanProjects", "probeVersion", "probeUsage", "probeAccount"])
+        #expect(e.handle(.version(local: "2.1.301", latest: "2.1.303"), now: t0) == [.fetchChangelog])
+        _ = e.handle(.changelog(nil), now: t0)
+        _ = e.handle(usage(50), now: t0)
+        _ = e.handle(.account(AccountInfo(loggedIn: true, plan: "Max", configDirectory: "/Users/example/.claude-work")), now: t0)
+        _ = e.handle(.status(ServiceStatus(indicator: "none")), now: t0)
+        _ = e.handle(.sessionsRead([]), now: t0)
+        _ = e.handle(.projects(ProjectScan()), now: t0)
+        // The account moved the transcripts once; the poll always reads, so it is not a reason to go on.
+        #expect(e.handle(.tick, now: t0) == [.scanProjects(root: "/Users/example/.claude-work/projects")])
+        #expect(kinds(e.handle(.pollSessions, now: t0)) == ["readSessions"])
+        _ = e.handle(.projects(ProjectScan()), now: t0)
+        #expect(e.handle(.tick, now: t0).isEmpty)
+        // A latch lifted by the version re-arms the usage probe once.
+        var latched = engine(latch: UsageLatch(version: "2.1.301", issue: .flagRejected("--x")))
+        #expect(!kinds(start(&latched, now: t0)).contains("probeUsage"))
+        #expect(kinds(latched.handle(.version(local: "2.1.302", latest: "2.1.302"), now: t0)) == ["saveLatch", "probeUsage"])
+        _ = latched.handle(usage(50), now: t0)
+        _ = latched.handle(.account(AccountInfo(loggedIn: true)), now: t0)
+        _ = latched.handle(.status(ServiceStatus(indicator: "none")), now: t0)
+        #expect(latched.handle(.tick, now: t0).isEmpty)
+    }
 }
