@@ -64,6 +64,7 @@ struct StateDump {
         } else {
             add("usage.history", "none")
         }
+        add("projects", snapshot.projects.map { "\($0.projects.count), scanned \(Self.iso(snapshot.projectsAt))" } ?? "none")
         let busy = snapshot.count(of: .busy), waiting = snapshot.count(of: .waiting)
         add("sessions", "\(snapshot.sessions.count) (busy \(busy), waiting \(waiting)), read: \(snapshot.sessionsRead)")
         add("status.indicator", snapshot.status?.indicator ?? "none")

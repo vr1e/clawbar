@@ -365,6 +365,75 @@ import ClawBarShared
         #expect(e.snapshot.account == account)
     }
 
+    // MARK: - Projects
+
+    @Test func theTranscriptsAreScannedOnlyWithTheChartOnAndTheDetailsOpen() {
+        for (history, expanded) in [(false, true), (true, false)] {
+            var e = engine {
+                $0.showHistory = history
+                $0.expanded = expanded
+            }
+            #expect(!kinds(start(&e, now: t0)).contains("scanProjects"))
+        }
+        var e = engine {
+            $0.showHistory = true
+            $0.expanded = true
+        }
+        // Before the shell answers the config dir is unknown; claude itself is not needed.
+        #expect(!kinds(e.handle(.tick, now: t0)).contains("scanProjects"))
+        _ = e.handle(.loginShell(LoginEnvironment()), now: t0)
+        #expect(e.handle(.located(nil, installHint: nil), now: t0).contains(.scanProjects(root: "/Users/example/.claude/projects")))
+        // Every 15 minutes from the last attempt, and never two at once.
+        #expect(!kinds(e.handle(.tick, now: t0 + 900)).contains("scanProjects"))
+        _ = e.handle(.projects(ProjectScan()), now: t0 + 30)
+        #expect(!kinds(e.handle(.tick, now: t0 + 899)).contains("scanProjects"))
+        #expect(kinds(e.handle(.tick, now: t0 + 900)).contains("scanProjects"))
+    }
+
+    @Test func openingTheDetailsScansAtTheNextTick() {
+        var e = engine { $0.showHistory = true }
+        start(&e, now: t0)
+        var open = e.config
+        open.expanded = true
+        _ = e.handle(.configChanged(open), now: t0 + 5)
+        #expect(kinds(e.handle(.tick, now: t0 + 6)).contains("scanProjects"))
+    }
+
+    @Test func aScanLandsInTheSnapshotAndItsProblemsAreLoggedOnce() {
+        var e = engine {
+            $0.showHistory = true
+            $0.expanded = true
+        }
+        start(&e, now: t0)
+        let usage = ProjectUsage(projects: [ProjectWeight(path: "/Users/example/api", weight: 2)], unpriced: 3)
+        let scan = ProjectScan(usage: usage, files: 4, bytes: 1000, unreadable: 1, unpricedModels: ["claude-opus-6", "claude-quill-1"])
+        #expect(logs(e.handle(.projects(scan), now: t0 + 1)) == [
+            "projects: unreadable transcripts: 1",
+            "projects-price: no list price for claude-opus-6, claude-quill-1; estimated from the closest one listed",
+        ])
+        #expect(e.snapshot.projects == usage)
+        #expect(e.snapshot.projectsAt == t0 + 1)
+        #expect(logs(e.handle(.projects(scan), now: t0 + 901)).isEmpty)
+    }
+
+    @Test func anAccountInAnotherConfigDirHasItsTranscriptsScannedAtOnce() {
+        var e = engine {
+            $0.showHistory = true
+            $0.expanded = true
+        }
+        start(&e, now: t0)
+        _ = e.handle(.projects(ProjectScan()), now: t0 + 1)
+        _ = e.handle(.account(AccountInfo(loggedIn: true, plan: "Max", configDirectory: "/Users/example/.claude")), now: t0 + 2)
+        #expect(!kinds(e.handle(.tick, now: t0 + 3)).contains("scanProjects"))
+        _ = e.handle(.account(AccountInfo(loggedIn: true, plan: "Max", configDirectory: "/Users/example/.claude-work")), now: t0 + 4)
+        #expect(e.handle(.tick, now: t0 + 5).contains(.scanProjects(root: "/Users/example/.claude-work/projects")))
+        // A move during a scan waits for it, then scans the new root.
+        _ = e.handle(.account(AccountInfo(loggedIn: true, plan: "Max", configDirectory: "/Users/example/.claude")), now: t0 + 6)
+        #expect(!kinds(e.handle(.tick, now: t0 + 7)).contains("scanProjects"))
+        _ = e.handle(.projects(ProjectScan()), now: t0 + 8)
+        #expect(e.handle(.tick, now: t0 + 9).contains(.scanProjects(root: "/Users/example/.claude/projects")))
+    }
+
     // MARK: - The update and the changelog
 
     @Test func anUpdateRunsOnceAndTheVersionIsLookedAtAgainAfterIt() {

@@ -103,6 +103,18 @@ final class Counter {
         #expect(h.make().snapshot.history == [sample])
     }
 
+    @Test func theWeeksTranscriptsLandInTheSnapshot() async {
+        let h = Harness()
+        h.config.showHistory = true
+        h.config.expanded = true
+        h.dir.write("home/.claude/projects/-Users-example-api/s1.jsonl", assistantLine("msg_1", at: t0, output: 1000) + "\n")
+        let dc = h.make()
+        dc.tick(now: t0)
+        #expect(await eventually { dc.snapshot.projects != nil })
+        #expect(dc.snapshot.projects?.projects == [ProjectWeight(path: "/Users/example/api", weight: 0.02)])
+        #expect(dc.snapshot.projectsAt == t0)
+    }
+
     @Test func aHistoryFileThatCannotBeWrittenIsLogged() async throws {
         let h = Harness()
         try FileManager.default.createDirectory(at: h.paths.historyFile, withIntermediateDirectories: true)

@@ -34,6 +34,17 @@ import ClawBarShared
         #expect(h.runner.shutdowns == 1)
     }
 
+    @Test func theTranscriptsAreCountedButNeverNamed() async {
+        let h = Harness()
+        h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
+        let line = assistantLine("msg_1", at: Harness.t0, cwd: "/Users/example/secret", model: "claude-opus-6", output: 1000)
+        h.dir.write("home/.claude/projects/-Users-example-secret/s1.jsonl", line + "\n")
+        let text = await Diagnostics.run(config: h.config, paths: h.paths, deps: h.deps).text
+        #expect(text.contains("projects: 1 transcripts · 0 MB · 1 projects · "))
+        #expect(text.contains(" s · 1 replies without a list price (claude-opus-6)\n"))
+        #expect(!text.contains("secret"))
+    }
+
     @Test func aTildeConfigDirIsExpandedAsTheControllerDoes() async {
         let h = Harness()
         h.extraEnvironment = ["CLAUDE_CONFIG_DIR": "~/cfg"]
