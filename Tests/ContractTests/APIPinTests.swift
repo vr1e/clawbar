@@ -40,9 +40,9 @@ private func pinDiagnostics(_ paths: AppPaths) async {
 }
 
 private func pinPresenter() {
-    let _: WidgetViewState = WidgetPresenter.make(PresenterInput(
-        config: Config(), now: Date(), timeZone: .gmt, data: .empty, tickError: false, appVersion: AppInfo.version
-    ))
+    let input = PresenterInput(config: Config(), now: Date(), timeZone: .gmt, data: .empty, tickError: false, appVersion: AppInfo.version)
+    let _: WidgetViewState = WidgetPresenter.make(input)
+    let _: HistoryHover = HistoryReadout.hover(x: 118, chart: HistoryView(label: ""), input: input)
 }
 
 private func pinClawd() {

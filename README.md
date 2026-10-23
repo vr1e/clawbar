@@ -195,10 +195,10 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   saved position lies on a display that is gone.
 - Clawd picks his walks inside his play area instead of heading for the edge, and the bars span exactly the
   widget's width.
-- The 7-day chart spans the bars' width too, so its newest hour is not cut off. It starts empty, since ClawBar's
-  `/usage` checks never left transcripts to fill it from, and its lines break after a pause that grows with
-  `usageIntervalSeconds` rather than after a fixed 20 minutes. Without Claude Code or plan limits it says *no data*
-  instead of promising that the history starts now.
+- The 7-day chart spans the bars' width too, so its newest hour is neither cut off nor out of the hover's reach. It
+  starts empty, since ClawBar's `/usage` checks never left transcripts to fill it from, and its lines and the hover's
+  readout break off after a pause that grows with `usageIntervalSeconds` rather than after a fixed 20 minutes.
+  Without Claude Code or plan limits it says *no data* instead of promising that the history starts now.
 - Clawd Run, the game for a used-up session limit, is ClawBar's own; the original has nothing like it.
 
 ## Development

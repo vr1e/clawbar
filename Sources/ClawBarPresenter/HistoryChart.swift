@@ -28,7 +28,9 @@ enum HistoryChart {
             sessionRuns: runs(week, \.session, box, gap: gap),
             weekRuns: runs(week, \.week, box, gap: gap),
             days: days(box, timeZone: timeZone, lang: lang),
-            caption: week.isEmpty ? L10n.t(empty, lang) : ""
+            caption: week.isEmpty ? L10n.t(empty, lang) : "",
+            start: box.start,
+            end: box.end
         )
     }
 
@@ -36,12 +38,14 @@ enum HistoryChart {
     /// does, or every sample would be a stub.
     static func gapMinutes(usageInterval: Int) -> Double { max(20, DataSnapshot.staleAfter(interval: usageInterval) / 60) }
 
-    /// Unix minutes to the chart's box.
+    /// Unix minutes to the chart's box and back.
     struct Box {
         let start: Int
         let end: Int
 
         func x(_ minute: Int) -> Double { HistoryView.width * Double(minute - start) / Double(end - start) }
+        // The original's [int] cast rounds the whole minute, not the offset, half to even.
+        func minute(at x: Double) -> Int { Int((Double(start) + Double(end - start) * x / HistoryView.width).rounded(.toNearestOrEven)) }
     }
 
     /// 1 unit of room above 100% and below 0%, so the stroke is not cut.

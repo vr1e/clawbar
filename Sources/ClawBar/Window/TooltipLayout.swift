@@ -47,7 +47,7 @@ enum TooltipLayout {
             case .version: v.versionTooltip
             case .appVersion: v.appVersionTooltip
             case .account: v.accountTooltip
-            case .percentRow, .number: ""
+            case .percentRow, .number, .history: ""
             }
         }
     }

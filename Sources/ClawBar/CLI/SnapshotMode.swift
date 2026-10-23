@@ -16,6 +16,8 @@ struct SnapshotCase {
     var skyDev = SkyDevState()
     /// False for a state that only its menu bar tooltip shows, so it gets no PNG.
     var card = true
+    /// The pointer this far into the 7-day chart, in base units.
+    var hoverX: Double?
 }
 
 /// Every presenter state the data contract can express, all at `Samples.now` in Berlin.
@@ -110,6 +112,12 @@ enum SnapshotCases {
             chart(&$0)
             $0.data.history = Samples.history
         }
+        add("history-hover") {
+            chart(&$0)
+            $0.data.history = Samples.history
+            // Thursday afternoon, in the session's second window of the day.
+            $0.hoverX = 171
+        }
         add("history-empty") { chart(&$0) }
         add("history-no-limits") {
             chart(&$0)
@@ -177,19 +185,27 @@ enum SnapshotMode {
     }
 
     static func view(for c: SnapshotCase, lang: Lang) -> WidgetViewState {
+        WidgetPresenter.make(input(for: c, lang: lang))
+    }
+
+    static func input(for c: SnapshotCase, lang: Lang) -> PresenterInput {
         var config = c.config
         config.language = lang.rawValue
-        return WidgetPresenter.make(PresenterInput(
+        return PresenterInput(
             config: config, now: Samples.now, timeZone: Samples.timeZone, data: c.data, tickError: c.tickError,
             appVersion: AppInfo.version, homeDirectory: Samples.home
-        ))
+        )
     }
 
     /// The card at 2 pixels per point, with Clawd and the sky after a few seeded ticks.
     static func renderCard(_ c: SnapshotCase, lang: Lang, scale k: Double) -> CGImage? {
-        let view = view(for: c, lang: lang)
+        let input = input(for: c, lang: lang)
+        let view = WidgetPresenter.make(input)
         let layout = LayoutModel()
         var scene = CardRenderer.Scene(view: view, mascotVisible: c.config.showMascot, skyVisible: c.config.showMascot && c.config.showSky)
+        if let x = c.hoverX, let chart = view.history {
+            scene.historyHover = HistoryReadout.hover(x: x, chart: chart, input: input)
+        }
         // A first pass measures the number, which sets the play area Clawd walks in.
         _ = CardRenderer.render(scene, scale: k, layout: layout)
         if scene.mascotVisible {

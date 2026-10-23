@@ -132,6 +132,27 @@ final class LaidOutCard {
         #expect(card.map.control(at: version) == nil)
     }
 
+    @Test func theChartReadsOutItsXAndStillDragsTheWindow() throws {
+        var v = WidgetViewState.sample
+        v.detailsExpanded = true
+        v.history = HistoryView(label: "LIMITS · 7 DAYS")
+        let card = LaidOutCard(v)
+        let chart = try card.rect(.history)
+        #expect(abs(chart.width - 236 * card.k) < 0.01 && abs(chart.height - 44 * card.k) < 0.01)
+        let map = card.map
+        let x = try #require(map.chartX(at: CGPoint(x: chart.midX, y: chart.midY)))
+        #expect(abs(x - 118) < 0.01)
+        #expect(map.chartX(at: CGPoint(x: chart.minX, y: chart.minY)) == 0)
+        #expect(map.chartX(at: CGPoint(x: chart.midX, y: chart.maxY + 1)) == nil)
+        #expect(map.classify(CGPoint(x: chart.midX, y: chart.midY), isSecondary: false) == .drag)
+        // Closed, the chart's rect stays published but reads out nothing.
+        v.detailsExpanded = false
+        v.history = nil
+        card.app.view = v
+        card.relayout()
+        #expect(card.map.chartX(at: CGPoint(x: chart.midX, y: chart.midY)) == nil)
+    }
+
     @Test func withoutClawdOrTheSkyThereIsNoDeveloperMenu() throws {
         let card = LaidOutCard(mascot: false, sky: false)
         let map = card.map, k = card.k

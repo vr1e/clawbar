@@ -37,7 +37,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private var observers: [NSObjectProtocol] = []
     private var widgetVisible = false
     private var occluded = false
-    private var tooltipRefreshPending = false
+    private var regionRefreshPending = false
+    /// Card space, while the pointer is over the widget.
+    private var pointer: CGPoint?
 
     init(paths: AppPaths) {
         self.paths = paths
@@ -74,7 +76,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
                 }
             }
         }
-        layout.onRectsChange = { [unowned self] in scheduleTooltipRefresh() }
+        layout.onRectsChange = { [unowned self] in scheduleRegionRefresh() }
         data.onChange = { [weak self] in self?.recompute() }
 
         statusItem.onToggle = { [unowned self] in toggleWidget() }
@@ -151,12 +153,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     /// The presenter's view of the latest snapshot, into the card and the menu bar item, and Clawd's mood.
     private func recompute(now: Date = Date()) {
-        let snapshot = data.snapshot
-        // The original's "error" stamp marked a failed tick; here the one failure a tick can hit is an unparsable config.json.
-        let input = PresenterInput(
-            config: config, now: now, timeZone: .autoupdatingCurrent, data: snapshot, tickError: configStore.isUnreadable,
-            appVersion: AppInfo.version, homeDirectory: NSHomeDirectory()
-        )
+        let input = presenterInput(now: now)
+        let snapshot = input.data
         let view = WidgetPresenter.make(input)
         if view != app.view { app.view = view }
         statusItem.update(text: view.trayText, color: view.trayColor, mascot: view.trayMascot, tooltip: view.trayTooltip)
@@ -166,7 +164,24 @@ final class AppController: NSObject, WidgetPanelDelegate {
             clawd.apply(ClawdDataInput(snapshot, critPercent: config.critPercent), now: now)
         }
         syncAnimation()
-        scheduleTooltipRefresh()
+        scheduleRegionRefresh()
+    }
+
+    private func presenterInput(now: Date) -> PresenterInput {
+        // The original's "error" stamp marked a failed tick; here the one failure a tick can hit is an unparsable config.json.
+        PresenterInput(
+            config: config, now: now, timeZone: .autoupdatingCurrent, data: data.snapshot, tickError: configStore.isUnreadable,
+            appVersion: AppInfo.version, homeDirectory: NSHomeDirectory()
+        )
+    }
+
+    /// The chart's readout under the pointer, or the legend again once it is off the chart.
+    private func updateHistoryHover() {
+        var hover: HistoryHover?
+        if let p = pointer, let chart = app.view.history, let x = hitMap().chartX(at: p) {
+            hover = HistoryReadout.hover(x: x, chart: chart, input: presenterInput(now: Date()))
+        }
+        if hover != app.historyHover { app.historyHover = hover }
     }
 
     /// Sync-Mascot: the animation runs only while the widget shows, is not covered and has Clawd.
@@ -206,7 +221,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         if app.skyVisible {
             animation.publish(sky.step(size: CGSize(width: CardView.content, height: PlayArea.height), inputs: skyInputs(now: now)))
         }
-        if animation.hearts.visible != heartsVisibleBefore { scheduleTooltipRefresh() }
+        if animation.hearts.visible != heartsVisibleBefore { scheduleRegionRefresh() }
         if clawd.tickMilliseconds != animationInterval { syncAnimation() }
     }
 
@@ -297,7 +312,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         // The occlusion notification corrects this once the window server has placed the panel.
         occluded = false
         syncAnimation()
-        scheduleTooltipRefresh()
+        scheduleRegionRefresh()
     }
 
     private func hideWidget() {
@@ -310,13 +325,16 @@ final class AppController: NSObject, WidgetPanelDelegate {
         widgetVisible ? hideWidget() : showWidget()
     }
 
-    private func scheduleTooltipRefresh() {
-        guard !tooltipRefreshPending else { return }
-        tooltipRefreshPending = true
+    /// The tooltip regions and the chart's readout, once SwiftUI has published the rects they read.
+    private func scheduleRegionRefresh() {
+        guard !regionRefreshPending else { return }
+        regionRefreshPending = true
         DispatchQueue.main.async {
             MainActor.assumeIsolated {
-                self.tooltipRefreshPending = false
+                self.regionRefreshPending = false
                 self.refreshTooltips()
+                // The chart can move or close under a resting pointer.
+                self.updateHistoryHover()
             }
         }
     }
@@ -357,7 +375,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
             }
         case .appVersion: NSWorkspace.shared.open(app.view.appVersionURL)
         case .play: game.show()
-        case .hearts, .percentRow, .number, .reset, .sessions, .account: break
+        case .hearts, .percentRow, .number, .reset, .sessions, .account, .history: break
         }
     }
 
@@ -369,6 +387,16 @@ final class AppController: NSObject, WidgetPanelDelegate {
     func wantsHandCursor(at p: CGPoint) -> Bool {
         let map = hitMap()
         return map.control(at: p) != nil || (map.sprite?.contains(p) ?? false)
+    }
+
+    func pointerMoved(to p: CGPoint) {
+        pointer = p
+        updateHistoryHover()
+    }
+
+    func pointerLeft() {
+        pointer = nil
+        updateHistoryHover()
     }
 
     /// The sky's two developer overrides are the app's; everything else is Clawd's.
