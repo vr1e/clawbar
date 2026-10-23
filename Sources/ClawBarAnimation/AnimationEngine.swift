@@ -25,7 +25,7 @@ public final class AnimationEngine {
 
     /// showMascot: the play area, Clawd and the hearts.
     public var mascotVisible: Bool { config.showMascot }
-    /// showMascot and showSky.
+    /// The sky goes with Clawd: the original's Sync-Mascot collapses it when he hides.
     public var skyVisible: Bool { config.showMascot && config.showSky }
     /// Milliseconds to the next tick: 60 while a Claude Code sequence plays, else 90; nil while nothing moves.
     public var tickMilliseconds: Int? { mascotVisible ? clawd.tickMilliseconds : nil }
@@ -82,7 +82,7 @@ public final class AnimationEngine {
         DevMenu.build(dev: clawd.devState, sky: skyDev, skyVisible: skyVisible, lang: config.lang)
     }
 
-    /// The sky's tooltip, with the sun times a tick now would draw.
+    /// The sky's tooltip, on the real sun times at `now`, also where a forced phase draws the fallback sun.
     public func skyTooltip(now: Date, timeZone: TimeZone) -> String {
         SkyInfo.tooltip(
             weather, place: place, sun: skyInputs(now: now, timeZone: timeZone).sun, now: now, dev: skyDev, lang: config.lang

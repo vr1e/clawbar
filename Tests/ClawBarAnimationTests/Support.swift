@@ -2,6 +2,7 @@ import CoreGraphics
 import Foundation
 import Testing
 import ClawBarAnimation
+@testable import ClawBarClawd
 import ClawBarShared
 
 let t0 = Samples.now
@@ -50,7 +51,10 @@ struct FrameView {
         }
     }
 
+    var body: [CGRect] { rectOps(Palette.clawdBody).first?.rects ?? [] }
     var eyes: [CGRect] { rectOps(Palette.clawdEyes).first?.rects ?? [] }
+    var fx: [CGRect] { rectOps(Palette.clawdFx).first?.rects ?? [] }
+    var sand: [CGRect] { rectOps(Palette.sand).first?.rects ?? [] }
     var sweat: [(rects: [CGRect], opacity: Double)] { rectOps(Palette.sweat) }
     var soul: [(rects: [CGRect], opacity: Double)] { rectOps(Palette.soul) }
     /// The floating heart: the love-coloured layer with the heart's 7 runs.
@@ -72,6 +76,21 @@ struct FrameView {
 
     var bubble: String? { texts.first { $0 != "z" } }
     var z: Bool { texts.contains("z") }
+}
+
+func close(_ a: CGRect, _ b: CGRect, _ eps: Double = 1e-9) -> Bool {
+    abs(a.minX - b.minX) < eps && abs(a.minY - b.minY) < eps && abs(a.width - b.width) < eps && abs(a.height - b.height) < eps
+}
+func close(_ a: [CGRect], _ b: [CGRect]) -> Bool { a.count == b.count && zip(a, b).allSatisfy { close($0, $1) } }
+
+/// The frame draws exactly `pose`: its four layers, in the sprite box's own coordinates.
+func expectPose(_ frame: ClawdFrame, _ pose: ClawdPose, sourceLocation: SourceLocation = #_sourceLocation) {
+    let view = FrameView(frame), want = ClawdSprite.render(pose), o = frame.spriteRect.origin
+    func local(_ r: [CGRect]) -> [CGRect] { r.map { $0.offsetBy(dx: -o.x, dy: -o.y) } }
+    #expect(close(local(view.body), want.body), "body of \(pose)", sourceLocation: sourceLocation)
+    #expect(close(local(view.eyes), want.eyes), "eyes of \(pose)", sourceLocation: sourceLocation)
+    #expect(close(local(view.fx), want.fx), "fx of \(pose)", sourceLocation: sourceLocation)
+    #expect(close(local(view.sand), want.sand), "sand of \(pose)", sourceLocation: sourceLocation)
 }
 
 /// The sky's sprites the scripts reach, recognised by the original's colours and pixel sizes.

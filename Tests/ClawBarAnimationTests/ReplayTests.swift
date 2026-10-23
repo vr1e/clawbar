@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import ClawBarAnimation
+@testable import ClawBarClawd
 import ClawBarShared
 
 /// tools/record-gif.ps1's scenarios through the engine on the virtual clock, frame for frame.
@@ -38,6 +39,7 @@ import ClawBarShared
         #expect(frames[..<24].allSatisfy { $0.soul.isEmpty })
         // The click lands after frame 23: the soul act runs from frame 24, visible for t = 7 … 53.
         #expect(frames[30].soul.isEmpty && frames[31].soul.count == 1 && frames[77].soul.count == 1 && frames[78].soul.isEmpty)
+        expectPose(frames[22].frame, ClawdPose(eyes: .x, flip: true))
     }
 
     @Test func theResetCelebrates() {
@@ -53,6 +55,7 @@ import ClawBarShared
         // The sessions empty after frame 17; the 30-tick burrow runs frames 18 to 47, then the 'z'.
         #expect(frames.firstIndex { $0.z } == 48)
         #expect(frames.last!.z)
+        expectPose(frames.last!.frame, ClawdPose(eyes: .closed, dig: 4))
     }
 
     @Test func theHeartsDrainAndComeBack() {
