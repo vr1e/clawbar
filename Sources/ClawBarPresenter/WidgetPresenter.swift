@@ -199,16 +199,8 @@ private struct Render {
         }
         var line = "\(mark) \(s.name)"
         if s.state == .waiting, let what = s.waitingFor, !what.isEmpty { line += " [\(what)]" }
-        if !s.cwd.isEmpty { line += " — " + homeRelative(s.cwd) }
+        if !s.cwd.isEmpty { line += " — " + HomePath.relative(s.cwd, home: input.homeDirectory) }
         return line
-    }
-
-    private func homeRelative(_ path: String) -> String {
-        var home = input.homeDirectory
-        while home.count > 1, home.hasSuffix("/") { home.removeLast() }
-        guard home.count > 1 else { return path }
-        if path == home { return "~" }
-        return path.hasPrefix(home + "/") ? "~" + path.dropFirst(home.count) : path
     }
 
     private func status(_ v: inout WidgetViewState) {
@@ -247,7 +239,10 @@ private struct Render {
         v.week7Label = t(.uiWeek7)
         (v.dayMain, v.dayExtra) = period(data.usage?.day)
         (v.week7Main, v.week7Extra) = period(data.usage?.week7)
-        v.history = cfg.showHistory && cfg.expanded ? HistoryChart.view(data, config: cfg, now: now, timeZone: input.timeZone) : nil
+        if cfg.showHistory, cfg.expanded {
+            v.history = HistoryChart.view(data, config: cfg, now: now, timeZone: input.timeZone)
+            v.projects = TopProjects.view(data.projects, home: input.homeDirectory, lang: lang)
+        }
         v.appVersionText = "\(AppInfo.name) v\(input.appVersion)"
         v.appVersionTooltip = t(.uiPortOf, AppInfo.originalVersion)
         v.appVersionURL = AppInfo.originalRepo

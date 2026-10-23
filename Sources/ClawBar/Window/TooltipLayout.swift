@@ -20,6 +20,8 @@ enum TooltipLayout {
         add(.play, when: v.limitReached)
         add(.sessions, when: v.sessionsVisible)
         add(.status, when: v.statusVisible)
+        add(.projectsLabel, when: v.projects != nil)
+        for i in (v.projects?.rows ?? []).indices { add(.project(i)) }
         add(.version, when: v.detailsExpanded && !v.versionText.isEmpty)
         add(.appVersion, when: v.detailsExpanded)
         add(.account, when: !v.accountText.isEmpty)
@@ -47,6 +49,9 @@ enum TooltipLayout {
             case .version: v.versionTooltip
             case .appVersion: v.appVersionTooltip
             case .account: v.accountTooltip
+            case .projectsLabel: v.projects?.tooltip ?? ""
+            // The tooltip may outlive a row that has since gone.
+            case .project(let i): v.projects?.rows.dropFirst(i).first?.tooltip ?? ""
             case .percentRow, .number, .history: ""
             }
         }

@@ -43,6 +43,7 @@ enum SnapshotCases {
         func chart(_ c: inout SnapshotCase) {
             c.config.expanded = true
             c.config.showHistory = true
+            c.data.projects = Samples.projects
         }
         func failedUpdate(_ c: inout SnapshotCase, _ failure: UpdateFailure) {
             c.config.expanded = true
@@ -118,7 +119,16 @@ enum SnapshotCases {
             // Thursday afternoon, in the session's second window of the day.
             $0.hoverX = 171
         }
-        add("history-empty") { chart(&$0) }
+        add("history-counting") {
+            chart(&$0)
+            $0.data.history = Samples.history
+            $0.data.projects = nil
+        }
+        // A scan that found no usage this week hides the projects.
+        add("history-empty") {
+            chart(&$0)
+            $0.data.projects = ProjectUsage()
+        }
         add("history-no-limits") {
             chart(&$0)
             noLimits(&$0)

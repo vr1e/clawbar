@@ -57,6 +57,15 @@ public enum Samples {
             UsageSample(minute: minutes[i], session: sessions[i], week: Int(week[i].rounded(.toNearestOrEven)))
         }
     }()
+
+    /// Five projects of the week, heaviest first, so the top 4 leave one out.
+    public static let projects = ProjectUsage(projects: [
+        ProjectWeight(path: "\(home)/code/api", weight: 41.6),
+        ProjectWeight(path: "\(home)/code/web", weight: 23.4),
+        ProjectWeight(path: "\(home)/code/docs", weight: 14.7),
+        ProjectWeight(path: "\(home)/code/infra", weight: 12.1),
+        ProjectWeight(path: "\(home)/notes", weight: 8.2),
+    ])
 }
 
 extension DataSnapshot {

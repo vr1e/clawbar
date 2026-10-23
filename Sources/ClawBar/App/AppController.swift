@@ -375,7 +375,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
             }
         case .appVersion: NSWorkspace.shared.open(app.view.appVersionURL)
         case .play: game.show()
-        case .hearts, .percentRow, .number, .reset, .sessions, .account, .history: break
+        case .hearts, .percentRow, .number, .reset, .sessions, .account, .history, .projectsLabel, .project: break
         }
     }
 

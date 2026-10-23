@@ -27,7 +27,7 @@ import ClawBarShared
         #expect(L10nKey.allCases.filter { key in
             if case .forms? = StringsEN.table[key] { return true }
             return false
-        } == [.pluralSession, .pluralRequest])
+        } == [.pluralSession, .pluralRequest, .pluralReply])
     }
 
     @Test(arguments: Lang.allCases)

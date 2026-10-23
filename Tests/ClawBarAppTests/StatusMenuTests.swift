@@ -22,7 +22,7 @@ import ClawBarShared
         ])
         #expect(titles(e[10].children) == [
             "Clawd", "Sky and weather behind him", "Anthropic status", "Running sessions", "Plan and account",
-            "Last 24 hours and 7 days (details)", "7-day chart (details)",
+            "Last 24 hours and 7 days (details)", "7-day chart and top projects (details)",
         ])
         #expect(titles(e[11].children) == ["English", "Deutsch"])
     }

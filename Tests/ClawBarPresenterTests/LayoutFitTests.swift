@@ -158,6 +158,19 @@ import ClawBarShared
         Self.expectFits([Self.value(empty.caption)], "empty chart caption")
     }
 
+    /// The projects' label, the text before the first scan, and a whole week's share in its 34-wide column.
+    @Test(arguments: Lang.allCases)
+    func theProjectsTexts(lang: Lang) throws {
+        let config = Config(expanded: true, showHistory: true)
+        let counting = try #require(render(sample(data: { $0.projects = nil }), config: config, lang: lang).projects)
+        Self.expectFits([Self.label(counting.label)], "projects label")
+        Self.expectFits([Self.value(counting.caption)], "projects counting")
+        let one = ProjectUsage(projects: [ProjectWeight(path: "/a", weight: 1)])
+        let row = try #require(render(sample(data: { $0.projects = one }), config: config, lang: lang).projects?.rows.first)
+        #expect(row.share == "100%")
+        Self.expectFits([Self.value(row.share)], in: ProjectsView.shareWidth, "a project's share")
+    }
+
     /// The hover's readout with both limits at 100%, on every weekday.
     @Test(arguments: Lang.allCases)
     func theChartReadout(lang: Lang) {

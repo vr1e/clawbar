@@ -19,6 +19,12 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case histWeek = "hist.week"
     /// The chart's caption while its week holds no sample yet.
     case histEmpty = "hist.empty"
+    /// The top projects' label, its tooltip, and its text before the first scan.
+    case uiProjects = "ui.projects"
+    case histProjTip = "hist.projTip"
+    case histCounting = "hist.counting"
+    /// A second tooltip line; {0} is the counted replies whose model the price table lacks.
+    case histUnpriced = "hist.unpriced"
     /// Tooltip of the ClawBar version line; {0} is the original's version.
     case uiPortOf = "ui.portOf"
 
@@ -36,6 +42,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case period
     case pluralSession = "plural.session"
     case pluralRequest = "plural.request"
+    case pluralReply = "plural.reply"
 
     // Menu bar item tooltip
     case trayNoData = "tray.noData"

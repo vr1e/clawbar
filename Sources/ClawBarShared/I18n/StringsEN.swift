@@ -17,6 +17,10 @@ public enum StringsEN {
         .histSession: .text("5h"),
         .histWeek: .text("week"),
         .histEmpty: .text("the history starts now"),
+        .uiProjects: .text("PROJECTS · 7 DAYS"),
+        .histProjTip: .text("Share of the week's usage on this computer, estimated from tokens and model prices"),
+        .histCounting: .text("counting..."),
+        .histUnpriced: .text("{0} priced as the closest model listed"),
         .uiPortOf: .text("macOS port of clawd-usage-winwidget {0}, with some features of later releases (MIT)"),
 
         .spanD: .text("{0}d {1}h"),
@@ -32,6 +36,7 @@ public enum StringsEN {
         .period: .text("{0}  ·  {1}"),
         .pluralSession: .forms(["session", "sessions"]),
         .pluralRequest: .forms(["request", "requests"]),
+        .pluralReply: .forms(["reply", "replies"]),
 
         .trayNoData: .text("ClawBar: no data"),
         .traySession: .text("{0}% of session"),
@@ -116,7 +121,7 @@ public enum StringsEN {
         .setShowSessions: .text("Running sessions"),
         .setShowAccount: .text("Plan and account"),
         .setShowStats: .text("Last 24 hours and 7 days (details)"),
-        .setShowHistory: .text("7-day chart (details)"),
+        .setShowHistory: .text("7-day chart and top projects (details)"),
         .menuQuit: .text("Quit ClawBar"),
         .menuPlay: .text("Play Clawd Run…"),
 

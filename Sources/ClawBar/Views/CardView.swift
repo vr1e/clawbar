@@ -158,12 +158,13 @@ private struct NumberView: View {
     }
 }
 
-/// A rounded track with a left-aligned fill of `fraction × 236`.
+/// A rounded track with a left-aligned fill of `fraction × width`.
 private struct Bar: View {
     let fraction: Double
     let color: RGBA
     let height: Double
     let radius: Double
+    var width = CardView.content
     @Environment(\.uiScale) private var k
 
     var body: some View {
@@ -171,9 +172,9 @@ private struct Bar: View {
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: radius * k).fill(Color(rgba: Palette.track))
             RoundedRectangle(cornerRadius: radius * k).fill(Color(rgba: color))
-                .frame(width: f * CardView.content * k)
+                .frame(width: f * width * k)
         }
-        .frame(width: CardView.content * k, height: height * k)
+        .frame(width: width * k, height: height * k)
     }
 }
 
@@ -266,7 +267,7 @@ private struct StatusRow: View {
     }
 }
 
-/// The 24 h / 7 d stats, the 7-day chart, the Claude Code version line and the ClawBar line.
+/// The 24 h / 7 d stats, the 7-day chart and its top projects, the Claude Code version line and the ClawBar line.
 private struct DetailsBlock: View {
     let v: WidgetViewState
     let app: AppModel
@@ -282,6 +283,9 @@ private struct DetailsBlock: View {
             }
             if let history = v.history {
                 HistoryBlock(h: history, app: app, layout: layout)
+            }
+            if let projects = v.projects {
+                ProjectsBlock(p: projects, layout: layout)
             }
             Divider(k: k).padding(.bottom, 7 * k)
             HStack(alignment: .top, spacing: 0) {
@@ -390,6 +394,52 @@ private struct HistoryCaption: View {
             WText("━ ", 10, color: color)
             WText(name, 10, color: Palette.muted)
         }
+    }
+}
+
+/// widget.xaml's ProjPanel: the label, then a row per project, or `counting...` before the first scan.
+private struct ProjectsBlock: View {
+    let p: ProjectsView
+    let layout: LayoutModel
+    @Environment(\.uiScale) private var k
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // The StackPanel stretches LblProj, so its tooltip spans the column.
+            WText(p.label, 9, weight: .semibold, color: Palette.label)
+                .frame(width: CardView.content * k, alignment: .leading)
+                .publish(.projectsLabel, to: layout)
+                .padding(.bottom, 4 * k)
+            if p.rows.isEmpty {
+                WText(p.caption, 10, color: Palette.label)
+            } else {
+                // Published before the padding, so a row's tooltip leaves out the 2 below it, as the Grid's margin does.
+                ForEach(Array(p.rows.enumerated()), id: \.offset) { i, row in
+                    ProjectRowView(row: row)
+                        .publish(.project(i), to: layout)
+                        .padding(.bottom, 2 * k)
+                }
+            }
+        }
+        .padding(.bottom, 10 * k)
+    }
+}
+
+/// Show-Projects' Grid: the name with 8 to spare, the bar centred on its track, the share right-aligned.
+private struct ProjectRowView: View {
+    let row: ProjectRow
+    @Environment(\.uiScale) private var k
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 0) {
+            WText(row.name, 10, color: Palette.secondary, truncates: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.trailing, 8 * k)
+            Bar(fraction: row.fraction, color: Palette.projectBar, height: 4, radius: 2, width: ProjectsView.trackWidth)
+            WText(row.share, 10, color: Palette.muted)
+                .frame(width: ProjectsView.shareWidth * k, alignment: .trailing)
+        }
+        .frame(width: CardView.content * k)
     }
 }
 

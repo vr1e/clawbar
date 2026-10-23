@@ -47,6 +47,34 @@ import ClawBarShared
         #expect(r[.hit(.appVersion)] == (try card.rect(.appVersion)))
     }
 
+    @Test func eachProjectRowHasItsPathAndTheLabelSaysHowTheyAreWeighed() throws {
+        var v = WidgetViewState.sample
+        v.detailsExpanded = true
+        v.history = HistoryView(label: "LIMITS · 7 DAYS")
+        v.projects = ProjectsView(label: "PROJECTS · 7 DAYS", tooltip: "estimated", rows: ["api", "web", "docs"].map {
+            ProjectRow(name: $0, share: "33%", fraction: 0.33, tooltip: "~/code/\($0)")
+        })
+        let card = LaidOutCard(v)
+        let r = regions(card)
+        for id in [HitID.projectsLabel, .project(0), .project(1), .project(2)] {
+            #expect(r[.hit(id)] == (try card.rect(id)), "\(id)")
+        }
+        #expect(r[.hit(.project(3))] == nil)
+        func text(_ id: HitID) -> String { TooltipLayout.text(.hit(id), view: v, hearts: .hidden) { "" } }
+        #expect(text(.projectsLabel) == "estimated")
+        #expect((0 ..< 4).map { text(.project($0)) } == ["~/code/api", "~/code/web", "~/code/docs", ""])
+    }
+
+    @Test func countingProjectsHaveOnlyTheLabelsTooltip() {
+        var v = WidgetViewState.sample
+        v.detailsExpanded = true
+        v.history = HistoryView(label: "LIMITS · 7 DAYS")
+        v.projects = ProjectsView(label: "PROJECTS · 7 DAYS", tooltip: "estimated", caption: "counting...")
+        let r = regions(LaidOutCard(v))
+        #expect(r[.hit(.projectsLabel)] != nil)
+        #expect(r[.hit(.project(0))] == nil)
+    }
+
     @Test func theSkysTooltipCoversTheSkyRightOfTheNumber() throws {
         let card = LaidOutCard()
         let row = try card.rect(.percentRow), number = try card.rect(.number)
