@@ -11,14 +11,14 @@ final class GameModel {
     var frame: RunnerFrame = .empty
 }
 
-/// The game's canvas on the card's background, scaled to fit and centred.
+/// The game's canvas on its frame's background, scaled to fit and centred.
 struct GameView: View {
     let model: GameModel
 
     var body: some View {
         let layers = DrawOpRenderer.layers(model.frame.ops)
         Canvas { ctx, size in
-            ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(rgba: Palette.card)))
+            ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(rgba: model.frame.background)))
             let k = min(size.width / RunnerTuning.width, size.height / RunnerTuning.height)
             ctx.translateBy(x: (size.width - RunnerTuning.width * k) / 2, y: (size.height - RunnerTuning.height * k) / 2)
             ctx.scaleBy(x: k, y: k)
@@ -55,6 +55,7 @@ final class GameWindowController: NSObject, NSWindowDelegate {
 
     private var lang = Lang.en
     private var caption = ""
+    private var palette = ThemePalette.classic
     private let model = GameModel()
     private let engine = RunnerEngine(random: SystemRandomSource())
     private var window: NSWindow?
@@ -66,11 +67,13 @@ final class GameWindowController: NSObject, NSWindowDelegate {
     private var lastTime: TimeInterval = 0
     private var backlog: TimeInterval = 0
 
-    /// The corner's caption and the language from each new view state, so a reset or a language switch shows at once.
-    func update(caption: String, lang: Lang) {
-        guard caption != self.caption || lang != self.lang else { return }
+    /// The corner's caption, the language and the themed colours from each new view state, so a reset, a language
+    /// switch or a new look shows at once.
+    func update(caption: String, lang: Lang, palette: ThemePalette) {
+        guard caption != self.caption || lang != self.lang || palette != self.palette else { return }
         self.caption = caption
         self.lang = lang
+        self.palette = palette
         render()
     }
 
@@ -161,7 +164,7 @@ final class GameWindowController: NSObject, NSWindowDelegate {
 
     /// Only a changed frame is published, so a still screen is not redrawn every tick.
     private func render() {
-        let frame = engine.frame(lang: lang, caption: caption)
+        let frame = engine.frame(lang: lang, caption: caption, palette: palette)
         if frame != model.frame { model.frame = frame }
     }
 

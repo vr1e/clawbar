@@ -265,9 +265,11 @@ enum SnapshotMode {
         limit.data.usage?.sessionPercent = 100
         var out: [URL] = []
         for lang in Lang.allCases {
-            let caption = view(for: limit, lang: lang).gameCaption
+            let atLimit = view(for: limit, lang: lang)
             let back = view(for: SnapshotCase(name: "sample"), lang: lang).gameCaption
-            for (name, frame) in RunnerEngine.showcase(lang: lang, caption: caption, back: back) {
+            for (name, frame) in RunnerEngine.showcase(
+                lang: lang, caption: atLimit.gameCaption, back: back, palette: atLimit.palette
+            ) {
                 guard let image = GameRenderer.render(frame) else { throw CLIError(message: "rendering game-\(name) failed") }
                 let url = dir.appendingPathComponent("game-\(name)-\(lang.rawValue).png")
                 try Imaging.writePNG(image, to: url)

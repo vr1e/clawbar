@@ -156,9 +156,9 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
     @Test func aPausedRoundStandsStillUnderItsNote() {
         let e = running()
         e.pause()
-        let before = e.frame(lang: .de, caption: "")
+        let before = e.frame(lang: .de, caption: "", palette: .classic)
         for _ in 0 ..< 60 { e.step(RunnerInput(duck: true)) }
-        #expect(e.frame(lang: .de, caption: "") == before)
+        #expect(e.frame(lang: .de, caption: "", palette: .classic) == before)
         #expect(texts(before).contains(L10n.t(.gamePaused, .de)))
     }
 
@@ -178,13 +178,13 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
         while e.score < 100 { e.step(e.demoInput) }
         // The blink starts dark, so this frame would show no score.
         e.pause()
-        #expect(texts(e.frame(lang: .en, caption: "")).contains(RunnerEngine.digits(e.score)))
+        #expect(texts(e.frame(lang: .en, caption: "", palette: .classic)).contains(RunnerEngine.digits(e.score)))
         e.step(RunnerInput(jump: true))
         e.place(.cactusLarge, x: RunnerTuning.clawdX + e.speed, bottom: RunnerTuning.groundY - e.lift)
         e.step(RunnerInput())
         #expect(e.phase == .over)
         let score = RunnerEngine.digits(e.score)
-        #expect(texts(e.frame(lang: .en, caption: "")).contains("HI \(score)  \(score)"))
+        #expect(texts(e.frame(lang: .en, caption: "", palette: .classic)).contains("HI \(score)  \(score)"))
     }
 
     @Test func aNewRoundStartsOverAndKeepsTheHighScore() {
@@ -205,7 +205,7 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
             e.step(RunnerInput(jump: true))
             return (0 ..< 900).map { _ in
                 e.step(e.demoInput)
-                return e.frame(lang: .en, caption: "")
+                return e.frame(lang: .en, caption: "", palette: .classic)
             }
         }
         #expect(play() == play())
@@ -213,15 +213,15 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
 
     @Test func theFrameShowsWhatThePhaseAsksFor() {
         let e = RunnerEngine(random: SeededRandomSource(seed: 3), highScore: 42)
-        #expect(texts(e.frame(lang: .en, caption: "resets in 1h 05m")).contains("Press Space or click to jump"))
-        #expect(texts(e.frame(lang: .en, caption: "resets in 1h 05m")).contains("resets in 1h 05m"))
-        #expect(texts(e.frame(lang: .en, caption: "")).contains("HI 00042  00000"))
+        #expect(texts(e.frame(lang: .en, caption: "resets in 1h 05m", palette: .classic)).contains("Press Space or click to jump"))
+        #expect(texts(e.frame(lang: .en, caption: "resets in 1h 05m", palette: .classic)).contains("resets in 1h 05m"))
+        #expect(texts(e.frame(lang: .en, caption: "", palette: .classic)).contains("HI 00042  00000"))
         e.step(RunnerInput(jump: true))
         while e.phase == .running { e.step(RunnerInput()) }
-        #expect(texts(e.frame(lang: .de, caption: "")).contains("SPIEL VORBEI"))
-        #expect(!texts(e.frame(lang: .en, caption: "")).contains("Space or click to run again"))
+        #expect(texts(e.frame(lang: .de, caption: "", palette: .classic)).contains("SPIEL VORBEI"))
+        #expect(!texts(e.frame(lang: .en, caption: "", palette: .classic)).contains("Space or click to run again"))
         for _ in 0 ..< RunnerTuning.restartDelayTicks { e.step(RunnerInput()) }
-        #expect(texts(e.frame(lang: .en, caption: "")).contains("Space or click to run again"))
+        #expect(texts(e.frame(lang: .en, caption: "", palette: .classic)).contains("Space or click to run again"))
     }
 
     @Test func theScoreHasFiveDigits() {
@@ -231,7 +231,7 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
     }
 
     @Test func theShowcaseShowsEachScreenWithABugMidRound() {
-        let frames = RunnerEngine.showcase(lang: .en, caption: "resets in 1h 12m", back: "back")
+        let frames = RunnerEngine.showcase(lang: .en, caption: "resets in 1h 12m", back: "back", palette: .classic)
         #expect(frames.map(\.name) == ["ready", "running", "paused", "over"])
         let bugs = frames[1].frame.ops.contains { op in
             if case let .rects(rects, color, _) = op { return color == RunnerArt.bugColor && !rects.isEmpty }
@@ -241,6 +241,25 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
         #expect(texts(frames[2].frame).contains(L10n.t(.gamePaused, .en)))
         #expect(texts(frames[3].frame).contains(L10n.t(.gameRestart, .en)))
         #expect(texts(frames[3].frame).contains("back"))
+    }
+
+    @Test func thePaletteColoursTheBackgroundAndTextButNotTheArt() {
+        let p = ThemePalette(
+            background: RGBA("#FF000001"), secondary: RGBA("#FF000002"), muted: RGBA("#FF000003"), label: RGBA("#FF000004"),
+            footer: RGBA("#FF000005"), accent: RGBA("#FF000006"), modelWeekBar: RGBA("#FF000007"), heartOff: RGBA("#FF000008")
+        )
+        let classic = RunnerEngine.showcase(lang: .en, caption: "c", back: "b", palette: .classic)
+        let themed = RunnerEngine.showcase(lang: .en, caption: "c", back: "b", palette: p)
+        func art(_ f: RunnerFrame) -> [DrawOp] { f.ops.filter { if case .rects = $0 { true } else { false } } }
+        func lines(_ f: RunnerFrame) -> [(text: String, color: RGBA)] {
+            f.ops.compactMap { if case let .text(s, _, _, _, color, _, _) = $0 { (s, color) } else { nil } }
+        }
+        for (a, b) in zip(classic, themed) {
+            #expect(b.frame.background == p.background)
+            #expect(art(b.frame) == art(a.frame))
+            #expect(Set(lines(b.frame).map(\.color)).isSubset(of: [p.secondary, p.muted, p.footer]))
+        }
+        #expect(lines(themed[0].frame).first { $0.text == L10n.t(.gameHint, .en) }?.color == p.footer)
     }
 
     @Test func everySpriteStaysOnTheCanvas() {
