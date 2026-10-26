@@ -2,7 +2,7 @@ import Foundation
 @testable import ClawBarPresenter
 import ClawBarShared
 
-/// The sample's world: Berlin at `Samples.now`, the example home directory. A `palette` replaces the config's.
+/// The sample's world: Berlin at `Samples.now`, the example home directory. A `palette` replaces classic.
 func render(
     _ data: DataSnapshot = .sample, config: Config = Config(), lang: Lang = .en,
     now: Date = Samples.now, tickError: Bool = false, palette: ThemePalette? = nil

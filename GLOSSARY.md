@@ -37,7 +37,7 @@ Everything one animation tick drew: Clawd with his hearts, and the sky.
 _Avoid_: scene (upstream's animated themes), picture
 
 **Theme palette**:
-The colours a theme changes, one per role: the background, the text tiers (secondary, muted, label, footer), the accent, the model-week bar and the empty heart. The presenter resolves it into the view state; the levels, Clawd, the sky and the card's border, tracks and chart stay fixed.
+The colours a theme changes, one per role: the background, the text tiers (secondary, muted, label, footer), the accent, the model-week bar and the empty heart. The presenter resolves it into the view state; the levels, Clawd, the sky, the card's border and tracks, and the chart's fill, cursor and session line stay fixed.
 _Avoid_: theme (the config's choice of look), colour scheme, skin
 
 **Play area**:

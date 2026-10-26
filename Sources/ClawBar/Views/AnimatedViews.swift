@@ -23,7 +23,6 @@ struct MascotView: View {
         // The play area's left edge: the card's 13 of padding and border, the number, then MascotArea's margin 10.
         let origin = CGPoint(x: 13 + layout.numberWidth + PlayArea.margin, y: Self.top + PlayArea.height)
         let scale = k
-        let captionColor = captionColor
         Canvas { ctx, _ in
             ctx.scaleBy(x: scale, y: scale)
             ctx.translateBy(x: origin.x, y: origin.y)
@@ -75,7 +74,7 @@ struct SkyView: View {
 struct HeartsView: View {
     let animation: AnimationModel
     let layout: LayoutModel
-    let off: RGBA
+    let heartOff: RGBA
     @Environment(\.uiScale) private var k
 
     var body: some View {
@@ -83,7 +82,7 @@ struct HeartsView: View {
         if h.visible {
             HStack(spacing: PixelArt.heartGap * k) {
                 ForEach(0 ..< 3, id: \.self) { i in
-                    HeartCell(halves: h.shownHalves - 2 * i, beat: h.beatScale, off: off)
+                    HeartCell(halves: h.shownHalves - 2 * i, beat: h.beatScale, heartOff: heartOff)
                 }
             }
             .publish(.hearts, to: layout)
@@ -95,7 +94,7 @@ struct HeartsView: View {
 private struct HeartCell: View {
     let halves: Int
     let beat: Double
-    let off: RGBA
+    let heartOff: RGBA
     @Environment(\.uiScale) private var k
 
     static let full = PixelArt.rects(PixelArt.heart, value: "#", px: PixelArt.heartPx, py: PixelArt.heartPx)
@@ -106,12 +105,11 @@ private struct HeartCell: View {
     var body: some View {
         let front: [CGRect] = halves >= 2 ? Self.full : halves == 1 ? Self.half : []
         let scale = k
-        let off = off
         Canvas { ctx, _ in
             ctx.scaleBy(x: scale, y: scale)
             var back = Path()
             back.addRects(Self.full)
-            ctx.fill(back, with: .color(Color(rgba: off)))
+            ctx.fill(back, with: .color(Color(rgba: heartOff)))
             guard !front.isEmpty else { return }
             var on = Path()
             on.addRects(front)

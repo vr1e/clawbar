@@ -84,7 +84,7 @@ private struct HeaderRow: View {
             WText(v.title, 9.5, weight: .semibold, color: v.palette.muted)
             HStack(alignment: .top, spacing: 0) {
                 Spacer(minLength: 0)
-                HeartsView(animation: animation, layout: layout, off: v.palette.heartOff)
+                HeartsView(animation: animation, layout: layout, heartOff: v.palette.heartOff)
                     .frame(height: WPFLineBox.height * 13 * k)
                 WText(v.detailsGlyph, 11, color: v.palette.muted)
                     .publish(.details, to: layout)

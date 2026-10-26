@@ -6,15 +6,15 @@ import Foundation
 public struct ThemePalette: Sendable, Hashable {
     /// The card's and Clawd Run's background: theme.ps1's `bg`, not its `card`.
     public var background: RGBA
-    /// The reset line, the stats' first lines, project names, the game's score and messages (`text2`).
+    /// theme.ps1's `text2`.
     public var secondary: RGBA
-    /// The header, row values, `%`, quiet status text and the legend (`muted`).
+    /// theme.ps1's `muted`.
     public var muted: RGBA
-    /// Row labels, the ClawBar line and the developer caption over the play area (`dim`).
+    /// theme.ps1's `dim`.
     public var label: RGBA
-    /// The account, the update stamp, the chart's weekdays and the game's hint (`faint`).
+    /// theme.ps1's `faint`.
     public var footer: RGBA
-    /// The week bar and the chart's week line (`accent`).
+    /// theme.ps1's `accent`: the week bar and the chart's week line share it, so a theme moves both.
     public var accent: RGBA
     /// The model weeks' bars: Space's accent is this violet, so they need a role of their own to stay apart.
     public var modelWeekBar: RGBA

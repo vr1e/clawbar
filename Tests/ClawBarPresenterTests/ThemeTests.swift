@@ -32,7 +32,7 @@ import ClawBarShared
         #expect(stale.palette.label == p.label && stale.trayText == "34" && stale.trayColor == Palette.dead)
     }
 
-    @Test func theWeekBarAndTheChartsWeekLineShareTheAccent() throws {
+    @Test func theWeekBarTakesTheAccentAndTheViewStateCarriesIt() throws {
         var p = ThemePalette.classic
         p.accent = RGBA("#FF00FFFF")
         let data = sample(data: { $0.history = Samples.history })
