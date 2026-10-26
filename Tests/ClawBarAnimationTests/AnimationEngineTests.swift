@@ -18,11 +18,11 @@ import ClawBarSky
         let random = SeededRandomSource(seed: 5)
         let clawd = ClawdEngine(random: random, now: t0)
         let sky = SkyEngine(random: random)
-        let snapshot = data(busy: 1, sessions: 1, pct: 40, place: DataSnapshot.sample.place)
-        clawd.apply(ClawdDataInput(snapshot, critPercent: 85), now: t0)
+        let busy = data(busy: 1, sessions: 1, pct: 40, place: DataSnapshot.sample.place)
+        clawd.apply(ClawdDataInput(busy, critPercent: 85), now: t0)
         clawd.perform(.auto)
         let engine = engine(seed: 5)
-        engine.apply(snapshot, config: Config(), now: t0)
+        engine.apply(busy, config: Config(), now: t0)
         engine.perform(.auto)
         engine.perform(.skyWeather(63))
         var now = t0
@@ -30,7 +30,7 @@ import ClawBarSky
             let expected = AnimationFrame(
                 clawd: clawd.step(ClawdStepEnv(areaWidth: PlayArea.width(numberWidth: 32), mouseOverWindow: false, mouseX: nil, now: now, lang: .en)),
                 sky: sky.step(size: PlayArea.skySize, inputs: SkyInfo.inputs(
-                    nil, place: snapshot.place, now: now, localZone: Samples.timeZone, dev: SkyDevState(weatherCode: 63)
+                    nil, place: busy.place, now: now, localZone: Samples.timeZone, dev: SkyDevState(weatherCode: 63)
                 ))
             )
             #expect(engine.step(inputs(now: now)) == expected)
@@ -107,14 +107,14 @@ import ClawBarSky
         engine.perform(.skyWeather(73))
         let snowing = engine.step(inputs()).sky
         #expect(Sprites(snowing).ground != nil && Sprites(snowing).flakes != nil)
-        let checked = engine.developerMenu()[7].children.filter(\.checked).map(\.title)
+        let checked = skyMenu(engine)?.children.filter(\.checked).map(\.title)
         #expect(checked == ["night", "snow"])
         #expect(engine.skyTooltip(now: t0, timeZone: Samples.timeZone).hasPrefix("dev · night, snow\n"))
 
         engine.perform(.auto)
         let clear = engine.step(inputs()).sky
         #expect(clear.top == Self.dayTop && Sprites(clear).ground == nil)
-        #expect(engine.developerMenu()[7].children.filter(\.checked).map(\.title) == ["by the clock", "live weather"])
+        #expect(skyMenu(engine)?.children.filter(\.checked).map(\.title) == ["by the clock", "live weather"])
         #expect(engine.skyTooltip(now: t0, timeZone: Samples.timeZone).hasPrefix("weather: no data\nsunrise 07:00 · sunset 19:00\n"))
     }
 
@@ -125,20 +125,20 @@ import ClawBarSky
         let clawd = ClawdEngine(random: random, now: t0)
         let sky = SkyEngine(random: random)
         clawd.perform(.auto)
-        let snapshot = data(sessions: 1)
+        let oneSession = data(sessions: 1)
         let env = ClawdStepEnv(areaWidth: PlayArea.width(numberWidth: 32), mouseOverWindow: false, mouseX: nil, now: t0, lang: .en)
         let rain = SkyInfo.inputs(nil, place: nil, now: t0, localZone: Samples.timeZone, dev: SkyDevState(weatherCode: 63))
         let engine = settled()
         engine.perform(.skyWeather(63))
         var last = SkyFrame.empty
         for shown in [true, false, true] {
-            engine.apply(snapshot, config: Config(showSky: shown), now: t0)
-            clawd.apply(ClawdDataInput(snapshot, critPercent: 85), now: t0)
+            engine.apply(oneSession, config: Config(showSky: shown), now: t0)
+            clawd.apply(ClawdDataInput(oneSession, critPercent: 85), now: t0)
             let c = clawd.step(env)
             if shown { last = sky.step(size: PlayArea.skySize, inputs: rain) }
             #expect(engine.step(inputs()) == AnimationFrame(clawd: c, sky: last))
             #expect(engine.skyVisible == shown && engine.mascotVisible && engine.tickMilliseconds == 90)
-            #expect(engine.developerMenu()[7].enabled == shown)
+            #expect(skyMenu(engine)?.enabled == shown)
         }
     }
 

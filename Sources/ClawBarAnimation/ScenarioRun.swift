@@ -23,12 +23,15 @@ public final class ScenarioRun {
     public init(_ scenario: RecordScenario, seed: UInt64) {
         script = Scenarios.script(scenario)
         engine = AnimationEngine(random: SeededRandomSource(seed: seed), config: config, now: now)
-        data = snapshot(now: now)
+        data = fakeData(now: now)
         engine.apply(data, config: config, now: now)
     }
 
     /// Crop below the reset line, as every scenario but the tour does.
     public var crop: Bool { script.crop }
+    /// The engine's visibility rule, so the recorder draws what the app would.
+    public var mascotVisible: Bool { engine.mascotVisible }
+    public var skyVisible: Bool { engine.skyVisible }
 
     /// The mascot timer's own handler first, then record-gif.ps1's: the due steps, then Update-Widget. Nil once the
     /// last step is due, which ends the recording.
@@ -43,7 +46,7 @@ public final class ScenarioRun {
         }
         var fresh: DataSnapshot?
         if applied > 0 {
-            data = snapshot(now: at)
+            data = fakeData(now: at)
             engine.apply(data, config: config, now: at)
             fresh = data
         }
@@ -73,7 +76,7 @@ public final class ScenarioRun {
     }
 
     /// The fake data, with a fresh status so the line never says loading.
-    private func snapshot(now: Date) -> DataSnapshot {
+    private func fakeData(now: Date) -> DataSnapshot {
         let usage = pct.map { p in
             UsageSnapshot(
                 sessionPercent: p, weekPercent: 41, sessionReset: sessionReset, weekReset: weekReset,

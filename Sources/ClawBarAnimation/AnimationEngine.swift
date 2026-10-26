@@ -9,7 +9,7 @@ public final class AnimationEngine {
     private let clawd: ClawdEngine
     private let sky: SkyEngine
     private var config: Config
-    private var skyDev = SkyDevState()
+    private(set) var skyDev = SkyDevState()
     private var weather: WeatherSnapshot?
     private var place: Place?
     /// The last frame: Clawd's half empty while he is hidden, the sky's kept while it is hidden.
@@ -25,7 +25,7 @@ public final class AnimationEngine {
 
     /// showMascot: the play area, Clawd and the hearts.
     public var mascotVisible: Bool { config.showMascot }
-    /// showMascot and showSky.
+    /// The sky goes with Clawd: the original's Sync-Mascot collapses it when he hides.
     public var skyVisible: Bool { config.showMascot && config.showSky }
     /// Milliseconds to the next tick: 60 while a Claude Code sequence plays, else 90; nil while nothing moves.
     public var tickMilliseconds: Int? { mascotVisible ? clawd.tickMilliseconds : nil }
@@ -50,8 +50,7 @@ public final class AnimationEngine {
     /// record-gif.ps1's drain, which does not stop a demo.
     func startDrain() { clawd.startDrain() }
 
-    /// A developer-menu click: the sky's two overrides are kept here, Auto resets them with Clawd's, the rest is
-    /// Clawd's. An override shows on the next tick, since the sky's key includes the phase and the code.
+    /// A developer-menu click. An override shows on the next tick, since the sky's key includes the phase and the code.
     public func perform(_ action: DevAction) {
         switch action {
         case .skyPhase(let phase): skyDev.phase = phase
@@ -63,7 +62,7 @@ public final class AnimationEngine {
         }
     }
 
-    /// One animation tick: Clawd, then the sky while it shows, both at `inputs.now`. Nothing moves while Clawd is hidden.
+    /// One animation tick. Clawd steps before the sky, as the original loads them: both draw from one generator.
     @discardableResult
     public func step(_ inputs: AnimationInputs) -> AnimationFrame {
         guard mascotVisible else { return frame }
@@ -82,7 +81,7 @@ public final class AnimationEngine {
         DevMenu.build(dev: clawd.devState, sky: skyDev, skyVisible: skyVisible, lang: config.lang)
     }
 
-    /// The sky's tooltip, with the sun times a tick now would draw.
+    /// The sky's tooltip, on the real sun times at `now`, also where a forced phase draws the fallback sun.
     public func skyTooltip(now: Date, timeZone: TimeZone) -> String {
         SkyInfo.tooltip(
             weather, place: place, sun: skyInputs(now: now, timeZone: timeZone).sun, now: now, dev: skyDev, lang: config.lang

@@ -40,7 +40,7 @@ public struct ClawdDataInput: Sendable, Hashable {
     }
 }
 
-/// What one of Clawd's ticks sees. Sizes are base units (before the global scale).
+/// What Clawd's part of an animation tick sees. Sizes are base units (before the global scale).
 public struct ClawdStepEnv: Sendable, Hashable {
     /// The play area's width, `PlayArea.width(numberWidth:)`: what the number leaves of the row.
     public var areaWidth: Double

@@ -30,12 +30,12 @@ to `main` by PR; it leaves the version alone. Releases are cut from `main` by th
 - Before naming a type or writing about the data or the moving side, read `GLOSSARY.md`: the words for probe, data
   snapshot, data engine, latch, snapshot mode (the `--snapshot` render, not a data snapshot), animation tick,
   animation engine, animation frame, play area and theme palette, and the ones to avoid.
-- `AnimationEngine`, `ClawdEngine`, `DataEngine`, `RunnerEngine`, `ScenarioRun`, `SkyEngine`, `SkyInfo` and
-  `WidgetPresenter` are pure: time, time zone and randomness arrive as inputs (`SeededRandomSource` in tests), and
-  statics are `let`. `DataController` runs `DataEngine`'s commands against processes, the network and disk, and feeds
-  each answer back as an event; the live app drives `AnimationEngine` with the wall clock, `SystemRandomSource` and
-  the pointer, while `--snapshot` and `ScenarioRun` (behind `--record` and the tests) use a virtual clock and a seeded
-  generator, with no pointer.
+- `AnimationEngine`, `ClawdEngine`, `DataEngine`, `RunnerEngine`, `SkyEngine`, `SkyInfo` and `WidgetPresenter` are
+  pure: time, time zone and randomness arrive as inputs (`SeededRandomSource` in tests), and statics are `let`.
+  `DataController` runs `DataEngine`'s commands against processes, the network and disk, and feeds each answer back
+  as an event; the live app drives `AnimationEngine` with the wall clock, `SystemRandomSource` and the pointer, while
+  `--snapshot` and `ScenarioRun` (behind `--record` and the tests) use a virtual clock and a seeded generator, with
+  no pointer.
 - The `ClawBar` target is MainActor by default: Timer and notification blocks run inside `MainActor.assumeIsolated`.
 - Regular expressions are statics built with `Rx.make` (`Sources/ClawBarShared/Rx.swift`).
 - The original rounds half to even (`[int]`, `[byte]`, `[math]::Round`): use `.rounded(.toNearestOrEven)`.
