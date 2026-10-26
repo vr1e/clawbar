@@ -1,7 +1,8 @@
 import Foundation
 import ClawBarShared
 
-/// history.ps1 Show-HistPoint: the time under the pointer on the 7-day chart and both limits at that moment.
+/// history.ps1 Show-HistPoint: the time under the pointer on the 7-day chart, both limits at that moment and the busiest
+/// project of its hour.
 public enum HistoryReadout {
     /// The cursor `x` base units into `chart`, read from the samples the chart drew.
     public static func hover(x: Double, chart: HistoryView, input: PresenterInput) -> HistoryHover {
@@ -10,12 +11,14 @@ public enum HistoryReadout {
         return HistoryHover(x: x, caption: caption(minute: minute, input: input))
     }
 
-    /// `Sat 14:20  ·  5h 34%  ·  week 61%` from the last sample at or before the minute, or `no data` after a gap.
+    /// `Sat 14:20  ·  5h 34%  ·  week 61%  ·  api` from the last sample at or before the minute, or `no data` after a
+    /// gap; the project is the busiest of the local hour, where the original takes the UTC hour.
     static func caption(minute: Int, input: PresenterInput) -> String {
         let lang = input.config.lang
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = input.timeZone
-        let c = calendar.dateComponents([.weekday, .hour, .minute], from: UsageSample(minute: minute).date)
+        let date = UsageSample(minute: minute).date
+        let c = calendar.dateComponents([.weekday, .hour, .minute], from: date)
         var parts = [L10n.weekday((c.weekday ?? 1) - 1, lang) + String(format: " %02d:%02d", c.hour ?? 0, c.minute ?? 0)]
         let gap = HistoryChart.gapMinutes(usageInterval: input.config.usageIntervalSeconds)
         if let s = last(atOrBefore: minute, in: input.data.history), Double(minute - s.minute) <= gap {
@@ -23,6 +26,13 @@ public enum HistoryReadout {
             if let v = s.week { parts.append("\(L10n.t(.histWeek, lang)) \(v)%") }
         } else {
             parts.append(L10n.t(.noData, lang))
+        }
+        if let hour = calendar.dateInterval(of: .hour, for: date),
+           let name = TopProjects.busiest(
+               in: UsageSample.minute(of: hour.start) ..< UsageSample.minute(of: hour.end), of: input.data.projects,
+               home: input.homeDirectory
+           ) {
+            parts.append(name)
         }
         return parts.joined(separator: "  ·  ")
     }

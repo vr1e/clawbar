@@ -6,7 +6,7 @@ import ClawBarShared
 // Expected values follow history-dedup-final-usage and history-project-identity in the 1.6.0 review.
 @Suite struct ProjectLedgerTests {
     let t0 = utc("2026-10-16T22:30:00Z")
-    var since: Int { TranscriptReply.hour(of: t0) - 168 }
+    var since: Int { UsageSample.minute(of: t0) - 7 * 1440 }
 
     func reply(_ line: String) throws -> TranscriptReply {
         try #require(TranscriptReply(line: Data(line.utf8)))
@@ -60,17 +60,35 @@ import ClawBarShared
         #expect(ledger.unpricedModels == ["claude-opus-4-8 fast", "claude-opus-6", "claude-quill-1"])
     }
 
-    @Test func theWindowKeepsItsHoursAndForgetsOlderOnes() throws {
+    @Test func theWindowKeepsItsMinutesAndForgetsOlderOnes() throws {
         var ledger = ProjectLedger()
-        let edge = Date(timeIntervalSince1970: TimeInterval(since) * 3600)
+        let edge = UsageSample(minute: since).date
         let web = "/Users/example/web"
         try add(&ledger, assistantLine("msg_old", at: edge - 1, output: 1000))
         try add(&ledger, assistantLine("msg_edge", at: edge, output: 1000))
         try add(&ledger, assistantLine("msg_new", at: t0, cwd: web, output: 1000), in: "-Users-example-web")
         #expect(weights(ledger) == ["/Users/example/api": 0.02, web: 0.02])
-        // An hour later the edge hour has left the week, and the api folder with it.
+        // A minute later the edge minute has left the week, and the api folder with it.
         ledger.prune(before: since + 1)
         #expect(weights(ledger) == [web: 0.02])
+    }
+
+    /// For the chart's hover, which sums a local hour's four quarters.
+    @Test func eachProjectKeepsItsWeightPerQuarterHour() throws {
+        var ledger = ProjectLedger()
+        let web = "/Users/example/web", q = UsageSample.minute(of: t0)
+        try add(&ledger, assistantLine("msg_1", at: t0, output: 1000))
+        try add(&ledger, assistantLine("msg_2", at: t0 + 899, output: 500))
+        try add(&ledger, assistantLine("msg_3", at: t0 + 900, output: 2000))
+        // A reply stays in the quarter of its first line.
+        try add(&ledger, assistantLine("msg_4", at: t0 + 1799, cwd: web, output: 100), in: "-Users-example-web")
+        try add(&ledger, assistantLine("msg_4", at: t0 + 1800, cwd: web, output: 200), in: "-Users-example-web")
+        // A reply without tokens leaves no quarter.
+        try add(&ledger, assistantLine("msg_5", at: t0 + 3600, cwd: web), in: "-Users-example-web")
+        let quarters = Dictionary(uniqueKeysWithValues: ledger.usage.projects.map { p in
+            (p.path, p.quarters.mapValues { ($0 * 1e6).rounded() / 1e6 })
+        })
+        #expect(quarters == ["/Users/example/api": [q: 0.03, q + 15: 0.04], web: [q + 15: 0.004]])
     }
 
     @Test func aProjectIsNamedByTheFolderClaudeCodeWasStartedIn() {
@@ -110,7 +128,7 @@ import ClawBarShared
         let r = try reply(reordered)
         #expect(r.tokens == TokenCounts(input: 2, write5m: 1, write1h: 4, cacheRead: 3, output: 7))
         #expect(r.id == "msg_9" && r.cwd == "/Users/example/api" && r.speed == nil)
-        #expect(r.hour == TranscriptReply.hour(of: t0))
+        #expect(r.minute == UsageSample.minute(of: t0))
         // Without the breakdown every write is a 5-minute one; without a message id the request id stands in.
         let bare = #"{"type":"assistant","requestId":"req_1","timestamp":"2026-10-16T22:30:00Z","message":{"model":"claude-opus-5-5","usage":{"cache_creation_input_tokens":5}}}"#
         let b = try reply(bare)

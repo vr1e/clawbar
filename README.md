@@ -156,7 +156,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit with its reset. Not yet: A shorter menu with Settings. |
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
-| 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval; the top projects keep folders of the same name apart and weigh each reply at its model's list price. Not yet: The hovered hour's busiest project. |
+| 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval; the top projects keep folders of the same name apart and weigh each reply at its model's list price; the hover's busiest project is the local hour's, not the UTC hour's. |
 | Themes and skins | ⏳ Not yet | |
 | Settings window | ⏳ Not yet | Not ported: A tab for Claude Code's own settings. |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
@@ -206,7 +206,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   it, and weigh it at its own model's list price, cache reads and writes included. Two folders of the same name stay
   apart and show their parent folder (`work/app`, `play/app`) instead of being added up as one. A row's tooltip
   shows its folder under `~`, and the label's tooltip counts the replies whose model the price table lacks, priced
-  as the closest one listed.
+  as the closest one listed. The chart's hover names the busiest project of the local hour, where the original's UTC
+  hour is 30 or 45 minutes off in zones such as India or Nepal.
 - Clawd Run, the game for a used-up session limit, is ClawBar's own; the original has nothing like it.
 
 ## Development

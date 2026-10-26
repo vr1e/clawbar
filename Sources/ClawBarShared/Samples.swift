@@ -58,14 +58,25 @@ public enum Samples {
         }
     }()
 
-    /// Five projects of the week, heaviest first, so the top 4 leave one out.
-    public static let projects = ProjectUsage(projects: [
-        ProjectWeight(path: "\(home)/code/api", weight: 41.6),
-        ProjectWeight(path: "\(home)/code/web", weight: 23.4),
-        ProjectWeight(path: "\(home)/code/docs", weight: 14.7),
-        ProjectWeight(path: "\(home)/code/infra", weight: 12.1),
-        ProjectWeight(path: "\(home)/notes", weight: 8.2),
-    ])
+    /// Five projects of the week, heaviest first, so the top 4 leave one out. They take turns at the hours in which the
+    /// session rose, api every other one, each spreading its weight evenly over its quarter hours.
+    public static let projects: ProjectUsage = {
+        let weights = [("code/api", 41.6), ("code/web", 23.4), ("code/docs", 14.7), ("code/infra", 12.1), ("notes", 8.2)]
+        let rising = zip(history, history.dropFirst()).filter { ($1.session ?? 0) > ($0.session ?? 0) }
+        // Berlin is whole hours off UTC, so a UTC hour is a local one.
+        let turns = [0, 1, 0, 2, 0, 3, 0, 1, 0, 4]
+        let byProject = Dictionary(grouping: Set(rising.map { ProjectWeight.quarter(of: $1.minute) })) {
+            turns[$0 / 60 % turns.count]
+        }
+        return ProjectUsage(projects: weights.indices.map { i in
+            let quarters = byProject[i] ?? []
+            let each = weights[i].1 / Double(quarters.count)
+            return ProjectWeight(
+                path: "\(home)/\(weights[i].0)", weight: weights[i].1,
+                quarters: Dictionary(uniqueKeysWithValues: quarters.map { ($0, each) })
+            )
+        })
+    }()
 }
 
 extension DataSnapshot {

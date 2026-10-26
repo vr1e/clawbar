@@ -113,11 +113,18 @@ public struct ProjectWeight: Sendable, Hashable {
     public var path: String
     /// The replies at list prices, in dollars; only its ratio to the other projects' weights means anything.
     public var weight: Double
+    /// The weight per quarter hour, keyed by the Unix minute it starts at. Every time zone is a whole number of
+    /// quarter hours off UTC, so four of them make any local hour.
+    public var quarters: [Int: Double]
 
-    public init(path: String, weight: Double) {
+    public init(path: String, weight: Double, quarters: [Int: Double] = [:]) {
         self.path = path
         self.weight = weight
+        self.quarters = quarters
     }
+
+    /// The Unix minute the quarter hour holding `minute` starts at.
+    public static func quarter(of minute: Int) -> Int { minute - minute % 15 }
 }
 
 /// The week's Claude Code transcripts on this Mac, weighed per project.

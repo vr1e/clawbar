@@ -29,6 +29,20 @@ enum TopProjects {
         return view
     }
 
+    /// The project with the most weight in `minutes`, named as its row would be among all the week's projects; nil
+    /// before the first scan or when none has weight then. A tie goes to the scan's order: the week's heavier one.
+    static func busiest(in minutes: Range<Int>, of usage: ProjectUsage?, home: String) -> String? {
+        guard let usage else { return nil }
+        let quarters = Array(stride(from: ProjectWeight.quarter(of: minutes.lowerBound), to: minutes.upperBound, by: 15))
+        var best: (index: Int, weight: Double)?
+        for (i, p) in usage.projects.enumerated() {
+            let weight = quarters.reduce(0) { $0 + (p.quarters[$1] ?? 0) }
+            if weight > (best?.weight ?? 0) { best = (i, weight) }
+        }
+        guard let best else { return nil }
+        return names(usage.projects.map { HomePath.relative($0.path, home: home) })[best.index]
+    }
+
     /// '{0:0}%' is a .NET format string, which rounds half away from zero, unlike the original's casts.
     static func percent(_ share: Double) -> String {
         "\(Int(share.rounded(.toNearestOrAwayFromZero)))%"
