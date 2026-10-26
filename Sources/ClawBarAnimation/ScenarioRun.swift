@@ -29,6 +29,9 @@ public final class ScenarioRun {
 
     /// Crop below the reset line, as every scenario but the tour does.
     public var crop: Bool { script.crop }
+    /// The engine's visibility rule, so the recorder draws what the app would.
+    public var mascotVisible: Bool { engine.mascotVisible }
+    public var skyVisible: Bool { engine.skyVisible }
 
     /// The mascot timer's own handler first, then record-gif.ps1's: the due steps, then Update-Widget. Nil once the
     /// last step is due, which ends the recording.

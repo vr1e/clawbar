@@ -27,7 +27,10 @@ enum Recorder {
         let layout = LayoutModel()
         var view = presenter(run.data, now: Samples.now, config: run.config)
         // A first pass measures the number, which sets the play area Clawd walks in.
-        _ = CardRenderer.render(CardRenderer.Input(view: view), scale: 1, layout: layout)
+        _ = CardRenderer.render(
+            CardRenderer.Input(view: view, mascotVisible: run.mascotVisible, skyVisible: run.skyVisible),
+            scale: 1, layout: layout
+        )
 
         var cards: [CGImage] = []
         var cropHeight: Int?
@@ -36,7 +39,9 @@ enum Recorder {
             var animation = f.animation
             // The recorder collapses the developer caption.
             animation.clawd.devCaption = ""
-            let card = CardRenderer.Input(view: view, animation: animation)
+            let card = CardRenderer.Input(
+                view: view, mascotVisible: run.mascotVisible, skyVisible: run.skyVisible, animation: animation
+            )
             guard let image = CardRenderer.render(card, scale: 1, layout: layout) else { break }
             if run.crop, cropHeight == nil, let reset = layout.rects[.reset] {
                 cropHeight = Int(((reset.maxY + 9) * 2).rounded(.up))

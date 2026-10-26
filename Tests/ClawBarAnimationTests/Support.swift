@@ -18,6 +18,11 @@ func settled(seed: UInt64 = 2026) -> AnimationEngine {
     return engine
 }
 
+/// The developer menu's Sky submenu, by its title rather than its place in the menu.
+func skyMenu(_ engine: AnimationEngine) -> DevMenuNode? {
+    engine.developerMenu().first { $0.title == L10n.t(.mmSky, .en) }
+}
+
 func inputs(now: Date = t0, over: Bool = false, mouseX: Double? = nil, zone: TimeZone = Samples.timeZone) -> AnimationInputs {
     AnimationInputs(now: now, timeZone: zone, numberWidth: 32, mouseOverWindow: over, mouseX: mouseX)
 }

@@ -62,5 +62,6 @@ import ClawBarShared
         #expect(s.sessions.map(\.name) == ["api"] && s.sessions[0].state == .busy)
         #expect(s.sessionsRead && s.usageProbeCompleted)
         #expect(s.status?.indicator == "none" && s.statusAt == start)
+        #expect(run.engine.skyDev == SkyDevState(phase: .day, weatherCode: 1))
     }
 }
