@@ -154,7 +154,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         let view = WidgetPresenter.make(input)
         if view != app.view { app.view = view }
         statusItem.update(text: view.trayText, color: view.trayColor, mascot: view.trayMascot, tooltip: view.trayTooltip)
-        game.update(caption: view.gameCaption, lang: config.lang)
+        game.update(caption: view.gameCaption, lang: config.lang, palette: view.palette)
         engine.apply(input.data, config: config, now: now)
         syncVisibility()
         animation.publish(engine.frame)

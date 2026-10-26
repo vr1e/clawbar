@@ -29,7 +29,7 @@ to `main` by PR; it leaves the version alone. Releases are cut from `main` by th
   composes `ClawBarClawd` and `ClawBarSky` through their entry points.
 - Before naming a type or writing about the data or the moving side, read `GLOSSARY.md`: the words for probe, data
   snapshot, data engine, latch, snapshot mode (the `--snapshot` render, not a data snapshot), animation tick,
-  animation engine, animation frame and play area, and the ones to avoid.
+  animation engine, animation frame, play area and theme palette, and the ones to avoid.
 - `AnimationEngine`, `ClawdEngine`, `DataEngine`, `RunnerEngine`, `SkyEngine`, `SkyInfo` and `WidgetPresenter` are
   pure: time, time zone and randomness arrive as inputs (`SeededRandomSource` in tests), and statics are `let`.
   `DataController` runs `DataEngine`'s commands against processes, the network and disk, and feeds each answer back

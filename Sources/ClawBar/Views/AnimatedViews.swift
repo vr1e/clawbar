@@ -5,6 +5,8 @@ import ClawBarShared
 struct MascotView: View {
     let animation: AnimationModel
     let layout: LayoutModel
+    /// The developer caption is text, so it takes the label's role while Clawd keeps his colours.
+    let captionColor: RGBA
     /// How far the surface reaches above the percent row; confetti spawns up to 46 above the ground.
     static let top = 10.0
     /// 10 above the row, the play area down to the ground, and 6 below it for the hanging sprite box.
@@ -28,7 +30,7 @@ struct MascotView: View {
             if !caption.isEmpty {
                 // MascotTag at the play area's top-left, 8 pt, between the soul and the confetti.
                 DrawOpRenderer.drawText(
-                    caption, at: CGPoint(x: 0, y: -PlayArea.height), size: 8, weight: .regular, color: Palette.caption, opacity: 1,
+                    caption, at: CGPoint(x: 0, y: -PlayArea.height), size: 8, weight: .regular, color: captionColor, opacity: 1,
                     anchor: .topLeading, in: ctx
                 )
             }
@@ -72,6 +74,7 @@ struct SkyView: View {
 struct HeartsView: View {
     let animation: AnimationModel
     let layout: LayoutModel
+    let heartOff: RGBA
     @Environment(\.uiScale) private var k
 
     var body: some View {
@@ -79,7 +82,7 @@ struct HeartsView: View {
         if h.visible {
             HStack(spacing: PixelArt.heartGap * k) {
                 ForEach(0 ..< 3, id: \.self) { i in
-                    HeartCell(halves: h.shownHalves - 2 * i, beat: h.beatScale)
+                    HeartCell(halves: h.shownHalves - 2 * i, beat: h.beatScale, heartOff: heartOff)
                 }
             }
             .publish(.hearts, to: layout)
@@ -91,6 +94,7 @@ struct HeartsView: View {
 private struct HeartCell: View {
     let halves: Int
     let beat: Double
+    let heartOff: RGBA
     @Environment(\.uiScale) private var k
 
     static let full = PixelArt.rects(PixelArt.heart, value: "#", px: PixelArt.heartPx, py: PixelArt.heartPx)
@@ -105,7 +109,7 @@ private struct HeartCell: View {
             ctx.scaleBy(x: scale, y: scale)
             var back = Path()
             back.addRects(Self.full)
-            ctx.fill(back, with: .color(Color(rgba: Palette.heartOff)))
+            ctx.fill(back, with: .color(Color(rgba: heartOff)))
             guard !front.isEmpty else { return }
             var on = Path()
             on.addRects(front)

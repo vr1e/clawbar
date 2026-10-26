@@ -30,12 +30,12 @@ struct CardView: View {
                     .publish(.play, to: layout)
                     .padding(.bottom, 10 * k)
             }
-            BarLabelRow(row: v.week)
+            BarLabelRow(row: v.week, palette: v.palette)
                 .padding(.bottom, 4 * k)
             Bar(fraction: v.week.fraction, color: v.week.color, height: 4, radius: 2)
                 .padding(.bottom, 7 * k)
             ForEach(Array(v.modelWeeks.enumerated()), id: \.offset) { i, row in
-                BarLabelRow(row: row)
+                BarLabelRow(row: row, palette: v.palette)
                     .padding(.bottom, 4 * k)
                 Bar(fraction: row.fraction, color: row.color, height: 4, radius: 2)
                     .padding(.bottom, i == v.modelWeeks.count - 1 ? 0 : 7 * k)
@@ -62,7 +62,7 @@ struct CardView: View {
             // WPF fills only inside the border, so the rim shows #33FFFFFF over whatever is behind the window.
             let outer = RoundedRectangle(cornerRadius: 10 * k)
             ZStack {
-                outer.inset(by: 1 * k).fill(Color(rgba: Palette.card))
+                outer.inset(by: 1 * k).fill(Color(rgba: v.palette.background))
                 outer.strokeBorder(Color(rgba: Palette.border), lineWidth: 1 * k)
             }
         }
@@ -81,18 +81,18 @@ private struct HeaderRow: View {
     var body: some View {
         // One Grid cell: the title centred vertically against the glyph stack, whose tallest line is the 13-pt "–".
         ZStack(alignment: .leading) {
-            WText(v.title, 9.5, weight: .semibold, color: Palette.muted)
+            WText(v.title, 9.5, weight: .semibold, color: v.palette.muted)
             HStack(alignment: .top, spacing: 0) {
                 Spacer(minLength: 0)
-                HeartsView(animation: animation, layout: layout)
+                HeartsView(animation: animation, layout: layout, heartOff: v.palette.heartOff)
                     .frame(height: WPFLineBox.height * 13 * k)
-                WText(v.detailsGlyph, 11, color: Palette.muted)
+                WText(v.detailsGlyph, 11, color: v.palette.muted)
                     .publish(.details, to: layout)
                     .padding(.trailing, 9 * k)
-                WText("–", 13, color: Palette.muted)
+                WText("–", 13, color: v.palette.muted)
                     .publish(.hide, to: layout)
                     .padding(.trailing, 9 * k)
-                WText("✕", 11, color: Palette.muted)
+                WText("✕", 11, color: v.palette.muted)
                     .publish(.exit, to: layout)
             }
         }
@@ -125,7 +125,7 @@ private struct PercentRow: View {
             if mascot {
                 // One surface over the whole card width, 10 above the row and 6 below the ground,
                 // so nothing of Clawd's is clipped; the session bar after this row draws over its lowest band.
-                MascotView(animation: animation, layout: layout)
+                MascotView(animation: animation, layout: layout, captionColor: v.palette.label)
                     .frame(width: CardView.width * k, height: MascotView.height * k)
                     .offset(x: -13 * k, y: -MascotView.top * k)
                     .allowsHitTesting(false)
@@ -147,7 +147,7 @@ private struct NumberView: View {
         let scale = k
         HStack(alignment: .lastTextBaseline, spacing: 0) {
             WText(v.pctText, 30, weight: .light, color: v.pctColor, digits: true)
-            WText("%", 14, color: Palette.muted)
+            WText("%", 14, color: v.palette.muted)
                 .padding(.leading, 2 * k)
                 .alignmentGuide(.lastTextBaseline) { d in d[.lastTextBaseline] + rise }
         }
@@ -213,13 +213,14 @@ private struct PlayButton: View {
 /// WEEK and the model weeks: the label left, the value right, in one Grid cell.
 private struct BarLabelRow: View {
     let row: BarRow
+    let palette: ThemePalette
     @Environment(\.uiScale) private var k
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            WText(row.label, 9, weight: .semibold, color: Palette.label)
+            WText(row.label, 9, weight: .semibold, color: palette.label)
             Spacer(minLength: 4 * k)
-            WText(row.value, 10, color: Palette.muted)
+            WText(row.value, 10, color: palette.muted)
         }
         .frame(width: CardView.content * k)
     }
@@ -232,9 +233,9 @@ private struct SessionsRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            WText(v.sessionsLabel, 9, weight: .semibold, color: Palette.label)
+            WText(v.sessionsLabel, 9, weight: .semibold, color: v.palette.label)
                 .padding(.trailing, 8 * k)
-            WText(v.sessionsText, 10, color: Palette.muted, truncates: true)
+            WText(v.sessionsText, 10, color: v.palette.muted, truncates: true)
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .frame(width: CardView.content * k)
@@ -257,7 +258,7 @@ private struct StatusRow: View {
             VStack(alignment: .leading, spacing: 0) {
                 WText(v.statusText, 10.5, color: v.statusTextColor, wraps: true)
                 if !v.statusLine2.isEmpty {
-                    WText(v.statusLine2, 10, color: Palette.muted, wraps: true)
+                    WText(v.statusLine2, 10, color: v.palette.muted, wraps: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -282,10 +283,10 @@ private struct DetailsBlock: View {
                 period(v.week7Label, v.week7Main, v.week7Extra)
             }
             if let history = v.history {
-                HistoryBlock(h: history, app: app, layout: layout)
+                HistoryBlock(h: history, palette: v.palette, app: app, layout: layout)
             }
             if let projects = v.projects {
-                ProjectsBlock(p: projects, layout: layout)
+                ProjectsBlock(p: projects, palette: v.palette, layout: layout)
             }
             Divider(k: k).padding(.bottom, 7 * k)
             HStack(alignment: .top, spacing: 0) {
@@ -297,7 +298,7 @@ private struct DetailsBlock: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .publish(.version, to: layout)
                 }
-                WText(v.appVersionText, 10, color: Palette.label)
+                WText(v.appVersionText, 10, color: v.palette.label)
                     .publish(.appVersion, to: layout)
                     .padding(.leading, 8 * k)
             }
@@ -308,13 +309,13 @@ private struct DetailsBlock: View {
     /// An empty extra line is left out, but its section gap stays.
     @ViewBuilder
     private func period(_ label: String, _ main: String, _ extra: String) -> some View {
-        WText(label, 9, weight: .semibold, color: Palette.label)
+        WText(label, 9, weight: .semibold, color: v.palette.label)
             .padding(.bottom, 3 * k)
-        WText(main, 10.5, color: Palette.secondary, wraps: true)
+        WText(main, 10.5, color: v.palette.secondary, wraps: true)
             .frame(width: CardView.content * k, alignment: .leading)
             .padding(.bottom, (extra.isEmpty ? 10 : 2) * k)
         if !extra.isEmpty {
-            WText(extra, 10, color: Palette.muted, wraps: true)
+            WText(extra, 10, color: v.palette.muted, wraps: true)
                 .frame(width: CardView.content * k, alignment: .leading)
                 .padding(.bottom, 10 * k)
         }
@@ -324,6 +325,7 @@ private struct DetailsBlock: View {
 /// widget.xaml's HistPanel: the label, the chart, a weekday under each day, and the legend or why there is none.
 private struct HistoryBlock: View {
     let h: HistoryView
+    let palette: ThemePalette
     let app: AppModel
     let layout: LayoutModel
     @Environment(\.uiScale) private var k
@@ -331,22 +333,22 @@ private struct HistoryBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Divider(k: k).padding(.bottom, 8 * k)
-            WText(h.label, 9, weight: .semibold, color: Palette.label)
+            WText(h.label, 9, weight: .semibold, color: palette.label)
                 .padding(.bottom, 4 * k)
-            HistoryChartView(h: h)
+            HistoryChartView(h: h, weekColor: palette.accent)
                 .frame(width: HistoryView.width * k, height: HistoryView.height * k)
                 .overlay(alignment: .topLeading) { HistoryCursor(app: app) }
                 .clipped()
                 .publish(.history, to: layout)
             ZStack(alignment: .topLeading) {
                 ForEach(h.days, id: \.from) { day in
-                    WText(day.text, 8, color: Palette.footer)
+                    WText(day.text, 8, color: palette.footer)
                         .frame(width: (day.to - day.from) * k)
                         .offset(x: day.from * k)
                 }
             }
             .frame(width: HistoryView.width * k, height: 11 * k, alignment: .topLeading)
-            HistoryCaption(h: h, app: app)
+            HistoryCaption(h: h, palette: palette, app: app)
                 .frame(width: CardView.content * k, alignment: .leading)
                 .padding(.top, 1 * k)
                 .padding(.bottom, 10 * k)
@@ -372,6 +374,7 @@ private struct HistoryCursor: View {
 /// The hover's readout, else the legend, else why the chart is empty.
 private struct HistoryCaption: View {
     let h: HistoryView
+    let palette: ThemePalette
     let app: AppModel
     @Environment(\.uiScale) private var k
 
@@ -381,18 +384,18 @@ private struct HistoryCaption: View {
             HStack(alignment: .top, spacing: 0) {
                 legend(h.sessionName, HistoryChartView.sessionColor)
                 // Four spaces of 10-pt text between the entries, as Set-HistLegend pads them.
-                legend(h.weekName, HistoryChartView.weekColor)
+                legend(h.weekName, palette.accent)
                     .padding(.leading, 11 * k)
             }
         } else {
-            WText(text, 10, color: Palette.muted, truncates: true)
+            WText(text, 10, color: palette.muted, truncates: true)
         }
     }
 
     private func legend(_ name: String, _ color: RGBA) -> some View {
         HStack(alignment: .top, spacing: 0) {
             WText("━ ", 10, color: color)
-            WText(name, 10, color: Palette.muted)
+            WText(name, 10, color: palette.muted)
         }
     }
 }
@@ -400,22 +403,23 @@ private struct HistoryCaption: View {
 /// widget.xaml's ProjPanel: the label, then a row per project, or `counting...` before the first scan.
 private struct ProjectsBlock: View {
     let p: ProjectsView
+    let palette: ThemePalette
     let layout: LayoutModel
     @Environment(\.uiScale) private var k
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // The StackPanel stretches LblProj, so its tooltip spans the column.
-            WText(p.label, 9, weight: .semibold, color: Palette.label)
+            WText(p.label, 9, weight: .semibold, color: palette.label)
                 .frame(width: CardView.content * k, alignment: .leading)
                 .publish(.projectsLabel, to: layout)
                 .padding(.bottom, 4 * k)
             if p.rows.isEmpty {
-                WText(p.caption, 10, color: Palette.label)
+                WText(p.caption, 10, color: palette.label)
             } else {
                 // Published before the padding, so a row's tooltip leaves out the 2 below it, as the Grid's margin does.
                 ForEach(Array(p.rows.enumerated()), id: \.offset) { i, row in
-                    ProjectRowView(row: row)
+                    ProjectRowView(row: row, palette: palette)
                         .publish(.project(i), to: layout)
                         .padding(.bottom, 2 * k)
                 }
@@ -428,15 +432,16 @@ private struct ProjectsBlock: View {
 /// Show-Projects' Grid: the name with 8 to spare, the bar centred on its track, the share right-aligned.
 private struct ProjectRowView: View {
     let row: ProjectRow
+    let palette: ThemePalette
     @Environment(\.uiScale) private var k
 
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
-            WText(row.name, 10, color: Palette.secondary, truncates: true)
+            WText(row.name, 10, color: palette.secondary, truncates: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.trailing, 8 * k)
             Bar(fraction: row.fraction, color: Palette.projectBar, height: 4, radius: 2, width: ProjectsView.trackWidth)
-            WText(row.share, 10, color: Palette.muted)
+            WText(row.share, 10, color: palette.muted)
                 .frame(width: ProjectsView.shareWidth * k, alignment: .trailing)
         }
         .frame(width: CardView.content * k)
@@ -446,10 +451,11 @@ private struct ProjectRowView: View {
 /// The midnights, then the week line, the session's fill and its line on top, as Draw-HistoryChart adds them.
 private struct HistoryChartView: View {
     let h: HistoryView
+    /// The week bar's role, so a theme's accent recolours both.
+    let weekColor: RGBA
     @Environment(\.uiScale) private var k
 
     static let sessionColor = Palette.ok
-    static let weekColor = Palette.weekBar
 
     var body: some View {
         let scale = k
@@ -460,7 +466,7 @@ private struct HistoryChartView: View {
                 ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: height)), with: .color(Color(rgba: Palette.divider)))
             }
             let stroke = StrokeStyle(lineWidth: 1.2, lineJoin: .round)
-            ctx.stroke(Self.lines(h.weekRuns), with: .color(Color(rgba: Self.weekColor)), style: stroke)
+            ctx.stroke(Self.lines(h.weekRuns), with: .color(Color(rgba: weekColor)), style: stroke)
             var fill = Path()
             for run in h.sessionRuns {
                 guard let first = run.first, let last = run.last else { continue }

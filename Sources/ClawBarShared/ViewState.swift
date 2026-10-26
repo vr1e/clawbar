@@ -163,6 +163,10 @@ public enum VersionAction: Sendable, Hashable {
 /// Every string, colour, fraction, visibility and tooltip of the widget and the menu bar item.
 /// An empty tooltip means none; an empty line text hides that line.
 public struct WidgetViewState: Sendable, Hashable {
+    /// The themed colours, read by role by the card, the hearts, the caption and Clawd Run. Where the role depends on
+    /// the state or the row, the presenter resolves it into that field's own colour instead.
+    public var palette: ThemePalette
+
     // Header
     public var title: String
     /// ▾ closed, ▴ open.
@@ -251,6 +255,7 @@ public struct WidgetViewState: Sendable, Hashable {
     public var trayMascot: Bool
 
     public init(
+        palette: ThemePalette = .classic,
         title: String = "CLAUDE USAGE",
         detailsGlyph: String = "▾",
         detailsTooltip: String = "",
@@ -307,6 +312,7 @@ public struct WidgetViewState: Sendable, Hashable {
         trayTooltip: String = "",
         trayMascot: Bool = true
     ) {
+        self.palette = palette
         self.title = title
         self.detailsGlyph = detailsGlyph
         self.detailsTooltip = detailsTooltip

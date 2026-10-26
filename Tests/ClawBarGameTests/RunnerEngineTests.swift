@@ -27,11 +27,18 @@ private func pass(
     return e.phase
 }
 
-private func texts(_ f: RunnerFrame) -> [String] {
-    f.ops.compactMap { op -> String? in
-        if case let .text(s, _, _, _, _, _, _) = op { return s }
+private func lines(_ f: RunnerFrame) -> [(text: String, color: RGBA)] {
+    f.ops.compactMap { op in
+        if case let .text(s, _, _, _, color, _, _) = op { return (s, color) }
         return nil
     }
+}
+
+private func texts(_ f: RunnerFrame) -> [String] { lines(f).map(\.text) }
+
+/// Classic colours for the tests the palette is no concern of.
+private extension RunnerEngine {
+    func frame(lang: Lang, caption: String) -> RunnerFrame { frame(lang: lang, caption: caption, palette: .classic) }
 }
 
 private func stand(_ e: RunnerEngine) -> RunnerInput { RunnerInput() }
@@ -231,7 +238,7 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
     }
 
     @Test func theShowcaseShowsEachScreenWithABugMidRound() {
-        let frames = RunnerEngine.showcase(lang: .en, caption: "resets in 1h 12m", back: "back")
+        let frames = RunnerEngine.showcase(lang: .en, caption: "resets in 1h 12m", back: "back", palette: .classic)
         #expect(frames.map(\.name) == ["ready", "running", "paused", "over"])
         let bugs = frames[1].frame.ops.contains { op in
             if case let .rects(rects, color, _) = op { return color == RunnerArt.bugColor && !rects.isEmpty }
@@ -241,6 +248,22 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
         #expect(texts(frames[2].frame).contains(L10n.t(.gamePaused, .en)))
         #expect(texts(frames[3].frame).contains(L10n.t(.gameRestart, .en)))
         #expect(texts(frames[3].frame).contains("back"))
+    }
+
+    @Test func thePaletteColoursTheBackgroundAndTextButNotTheArt() {
+        let p = ThemePalette(
+            background: RGBA("#FF000001"), secondary: RGBA("#FF000002"), muted: RGBA("#FF000003"), label: RGBA("#FF000004"),
+            footer: RGBA("#FF000005"), accent: RGBA("#FF000006"), modelWeekBar: RGBA("#FF000007"), heartOff: RGBA("#FF000008")
+        )
+        let classic = RunnerEngine.showcase(lang: .en, caption: "c", back: "b", palette: .classic)
+        let themed = RunnerEngine.showcase(lang: .en, caption: "c", back: "b", palette: p)
+        func art(_ f: RunnerFrame) -> [DrawOp] { f.ops.filter { if case .rects = $0 { true } else { false } } }
+        for (a, b) in zip(classic, themed) {
+            #expect(b.frame.background == p.background)
+            #expect(art(b.frame) == art(a.frame))
+            #expect(Set(lines(b.frame).map(\.color)).isSubset(of: [p.secondary, p.muted, p.footer]))
+        }
+        #expect(lines(themed[0].frame).first { $0.text == L10n.t(.gameHint, .en) }?.color == p.footer)
     }
 
     @Test func everySpriteStaysOnTheCanvas() {

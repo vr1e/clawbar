@@ -4,20 +4,28 @@ import ClawBarShared
 /// Every render rule of update.ps1 and format.ps1, as a pure function of its input.
 public enum WidgetPresenter {
     public static func make(_ input: PresenterInput) -> WidgetViewState {
-        Render(input).state()
+        // The theme, the accent and "auto" by month are chosen here once the config has them.
+        make(input, palette: .classic)
+    }
+
+    /// `make` with the themed colours given, so tests can recolour a role that no config chooses yet.
+    static func make(_ input: PresenterInput, palette: ThemePalette) -> WidgetViewState {
+        Render(input, palette: palette).state()
     }
 }
 
-/// One render: the input, its clamped config and its language, read once.
+/// One render: the input, its clamped config, its language and its themed colours, read once.
 private struct Render {
     let input: PresenterInput
+    let palette: ThemePalette
     let cfg: Config
     let lang: Lang
     let data: DataSnapshot
     let now: Date
 
-    init(_ input: PresenterInput) {
+    init(_ input: PresenterInput, palette: ThemePalette) {
         self.input = input
+        self.palette = palette
         cfg = input.config.clamped()
         lang = cfg.lang
         data = input.data
@@ -25,7 +33,7 @@ private struct Render {
     }
 
     func state() -> WidgetViewState {
-        var v = WidgetViewState()
+        var v = WidgetViewState(palette: palette)
         header(&v)
         session(&v)
         weeks(&v)
@@ -61,7 +69,7 @@ private struct Render {
 
     private func sessionNumbers(_ v: inout WidgetViewState) {
         let usage = data.usageIssue?.voidsLimits == true ? nil : data.usage
-        v.resetColor = Palette.secondary
+        v.resetColor = palette.secondary
         v.resetTooltip = ""
         guard let usage, let pct = usage.sessionPercent else {
             v.pctText = "--"
@@ -153,15 +161,15 @@ private struct Render {
         let usage = data.usage
         if let week = usage?.weekPercent {
             v.week = BarRow(
-                label: t(.uiWeek), value: limit(week, usage?.weekReset), fraction: fraction(week), color: Palette.weekBar
+                label: t(.uiWeek), value: limit(week, usage?.weekReset), fraction: fraction(week), color: palette.accent
             )
         } else {
-            v.week = BarRow(label: t(.uiWeek), value: t(.noData), fraction: 0, color: Palette.weekBar)
+            v.week = BarRow(label: t(.uiWeek), value: t(.noData), fraction: 0, color: palette.accent)
         }
         v.modelWeeks = (usage?.modelWeeks ?? []).map {
             BarRow(
                 label: t(.uiModelWeek, $0.name.uppercased()), value: limit($0.percent, $0.reset),
-                fraction: fraction($0.percent), color: Palette.modelWeekBar
+                fraction: fraction($0.percent), color: palette.modelWeekBar
             )
         }
     }
@@ -212,7 +220,7 @@ private struct Render {
         guard let st = data.status, !stale else {
             v.statusDotColor = Palette.dead
             v.statusText = data.status == nil ? t(.stLoading) : t(.stOffline)
-            v.statusTextColor = Palette.muted
+            v.statusTextColor = palette.muted
             return
         }
         // PowerShell's -eq and -in ignore case.
@@ -220,11 +228,11 @@ private struct Render {
         if indicator == "none", st.broken.isEmpty, st.incidents.isEmpty {
             v.statusDotColor = Palette.ok
             v.statusText = t(.stOk)
-            v.statusTextColor = Palette.muted
+            v.statusTextColor = palette.muted
             return
         }
         v.statusDotColor = ["major", "critical"].contains(indicator) ? Palette.crit : Palette.warn
-        v.statusTextColor = Palette.secondary
+        v.statusTextColor = palette.secondary
         if !st.incidents.isEmpty {
             v.statusText = st.incidents.joined(separator: "  ·  ")
         } else {
@@ -284,7 +292,7 @@ private struct Render {
             v.versionColor = Palette.warn
         } else {
             v.versionText = ver.latest == nil ? "v\(local)" : "v\(local)  ·  \(t(.verLatest))"
-            v.versionColor = Palette.muted
+            v.versionColor = palette.muted
         }
     }
 
@@ -320,7 +328,7 @@ private struct Render {
     }
 
     private func footer(_ v: inout WidgetViewState) {
-        v.accountColor = Palette.footer
+        v.accountColor = palette.footer
         if cfg.showAccount, let account = data.account {
             if account.loggedIn {
                 let text = [account.plan, account.email].filter { !$0.isEmpty }.joined(separator: "  ·  ")
@@ -331,7 +339,7 @@ private struct Render {
                 v.accountColor = Palette.crit
             }
         }
-        v.stampColor = Palette.footer
+        v.stampColor = palette.footer
         if input.tickError {
             v.stampText = t(.error)
         } else if let at = data.usageAt {
