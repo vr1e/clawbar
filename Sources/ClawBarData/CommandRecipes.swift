@@ -1,9 +1,8 @@
 import Foundation
 import ClawBarShared
 
-/// How each of the engine's commands is carried out against a process, the network or disk, and what it answers.
-/// One recipe per command, composed from the probes' spec/interpret pairs; `DataController` and `--diagnose` both
-/// run them.
+/// The engine's commands carried out against processes, the network and disk, in one place so `DataController` and
+/// `--diagnose` cannot drift apart.
 struct CommandRecipes: Sendable {
     /// The system boundaries, injectable so tests drive the data side with fakes and a hand clock.
     struct Dependencies: Sendable {
@@ -60,7 +59,7 @@ struct CommandRecipes: Sendable {
         updateLog = paths.updateLog
     }
 
-    /// What the engine starts from.
+    // What the engine starts from.
     func savedLatch() -> UsageLatch? { latchStore.load() }
     func savedHistory() -> [UsageSample] { historyStore.load(now: deps.clock()) }
 

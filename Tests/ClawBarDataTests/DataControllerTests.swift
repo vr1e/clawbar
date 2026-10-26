@@ -112,7 +112,7 @@ final class Counter {
         dc.tick(now: t0)
         #expect(await eventually { dc.snapshot.sessionsRead })
         #expect(dc.snapshot.sessions.map(\.pid) == [4242])
-        // The answer is in the snapshot when the poll returns: the presenter reads it right after.
+        // The answer is in the data snapshot when the poll returns: the presenter reads it right after.
         h.session(4343, in: alt, status: "waiting")
         dc.pollSessions(now: t0 + 2)
         #expect(dc.snapshot.sessions.map(\.pid) == [4242, 4343])

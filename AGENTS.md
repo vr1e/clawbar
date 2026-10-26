@@ -27,12 +27,12 @@ to `main` by PR; it leaves the version alone. Releases are cut from `main` by th
 - Every value the modules pass each other is a type in `Sources/ClawBarShared/`; each other target owns one concern
   and exports only its entry points.
 - Before naming a type or writing about the data side, read `GLOSSARY.md`: the words for probe, data snapshot, data
-  engine, latch and snapshot mode (the `--snapshot` render, not a data snapshot), and the ones to avoid.
+  engine, latch, recipe and snapshot mode (the `--snapshot` render, not a data snapshot), and the ones to avoid.
 - `ClawdEngine`, `DataEngine`, `RunnerEngine`, `SkyEngine`, `SkyInfo` and `WidgetPresenter` are pure: time, time zone
   and randomness arrive as inputs (`SeededRandomSource` in tests), and statics are `let`. `CommandRecipes` carries out
-  each `DataEngine` command against processes, the network and disk and returns its answer event, once per command;
-  `DataController` (Tasks, the error log, `onChange`) and `--diagnose` (one pass at one instant, until a tick asks for
-  nothing) are its two adapters.
+  the `DataEngine` commands that reach processes, the network and disk, one recipe each, and returns their answer
+  events; `DataController` (Tasks, the error log, `onChange`) and `--diagnose` (one pass at one instant, until a tick
+  asks for nothing) are its two adapters.
 - The `ClawBar` target is MainActor by default: Timer and notification blocks run inside `MainActor.assumeIsolated`.
 - Regular expressions are statics built with `Rx.make` (`Sources/ClawBarShared/Rx.swift`).
 - The original rounds half to even (`[int]`, `[byte]`, `[math]::Round`): use `.rounded(.toNearestOrEven)`.

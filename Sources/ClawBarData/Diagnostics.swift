@@ -66,8 +66,8 @@ public enum Diagnostics {
                     // A look, not a sample: usage-history.json is the app's record of what it showed.
                     break
                 default:
-                    // At the clock, not the pass instant: a session started during the pass is as old as it is by then.
                     let started = ContinuousClock.now
+                    // At the clock, not the pass instant: a session started during the pass is as old as it is by then.
                     guard let event = await recipes.answer(command) else { continue }
                     let next = engine.handle(event, now: now)
                     report(event, took: ContinuousClock.now - started)

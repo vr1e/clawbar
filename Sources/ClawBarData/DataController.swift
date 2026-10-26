@@ -1,9 +1,7 @@
 import Foundation
 import ClawBarShared
 
-/// The data engine's live run. `DataEngine` decides; each command goes through `CommandRecipes`, an answer that
-/// takes a Task comes back on the main actor as an event, the engine's log lines reach error.log, and `onChange`
-/// fires when an answer moved the snapshot.
+/// The data engine's adapter in the app: Tasks, error.log and `onChange` live here, so the recipes stay free of them.
 @MainActor
 public final class DataController {
     public var snapshot: DataSnapshot { engine.snapshot }
@@ -86,8 +84,7 @@ public final class DataController {
         if engine.snapshot != before { onChange?() }
     }
 
-    /// Runs one command. The log line and the cancel are the controller's own; the rest have a recipe, answered at
-    /// once or through a Task that answers through `complete`.
+    /// The log line and the cancel touch the controller's own state, so only they bypass the recipes.
     private func execute(_ command: DataCommand, now: Date) -> DataEvent? {
         switch command {
         case .log(let line):
