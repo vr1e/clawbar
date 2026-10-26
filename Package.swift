@@ -14,7 +14,8 @@ let sdkLinkerSettings: [LinkerSetting] = ProcessInfo.processInfo.environment["SD
     [.unsafeFlags(["-Xclang-linker", "-isysroot", "-Xclang-linker", $0])]
 } ?? []
 
-// One target per owner, so modules built in parallel never share internal names.
+// One target per owner, so modules built in parallel never share internal names. The libraries depend on
+// ClawBarShared alone, except ClawBarAnimation, which composes Clawd and the sky through their entry points.
 // Shipped targets have no resources: Bundle.module breaks in the hand-assembled .app.
 let package = Package(
     name: "ClawBar",
@@ -28,10 +29,11 @@ let package = Package(
         .target(name: "ClawBarPresenter", dependencies: ["ClawBarShared"]),
         .target(name: "ClawBarClawd", dependencies: ["ClawBarShared"]),
         .target(name: "ClawBarSky", dependencies: ["ClawBarShared"]),
+        .target(name: "ClawBarAnimation", dependencies: ["ClawBarShared", "ClawBarClawd", "ClawBarSky"]),
         .target(name: "ClawBarGame", dependencies: ["ClawBarShared"]),
         .executableTarget(
             name: "ClawBar",
-            dependencies: ["ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarSky", "ClawBarGame"],
+            dependencies: ["ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarAnimation", "ClawBarGame"],
             swiftSettings: [.defaultIsolation(MainActor.self)],
             linkerSettings: sdkLinkerSettings
         ),
@@ -39,7 +41,7 @@ let package = Package(
         .testTarget(name: "ClawBarSharedTests", dependencies: ["ClawBarShared"], swiftSettings: testSettings),
         .testTarget(
             name: "ContractTests",
-            dependencies: ["ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarSky"],
+            dependencies: ["ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarSky", "ClawBarAnimation"],
             swiftSettings: testSettings
         ),
         .testTarget(
@@ -51,6 +53,11 @@ let package = Package(
         .testTarget(name: "ClawBarPresenterTests", dependencies: ["ClawBarPresenter", "ClawBarShared"], swiftSettings: testSettings),
         .testTarget(name: "ClawBarClawdTests", dependencies: ["ClawBarClawd", "ClawBarShared"], swiftSettings: testSettings),
         .testTarget(name: "ClawBarSkyTests", dependencies: ["ClawBarSky", "ClawBarShared"], swiftSettings: testSettings),
+        .testTarget(
+            name: "ClawBarAnimationTests",
+            dependencies: ["ClawBarAnimation", "ClawBarShared", "ClawBarClawd", "ClawBarSky"],
+            swiftSettings: testSettings
+        ),
         .testTarget(name: "ClawBarGameTests", dependencies: ["ClawBarGame", "ClawBarShared"], swiftSettings: testSettings),
         .testTarget(
             name: "ClawBarAppTests",

@@ -6,13 +6,14 @@ import ClawBarShared
 public final class SkyEngine {
     private let random: any RandomSource
 
-    /// Step-Sky recomputes the colours and bodies when this changes: about once a minute.
-    /// The minute stays a Double, so no time can trap converting it.
+    /// Step-Sky recomputes the colours and bodies when this changes: about once a minute, and at once when a developer
+    /// override changes the phase or the code. The minute stays a Double, so no time can trap converting it.
     private struct Key: Equatable {
         var minute: Double
         var code: Int
         var w: Double
         var h: Double
+        var forcedPhase: SkyPhase?
     }
 
     private var tick = 0
@@ -109,7 +110,7 @@ public final class SkyEngine {
         fog = (0 ..< 3).map { i in FogBand(x: random.nextDouble(), fy: 0.42 + 0.2 * Double(i)) }
     }
 
-    /// One tick at `size` (base units, 236 × 43).
+    /// One tick at `size` (base units, `PlayArea.skySize`).
     public func step(size: CGSize, inputs: SkyInputs) -> SkyFrame {
         tick += 1
         let w = Double(size.width), h = Double(size.height)
@@ -131,7 +132,7 @@ public final class SkyEngine {
         let code = inputs.weather?.code ?? 0
         let wind = inputs.weather.flatMap { $0.windKmh.isFinite ? $0.windKmh : nil } ?? 8
 
-        let key = Key(minute: t.rounded(.toNearestOrEven), code: code, w: w, h: h)
+        let key = Key(minute: t.rounded(.toNearestOrEven), code: code, w: w, h: h, forcedPhase: inputs.forcedPhase)
         if key != self.key {
             self.key = key
             recompute(t: t, sr: sr, ss: ss, code: code, inputs: inputs)
@@ -154,9 +155,6 @@ public final class SkyEngine {
         lastFrame = SkyFrame(top: top, bottom: bottom, ops: ops())
         return lastFrame
     }
-
-    /// Forces the next step to recompute everything (a developer override changed).
-    public func invalidate() { key = nil }
 
     // MARK: Layout and recompute
 

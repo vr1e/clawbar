@@ -36,6 +36,11 @@ final class AnimationModel {
     func publish(_ frame: SkyFrame) {
         if frame != sky { sky = frame }
     }
+
+    func publish(_ frame: AnimationFrame) {
+        publish(frame.clawd)
+        publish(frame.sky)
+    }
 }
 
 /// Everything SwiftUI measures that AppKit needs: hit and tooltip rects, the number's width, the card's size.
@@ -52,7 +57,7 @@ nonisolated enum CardSpace {
 
 @Observable
 final class LayoutModel {
-    /// The number with its `%`, in base units: the play area is 236 − this − 10 wide.
+    /// The number with its `%`, in base units: the play area is `PlayArea.width(numberWidth:)` of this.
     var numberWidth: Double = 0
     /// Not observed by any view; AppKit reads them on demand.
     @ObservationIgnored private(set) var rects: [HitID: CGRect] = [:]

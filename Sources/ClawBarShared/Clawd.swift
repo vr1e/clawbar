@@ -40,11 +40,10 @@ public struct ClawdDataInput: Sendable, Hashable {
     }
 }
 
-/// What one animation tick sees. Sizes are base units (before the global scale).
+/// What Clawd's part of an animation tick sees. Sizes are base units (before the global scale).
 public struct ClawdStepEnv: Sendable, Hashable {
-    /// The play area: 236 − the number's width − 10 wide, the percent row + 3 (43) tall.
+    /// The play area's width, `PlayArea.width(numberWidth:)`: what the number leaves of the row.
     public var areaWidth: Double
-    public var areaHeight: Double
     /// The pointer is over the widget window, even when another window covers it partly.
     public var mouseOverWindow: Bool
     /// The pointer's x in play-area coordinates, when over the window.
@@ -52,9 +51,8 @@ public struct ClawdStepEnv: Sendable, Hashable {
     public var now: Date
     public var lang: Lang
 
-    public init(areaWidth: Double, areaHeight: Double, mouseOverWindow: Bool, mouseX: Double?, now: Date, lang: Lang) {
+    public init(areaWidth: Double, mouseOverWindow: Bool, mouseX: Double?, now: Date, lang: Lang) {
         self.areaWidth = areaWidth
-        self.areaHeight = areaHeight
         self.mouseOverWindow = mouseOverWindow
         self.mouseX = mouseX
         self.now = now
