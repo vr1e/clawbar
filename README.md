@@ -201,13 +201,14 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 - The 7-day chart spans the bars' width too, so its newest hour is neither cut off nor out of the hover's reach. It
   starts empty, since ClawBar's `/usage` checks never left transcripts to fill it from, and its lines and the hover's
   readout break off after a pause that grows with `usageIntervalSeconds` rather than after a fixed 20 minutes.
-  Without Claude Code or plan limits it says *no data* instead of promising that the history starts now.
+  Without Claude Code or plan limits it says *no data* instead of promising that the history starts now. The readout
+  names the busiest project of the local hour, where the original's UTC hour is 30 or 45 minutes off in zones such as
+  India or Nepal.
 - The week's top projects count each reply once at its final token count, also when a subagent's transcript copies
   it, and weigh it at its own model's list price, cache reads and writes included. Two folders of the same name stay
   apart and show their parent folder (`work/app`, `play/app`) instead of being added up as one. A row's tooltip
   shows its folder under `~`, and the label's tooltip counts the replies whose model the price table lacks, priced
-  as the closest one listed. The chart's hover names the busiest project of the local hour, where the original's UTC
-  hour is 30 or 45 minutes off in zones such as India or Nepal.
+  as the closest one listed.
 - Clawd Run, the game for a used-up session limit, is ClawBar's own; the original has nothing like it.
 
 ## Development

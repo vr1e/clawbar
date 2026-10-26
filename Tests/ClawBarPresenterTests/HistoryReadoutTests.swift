@@ -108,6 +108,15 @@ import ClawBarShared
         #expect(caption(minutesAgo: 35, projects: projects, timeZone: india).hasSuffix("  ·  c"))
     }
 
+    /// Nepal is 5:45 off UTC, where the original's UTC hour would be 16:45 to 17:45 and name `a` at both minutes.
+    @Test func theHourIsLocalInAQuarterHourZone() throws {
+        let nepal = try #require(TimeZone(identifier: "Asia/Kathmandu"))
+        // Samples.now is 17:50 there: 65 minutes ago is 16:45, 50 is 17:00, 5 is 17:45.
+        let projects = usage([("/srv/a", [65: 4]), ("/srv/b", [50: 1]), ("/srv/c", [5: 9])])
+        #expect(caption(minutesAgo: 51, projects: projects, timeZone: nepal).hasSuffix("  ·  a"))
+        #expect(caption(minutesAgo: 50, projects: projects, timeZone: nepal).hasSuffix("  ·  c"))
+    }
+
     @Test func noProjectIsNamedForAnHourWithoutUsageOrBeforeTheFirstScan() {
         // 125 minutes ago is 12:00, an hour before the hovered one.
         #expect(caption(minutesAgo: 30, projects: usage([("/srv/api", [125: 4])])) == "Sat 13:35  ·  5h 40%  ·  week 50%")
@@ -115,11 +124,16 @@ import ClawBarShared
         #expect(caption(minutesAgo: 30, projects: nil) == "Sat 13:35  ·  5h 40%  ·  week 50%")
     }
 
-    /// The name is a row's: its folder's last part, '~' for home, and the parent too when another project of the week
-    /// ends the same, whether or not a row shows it.
-    @Test func theProjectIsNamedAsARowWouldBe() {
+    /// The name is the project's row's: its folder's last part, '~' for home, and the parent too when another project
+    /// of the week ends the same, even one no row shows.
+    @Test func theProjectIsNamedAsItsRowIs() throws {
         #expect(caption(minutesAgo: 30, projects: usage([(Samples.home, [35: 1])])).hasSuffix("  ·  ~"))
-        let twins = usage([("\(Samples.home)/play/app", [605: 9]), ("\(Samples.home)/work/app", [35: 1])])
+        let twins = usage([
+            ("\(Samples.home)/work/app", [35: 1, 605: 9]), ("/srv/a", [605: 8]), ("/srv/b", [605: 7]), ("/srv/c", [605: 6]),
+            ("\(Samples.home)/play/app", [605: 1]),
+        ])
+        let row = try #require(WidgetPresenter.make(input([], projects: twins)).projects?.rows.first)
+        #expect(row.name == "work/app")
         #expect(caption(minutesAgo: 30, projects: twins).hasSuffix("  ·  work/app"))
     }
 

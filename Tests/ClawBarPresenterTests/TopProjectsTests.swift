@@ -76,6 +76,11 @@ import ClawBarShared
             ("/Users/example/work/app", 3), ("/Users/example/play/app", 2), ("/Users/example/docs", 1),
         ])))
         #expect(p.rows.map(\.name) == ["work/app", "play/app", "docs"])
+        // A fifth project of the same name, which no row shows, still tells them apart, as the chart's hover names it.
+        let fifth = try #require(projects(usage([
+            ("/Users/example/work/app", 5), ("/a", 4), ("/b", 3), ("/c", 2), ("/Users/example/play/app", 1),
+        ])))
+        #expect(fifth.rows.map(\.name) == ["work/app", "a", "b", "c"])
     }
 
     /// A folder right in the home folder names its parent `~`, as its tooltip does.

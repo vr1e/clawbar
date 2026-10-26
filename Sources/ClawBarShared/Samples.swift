@@ -65,7 +65,7 @@ public enum Samples {
         let rising = zip(history, history.dropFirst()).filter { ($1.session ?? 0) > ($0.session ?? 0) }
         // Berlin is whole hours off UTC, so a UTC hour is a local one.
         let turns = [0, 1, 0, 2, 0, 3, 0, 1, 0, 4]
-        let byProject = Dictionary(grouping: Set(rising.map { ProjectWeight.quarter(of: $1.minute) })) {
+        let byProject = Dictionary(grouping: Set(rising.map { ProjectWeight.quarterStart(of: $1.minute) })) {
             turns[$0 / 60 % turns.count]
         }
         return ProjectUsage(projects: weights.indices.map { i in

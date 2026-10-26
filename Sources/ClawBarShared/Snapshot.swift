@@ -124,7 +124,14 @@ public struct ProjectWeight: Sendable, Hashable {
     }
 
     /// The Unix minute the quarter hour holding `minute` starts at.
-    public static func quarter(of minute: Int) -> Int { minute - minute % 15 }
+    public static func quarterStart(of minute: Int) -> Int { minute - minute % 15 }
+
+    /// The weight of every quarter hour that overlaps `minutes`.
+    public func weight(in minutes: Range<Int>) -> Double {
+        stride(from: Self.quarterStart(of: minutes.lowerBound), to: minutes.upperBound, by: 15).reduce(0) {
+            $0 + (quarters[$1] ?? 0)
+        }
+    }
 }
 
 /// The week's Claude Code transcripts on this Mac, weighed per project.

@@ -80,7 +80,7 @@ struct ProjectLedger: Sendable {
             let weight = replies.reduce(0) { $0 + $1.dollars }
             let cwds = replies.reduce(into: [String: Int]()) { tally, r in if let cwd = r.cwd { tally[cwd, default: 0] += 1 } }
             let quarters = replies.reduce(into: [Int: Double]()) { q, r in
-                if r.dollars > 0 { q[ProjectWeight.quarter(of: r.minute), default: 0] += r.dollars }
+                if r.dollars > 0 { q[ProjectWeight.quarterStart(of: r.minute), default: 0] += r.dollars }
             }
             return weight > 0 ? ProjectWeight(path: Self.path(folder: folder, cwds: cwds), weight: weight, quarters: quarters) : nil
         }
