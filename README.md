@@ -219,8 +219,8 @@ swift test
 
 The package has one target per concern: `ClawBarShared` (every type the others share, and the English and German
 string tables), `ClawBarData` (probes, sessions, config, weather), `ClawBarPresenter` (every display rule),
-`ClawBarClawd`, `ClawBarSky`, `ClawBarGame` (Clawd Run) and the `ClawBar` app. `AGENTS.md` lists the toolchain quirks
-and rules.
+`ClawBarClawd`, `ClawBarSky`, `ClawBarAnimation` (one tick for both), `ClawBarGame` (Clawd Run) and the `ClawBar`
+app. `AGENTS.md` lists the toolchain quirks and rules.
 
 `CLAWBAR_HOME=<dir>` runs ClawBar on that folder instead of Application Support, so a build can run next to the
 installed app. Each folder has its own single copy, `--command` and `--dump-state` reach the copy on the same

@@ -15,13 +15,16 @@ public struct RunnerInput: Sendable, Hashable {
 
 /// Everything Clawd Run draws in one tick, in base units on a `RunnerTuning.width` × `height` canvas, y down.
 public struct RunnerFrame: Sendable, Equatable {
+    /// Fills the whole window, past the canvas when its shape differs.
+    public var background: RGBA
     public var ops: [DrawOp]
 
-    public init(ops: [DrawOp]) {
+    public init(background: RGBA, ops: [DrawOp]) {
+        self.background = background
         self.ops = ops
     }
 
-    public static let empty = RunnerFrame(ops: [])
+    public static let empty = RunnerFrame(background: ThemePalette.classic.background, ops: [])
 }
 
 /// Clawd Run's canvas and clock, which the window needs too; the game's other numbers stay in `ClawBarGame`.

@@ -4,7 +4,7 @@ import ClawBarShared
 import ClawBarSky
 
 /// The sky's size in base units, as the app passes it.
-let skySize = CGSize(width: 236, height: 43)
+let skySize = PlayArea.skySize
 
 enum Zones {
     static let utc = TimeZone(identifier: "UTC")!

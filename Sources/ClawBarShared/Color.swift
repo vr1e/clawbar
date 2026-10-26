@@ -55,7 +55,7 @@ public struct RGBA: Sendable, Hashable, CustomStringConvertible {
     }
 }
 
-/// Every colour of the original UI, named once.
+/// Every colour of the original UI, named once. Views read the themed ones through the view state's `ThemePalette`.
 public enum Palette {
     public static let ok = RGBA("#FF4ADE80")
     public static let warn = RGBA("#FFFBBF24")
@@ -94,8 +94,6 @@ public enum Palette {
     public static let zzz = RGBA("#FF8B8B94")
     public static let love = RGBA("#FFF87171")
     public static let soul = RGBA("#FFF4F4F5")
-    /// The developer caption at the play area's top-left.
-    public static let caption = RGBA("#FF6B7280")
     public static let dust = RGBA("#FF8B8B94")
     public static let confetti: [RGBA] = [
         RGBA("#FFF87171"), RGBA("#FFFBBF24"), RGBA("#FF4ADE80"),

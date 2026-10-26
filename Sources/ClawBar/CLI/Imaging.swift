@@ -6,27 +6,26 @@ import ClawBarShared
 
 /// The card drawn offscreen, for snapshots and recordings.
 enum CardRenderer {
-    struct Scene {
+    /// One render: the view state, what shows, and the animation's frame.
+    struct Input {
         var view: WidgetViewState
         var mascotVisible = true
         var skyVisible = true
-        var clawd: ClawdFrame = .empty
-        var sky: SkyFrame = .empty
+        var animation = AnimationFrame.empty
         var historyHover: HistoryHover?
     }
 
     /// The card at scale `k`, `pixelScale` pixels per point. Renders twice when needed so the number's
     /// measured width (which places Clawd) has settled; pass the same `layout` across frames to skip that.
-    static func render(_ scene: Scene, scale k: Double, pixelScale: Double = 2, layout: LayoutModel = LayoutModel()) -> CGImage? {
+    static func render(_ input: Input, scale k: Double, pixelScale: Double = 2, layout: LayoutModel = LayoutModel()) -> CGImage? {
         let app = AppModel()
-        app.view = scene.view
+        app.view = input.view
         app.scale = k
-        app.mascotVisible = scene.mascotVisible
-        app.skyVisible = scene.skyVisible
-        app.historyHover = scene.historyHover
+        app.mascotVisible = input.mascotVisible
+        app.skyVisible = input.skyVisible
+        app.historyHover = input.historyHover
         let animation = AnimationModel()
-        animation.publish(scene.clawd)
-        animation.publish(scene.sky)
+        animation.publish(input.animation)
         func pass() -> CGImage? {
             let renderer = ImageRenderer(content: CardView(app: app, animation: animation, layout: layout).environment(\.uiScale, k))
             renderer.scale = pixelScale

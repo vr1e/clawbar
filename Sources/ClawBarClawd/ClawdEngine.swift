@@ -229,7 +229,7 @@ public final class ClawdEngine {
 
     // MARK: - The tick
 
-    /// One animation tick.
+    /// Clawd's part of an animation tick: him and his hearts, without the sky.
     @discardableResult
     public func step(_ env: ClawdStepEnv) -> ClawdFrame {
         tick += 1

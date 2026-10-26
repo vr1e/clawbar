@@ -1,10 +1,9 @@
 import AppKit
 import SwiftUI
-import ClawBarClawd
+import ClawBarAnimation
 import ClawBarData
 import ClawBarPresenter
 import ClawBarShared
-import ClawBarSky
 
 /// The running app: one data tick, one session poll, one animation tick, the status item and the widget.
 final class AppController: NSObject, WidgetPanelDelegate {
@@ -13,10 +12,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private let configStore: ConfigStore
     private var config: Config
     private let data: DataController
-    private let random = SystemRandomSource()
-    private let clawd: ClawdEngine
-    private let sky: SkyEngine
-    private var skyDev = SkyDevState()
+    private let engine: AnimationEngine
+    /// The Mac's zone, for the presenter, the animation tick and the sky's tooltip alike.
+    private let zone = TimeZone.autoupdatingCurrent
 
     let app = AppModel()
     let animation = AnimationModel()
@@ -47,9 +45,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         configStore = ConfigStore(paths: paths)
         config = configStore.load()
         data = DataController(config: config, paths: paths)
-        let now = Date()
-        clawd = ClawdEngine(random: random, now: now)
-        sky = SkyEngine(random: random)
+        engine = AnimationEngine(random: SystemRandomSource(), config: config, now: Date())
         host = CardHostView(root: WidgetRootView(app: app, animation: animation, layout: layout))
         panel = WidgetPanel(content: host)
         tooltips = TooltipRegions(view: host)
@@ -64,7 +60,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         apply(config: config, initial: true)
         panel.widgetDelegate = self
         tooltips.text = { [unowned self] id in
-            TooltipLayout.text(id, view: app.view, hearts: animation.hearts) { self.skyTooltip() }
+            TooltipLayout.text(id, view: app.view, hearts: animation.hearts) { self.engine.skyTooltip(now: Date(), timeZone: self.zone) }
         }
         layout.onCardSize = { [unowned self] _ in
             // After SwiftUI's layout pass: resizing the window inside its geometry callback would re-enter it.
@@ -151,18 +147,17 @@ final class AppController: NSObject, WidgetPanelDelegate {
         recompute(now: now)
     }
 
-    /// The presenter's view of the latest snapshot, into the card and the menu bar item, and Clawd's mood.
+    /// The presenter's view of the latest data snapshot, into the card and the menu bar item; the same data into the
+    /// animation.
     private func recompute(now: Date = Date()) {
         let input = presenterInput(now: now)
-        let snapshot = input.data
         let view = WidgetPresenter.make(input)
         if view != app.view { app.view = view }
         statusItem.update(text: view.trayText, color: view.trayColor, mascot: view.trayMascot, tooltip: view.trayTooltip)
-        game.update(caption: view.gameCaption, lang: config.lang)
-        // Clawd waits for the first registry read, so he starts idle instead of burrowing.
-        if config.showMascot, snapshot.sessionsRead {
-            clawd.apply(ClawdDataInput(snapshot, critPercent: config.critPercent), now: now)
-        }
+        game.update(caption: view.gameCaption, lang: config.lang, palette: view.palette)
+        engine.apply(input.data, config: config, now: now)
+        syncVisibility()
+        animation.publish(engine.frame)
         syncAnimation()
         scheduleRegionRefresh()
     }
@@ -170,9 +165,15 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private func presenterInput(now: Date) -> PresenterInput {
         // The original's "error" stamp marked a failed tick; here the one failure a tick can hit is an unparsable config.json.
         PresenterInput(
-            config: config, now: now, timeZone: .autoupdatingCurrent, data: data.snapshot, tickError: configStore.isUnreadable,
+            config: config, now: now, timeZone: zone, data: data.snapshot, tickError: configStore.isUnreadable,
             appVersion: AppInfo.version, homeDirectory: NSHomeDirectory()
         )
+    }
+
+    /// The engine decides what shows: the play area with Clawd and the hearts, and the sky behind the row.
+    private func syncVisibility() {
+        if app.mascotVisible != engine.mascotVisible { app.mascotVisible = engine.mascotVisible }
+        if app.skyVisible != engine.skyVisible { app.skyVisible = engine.skyVisible }
     }
 
     /// The chart's readout under the pointer, or the legend again once it is off the chart.
@@ -184,15 +185,13 @@ final class AppController: NSObject, WidgetPanelDelegate {
         if hover != app.historyHover { app.historyHover = hover }
     }
 
-    /// Sync-Mascot: the animation runs only while the widget shows, is not covered and has Clawd.
+    /// Sync-Mascot: the animation runs only while the widget shows, is not covered and has something to move.
     private func syncAnimation() {
-        let run = widgetVisible && !occluded && config.showMascot
-        guard run else {
+        guard widgetVisible, !occluded, let ms = engine.tickMilliseconds else {
             animationTimer?.invalidate()
             animationTimer = nil
             return
         }
-        let ms = clawd.tickMilliseconds
         guard animationTimer == nil || ms != animationInterval else { return }
         animationTimer?.invalidate()
         animationInterval = ms
@@ -200,7 +199,6 @@ final class AppController: NSObject, WidgetPanelDelegate {
     }
 
     private func animationTick() {
-        let now = Date()
         let k = config.scale
         let mouse = NSEvent.mouseLocation
         // Over the window only when our panel is the topmost window there, so covering windows count.
@@ -209,30 +207,14 @@ final class AppController: NSObject, WidgetPanelDelegate {
         if over {
             // The engine needs x whenever the pointer is over the window; before the first layout the row sits at 13.
             let row = layout.rects[.percentRow] ?? CGRect(x: 13 * k, y: 0, width: CardView.content * k, height: 40 * k)
-            let ground = PlayArea.ground(row: row, numberWidth: layout.numberWidth, scale: k)
-            mouseX = (mouse.x - panel.frame.minX - ground.x) / k
+            mouseX = PlayArea.mouseX(cardX: mouse.x - panel.frame.minX, row: row, numberWidth: layout.numberWidth, scale: k)
         }
-        let env = ClawdStepEnv(
-            areaWidth: PlayArea.width(numberWidth: layout.numberWidth), areaHeight: PlayArea.height,
-            mouseOverWindow: over, mouseX: mouseX, now: now, lang: config.lang
-        )
         let heartsVisibleBefore = animation.hearts.visible
-        animation.publish(clawd.step(env))
-        if app.skyVisible {
-            animation.publish(sky.step(size: CGSize(width: CardView.content, height: PlayArea.height), inputs: skyInputs(now: now)))
-        }
+        animation.publish(engine.step(AnimationInputs(
+            now: Date(), timeZone: zone, numberWidth: layout.numberWidth, mouseOverWindow: over, mouseX: mouseX
+        )))
         if animation.hearts.visible != heartsVisibleBefore { scheduleRegionRefresh() }
-        if clawd.tickMilliseconds != animationInterval { syncAnimation() }
-    }
-
-    private func skyInputs(now: Date) -> SkyInputs {
-        let s = data.snapshot
-        return SkyInfo.inputs(s.weather, place: s.place, now: now, localZone: .autoupdatingCurrent, dev: skyDev)
-    }
-
-    private func skyTooltip() -> String {
-        let s = data.snapshot, now = Date()
-        return SkyInfo.tooltip(s.weather, place: s.place, sun: skyInputs(now: now).sun, now: now, dev: skyDev, lang: config.lang)
+        if engine.tickMilliseconds != animationInterval { syncAnimation() }
     }
 
     // MARK: Config
@@ -254,14 +236,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
         config = c
         if !initial { data.apply(config: c) }
         app.scale = c.scale
-        app.mascotVisible = c.showMascot
-        app.skyVisible = c.showMascot && c.showSky
         panel.alphaValue = c.opacity
         panel.apply(topmost: c.topmost)
-        if !c.showMascot, old.showMascot || initial {
-            clawd.resetHearts()
-            animation.publish(ClawdFrame.empty)
-        }
         guard !initial else { return }
         if c.refreshSeconds != old.refreshSeconds { scheduleDataTimer() }
         if c.launchAtLogin != old.launchAtLogin { loginItem.reconcile(desired: c.launchAtLogin) }
@@ -356,7 +332,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     }
 
     func clawdClicked() {
-        clawd.click(now: Date())
+        engine.click(now: Date())
     }
 
     func controlClicked(_ id: HitID) {
@@ -380,8 +356,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     }
 
     func developerMenu() -> NSMenu? {
-        let nodes = DevMenu.build(dev: clawd.devState, sky: skyDev, skyVisible: app.skyVisible, lang: config.lang)
-        return DevMenuBuilder.menu(nodes) { [unowned self] in performDev($0) }
+        DevMenuBuilder.menu(engine.developerMenu()) { [unowned self] in performDev($0) }
     }
 
     func wantsHandCursor(at p: CGPoint) -> Bool {
@@ -399,22 +374,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
         updateHistoryHover()
     }
 
-    /// The sky's two developer overrides are the app's; everything else is Clawd's.
     private func performDev(_ action: DevAction) {
-        switch action {
-        case .skyPhase(let p):
-            skyDev.phase = p
-            sky.invalidate()
-        case .skyWeather(let code):
-            skyDev.weatherCode = code
-            sky.invalidate()
-        case .auto:
-            clawd.perform(.auto)
-            skyDev = SkyDevState()
-            sky.invalidate()
-        default:
-            clawd.perform(action)
-        }
+        engine.perform(action)
         syncAnimation()
     }
 
