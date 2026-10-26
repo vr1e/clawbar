@@ -20,6 +20,10 @@ _Avoid_: scheduler, policy, controller
 The usage probe stopped for good under one Claude Code version, because a run reached the model or had a flag rejected. A new version lifts it.
 _Avoid_: lock, block
 
+**Recipe**:
+The steps that carry out one of the data engine's commands against a process, the network or disk and turn what came back into its answer. Written once per command; the app and `--diagnose` run the same ones.
+_Avoid_: executor, handler, pipeline
+
 **Snapshot mode**:
 The `--snapshot` run that renders every widget state to PNGs for the README and for review. Not a data snapshot.
 _Avoid_: screenshot mode

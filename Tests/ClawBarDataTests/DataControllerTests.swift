@@ -3,80 +3,15 @@ import Testing
 import ClawBarShared
 @testable import ClawBarData
 
-/// One controller over fakes: a fake claude on disk (never run), a fake runner, fake HTTP and a clock stopped at t0.
-@MainActor
-final class Harness {
-    static let t0 = utc("2026-10-16T22:30:00Z")
-    let dir = TempDir("cb-dc")
-    let runner = FakeRunner()
-    let http = FakeHTTP()
-    let spy = ReadSpy()
-    var table = FakeTable(starts: [:])
-    var shell: LoginEnvironment?
-    var config = Config()
-    /// Added to the environment the controller inherits.
-    var extraEnvironment: [String: String] = [:]
-
-    var home: String { dir.url.appendingPathComponent("home").path }
-    var paths: AppPaths { dir.paths }
-
-    init(claude: Bool = true) {
-        config.showSky = false
-        if claude { config.claudePath = installClaude("tools/claude") }
-        runner.reply(.version, stdout: "2.1.302 (Claude Code)\n")
-        // No configDirectory: the auth probe's outranks the shell's, so one would move the sessions mid-test.
-        runner.reply(.account, stdout: #"{"loggedIn": true, "subscriptionType": "team", "email": "user@example.com"}"#)
-        http.answer("status.claude.com", Fixture.data("status/ok.json"))
-        http.answer("downloads.claude.ai", Data("2.1.302\n".utf8))
-    }
-
-    func installClaude(_ relative: String) -> String {
-        dir.write("home/\(relative)", "#!/bin/sh\nexit 0\n", executable: true).path
-    }
-
-    var deps: DataController.Dependencies {
-        let shell = shell, t0 = Harness.t0
-        return DataController.Dependencies(
-            runner: runner, http: http, clock: { t0 }, timeZone: berlin,
-            environment: ["HOME": home, "PATH": "/usr/bin:/bin", "CLAUDECODE": "1"].merging(extraEnvironment) { $1 }, home: home,
-            table: table, readFile: spy.reader, loginShell: { _, _, _ in shell }, candidates: []
-        )
-    }
-
-    func make() -> DataController { DataController(config: config, paths: paths, deps: deps) }
-
-    func session(_ pid: Int32, in configDir: String, status: String = "busy", _ extra: [String: Any] = [:]) {
-        let j: [String: Any] = ["pid": pid, "sessionId": "s\(pid)", "cwd": "/Users/example/p\(pid)", "status": status, "kind": "interactive"]
-            .merging(extra) { $1 }
-        let url = URL(fileURLWithPath: configDir).appendingPathComponent("sessions/\(pid).json")
-        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? JSONSerialization.data(withJSONObject: j).write(to: url)
-    }
-}
-
 final class Counter {
     var value = 0
 }
 
-/// The controller as the engine's adapter: what crosses a real seam. The decisions themselves are DataEngineTests.
+/// The controller as the engine's live adapter: Tasks, `onChange`, the stores across restarts, the error log and
+/// shutdown. The decisions are DataEngineTests; what each command runs is CommandRecipesTests.
 @MainActor
 @Suite struct DataControllerTests {
     let t0 = Harness.t0
-
-    @Test func probesRunTheLocatedClaudeWithTheScrubbedEnvironment() async throws {
-        let h = Harness()
-        h.shell = LoginEnvironment(path: "/Users/example/.nvm/bin:/usr/bin", claudeConfigDir: "/Users/example/.claude-alt")
-        let dc = h.make()
-        dc.tick(now: t0)
-        #expect(await eventually { h.runner.count(.usage) == 1 })
-        let spec = try #require(h.runner.calls.first { FakeRunner.kind($0) == .usage })
-        #expect(spec.executable == h.config.claudePath)
-        #expect(spec.environment["CLAUDECODE"] == nil)
-        #expect(spec.environment["CLAUDE_CODE_SAFE_MODE"] == "1")
-        #expect(spec.environment["CLAUDE_CONFIG_DIR"] == "/Users/example/.claude-alt")
-        #expect(spec.environment["PATH"]?.hasPrefix("/Users/example/.nvm/bin:/usr/bin:") == true)
-        #expect(spec.directory == h.home)
-    }
 
     @Test func aFailedProbeIsLogged() async throws {
         let h = Harness()
@@ -101,18 +36,6 @@ final class Counter {
         #expect(await eventually { dc.snapshot.history == [sample] })
         dc.shutdown()
         #expect(h.make().snapshot.history == [sample])
-    }
-
-    @Test func theWeeksTranscriptsLandInTheSnapshot() async {
-        let h = Harness()
-        h.config.showHistory = true
-        h.config.expanded = true
-        h.dir.write("home/.claude/projects/-Users-example-api/s1.jsonl", assistantLine("msg_1", at: t0, output: 1000) + "\n")
-        let dc = h.make()
-        dc.tick(now: t0)
-        #expect(await eventually { dc.snapshot.projects != nil })
-        #expect(dc.snapshot.projects?.projects == [ProjectWeight(path: "/Users/example/api", weight: 0.02)])
-        #expect(dc.snapshot.projectsAt == t0)
     }
 
     @Test func aHistoryFileThatCannotBeWrittenIsLogged() async throws {
@@ -176,25 +99,24 @@ final class Counter {
         #expect(changes.value == seen)
     }
 
-    @Test func sessionsAreReadSynchronouslyFromTheLoginConfigDirWithoutOurChildren() async {
+    @Test func pollSessionsAnswersAtOnceFromTheConfigDirTheShellNamed() async {
         let h = Harness()
         let alt = h.home + "/.claude-alt"
         h.shell = LoginEnvironment(claudeConfigDir: alt)
         h.table = FakeTable(starts: [4242: .unknown, 4343: .unknown])
         h.session(4242, in: alt)
-        h.session(4343, in: alt, status: "waiting")
-        h.session(5555, in: h.home + "/.claude")
+        h.session(4343, in: h.home + "/.claude")
         let dc = h.make()
         dc.pollSessions(now: t0)
         #expect(!dc.snapshot.sessionsRead)
         dc.tick(now: t0)
         #expect(await eventually { dc.snapshot.sessionsRead })
-        #expect(dc.snapshot.sessions.map(\.pid) == [4242, 4343])
-        h.runner.setOwn([4242])
+        #expect(dc.snapshot.sessions.map(\.pid) == [4242])
+        // The answer is in the data snapshot when the poll returns: the presenter reads it right after.
+        h.session(4343, in: alt, status: "waiting")
         dc.pollSessions(now: t0 + 2)
-        #expect(dc.snapshot.sessions.map(\.pid) == [4343])
-        #expect(dc.snapshot.sessions.first?.state == .waiting)
-        #expect(!h.spy.names.contains { $0.hasSuffix(".key") })
+        #expect(dc.snapshot.sessions.map(\.pid) == [4242, 4343])
+        #expect(dc.snapshot.sessions.last?.state == .waiting)
     }
 
     @Test func anotherToolsFreshUsageCheckIsNoSession() async {
@@ -214,7 +136,7 @@ final class Counter {
         #expect(dc.snapshot.sessions.map(\.pid) == [8001, 8002])
     }
 
-    @Test func anUpdateRunsHeadlessAndTheVersionIsProbedAgainAfterIt() async throws {
+    @Test func aHeldUpdateCompletesLaterAndTheVersionIsLookedAtAgain() async {
         let h = Harness()
         h.runner.reply(.update, .hold)
         let dc = h.make()
@@ -223,13 +145,9 @@ final class Counter {
         dc.startClaudeUpdate()
         #expect(dc.snapshot.version.updating)
         #expect(await eventually { h.runner.count(.update) == 1 })
-        let spec = try #require(h.runner.calls.first { FakeRunner.kind($0) == .update })
-        #expect(spec.output == .survivesQuit(h.paths.updateLog))
-        #expect(spec.timeout == 900)
         dc.startClaudeUpdate()
         await settle()
         #expect(h.runner.count(.update) == 1)
-
         let versions = h.runner.count(.version)
         h.runner.reply(.version, stdout: "2.1.303 (Claude Code)\n")
         h.runner.release(.update, data: Data())
@@ -237,20 +155,6 @@ final class Counter {
         #expect(dc.snapshot.version.updateFailure == nil)
         #expect(await eventually { dc.snapshot.version.local == "2.1.303" })
         #expect(h.runner.count(.version) > versions)
-
-        h.http.answer("downloads.claude.ai", Data("2.1.304\n".utf8))
-        dc.tick(now: t0 + 3600)
-        #expect(await eventually { dc.snapshot.version.updateAvailable })
-        dc.startClaudeUpdate()
-        #expect(await eventually { h.runner.count(.update) == 2 })
-        // What the real child would have written there.
-        try FileManager.default.createDirectory(at: h.paths.root, withIntermediateDirectories: true)
-        try Data("Error: managed by a package manager\n".utf8).write(to: h.paths.updateLog)
-        h.runner.release(.update, data: Data(), exit: 1)
-        #expect(await eventually { dc.snapshot.version.updateFailure != nil })
-        #expect(dc.snapshot.version.updateFailure == UpdateFailure(
-            exitCode: 1, outputTail: "Error: managed by a package manager", from: "2.1.303", to: "2.1.304"
-        ))
     }
 
     @Test func weatherAndThePlaceReachTheSnapshot() async {
@@ -263,31 +167,6 @@ final class Counter {
         dc.tick(now: t0)
         #expect(dc.snapshot.place == Place(lat: 10.5, lon: 20.25))
         #expect(await eventually { dc.snapshot.weather?.code == 61 })
-    }
-
-    @Test func statusAccountChangelogAndInstallHintReachTheSnapshot() async {
-        let h = Harness(claude: false)
-        h.config.claudePath = h.installClaude("lib/node_modules/@anthropic-ai/claude-code/cli.js")
-        h.dir.write("home/.claude/settings.json", #"{"autoUpdatesChannel": "stable"}"#)
-        h.runner.reply(.version, stdout: "2.1.301 (Claude Code)\n")
-        h.runner.reply(.account, data: Fixture.data("account/logged-in.json"))
-        h.http.answer("downloads.claude.ai", Data("2.1.303\n".utf8))
-        h.http.answer("raw.githubusercontent.com", Fixture.data("version/CHANGELOG.md"))
-        let dc = h.make()
-        dc.tick(now: t0)
-        #expect(await eventually { dc.snapshot.version.changes != nil })
-        #expect(dc.snapshot.version.installHint == .npm)
-        #expect(dc.snapshot.version.changes == ChangesExcerpt(forVersion: "2.1.303", fromVersion: "2.1.301", items: [
-            "Fixed claude update on some installs", "Added a setting for the status line",
-            "nested detail with inline code", "Faster /usage",
-            "A star bullet with **bold** and a [link](https://example.com)",
-        ]))
-        // The channel comes from settings.json in the config directory.
-        #expect(h.http.urls.contains { $0.host == "downloads.claude.ai" && $0.lastPathComponent == "stable" })
-        #expect(await eventually { dc.snapshot.status != nil && dc.snapshot.account != nil })
-        #expect(dc.snapshot.status?.indicator == "none")
-        #expect(dc.snapshot.statusAt == t0)
-        #expect(dc.snapshot.account == AccountInfo(loggedIn: true, plan: "Team", email: "user@example.com", configDirectory: "/Users/example/.claude"))
     }
 
     @Test func shutdownStopsEveryProbe() async {

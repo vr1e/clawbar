@@ -544,4 +544,49 @@ import ClawBarShared
         start(&current, now: t0)
         #expect(current.handle(.version(local: "2.1.303", latest: "2.1.303"), now: t0).isEmpty)
     }
+
+    // MARK: - One instant
+
+    /// What `--diagnose` relies on: at one instant every slot starts once and the next tick asks for nothing.
+    @Test func atOneInstantEverySlotStartsOnceAndThenNothingIsDue() {
+        var e = engine { $0 = $0.everyBlockOn() }
+        #expect(kinds(start(&e, now: t0)) == ["probeStatus", "runLoginShell", "readSessions", "locate", "scanProjects", "probeVersion", "probeUsage", "probeAccount"])
+        #expect(e.handle(.version(local: "2.1.301", latest: "2.1.303"), now: t0) == [.fetchChangelog])
+        _ = e.handle(.changelog(nil), now: t0)
+        _ = e.handle(usage(50), now: t0)
+        _ = e.handle(.account(AccountInfo(loggedIn: true, plan: "Max", configDirectory: "/Users/example/.claude-work")), now: t0)
+        _ = e.handle(.status(ServiceStatus(indicator: "none")), now: t0)
+        _ = e.handle(.sessionsRead([]), now: t0)
+        _ = e.handle(.projects(ProjectScan()), now: t0)
+        // The account moved the transcripts once; the poll always reads, so it is not a reason to go on.
+        #expect(e.handle(.tick, now: t0) == [.scanProjects(root: "/Users/example/.claude-work/projects")])
+        #expect(kinds(e.handle(.pollSessions, now: t0)) == ["readSessions"])
+        _ = e.handle(.projects(ProjectScan()), now: t0)
+        #expect(e.handle(.tick, now: t0).isEmpty)
+        // A latch lifted by the version re-arms the usage probe once.
+        var latched = engine(latch: UsageLatch(version: "2.1.301", issue: .flagRejected("--x")))
+        #expect(!kinds(start(&latched, now: t0)).contains("probeUsage"))
+        #expect(kinds(latched.handle(.version(local: "2.1.302", latest: "2.1.302"), now: t0)) == ["saveLatch", "probeUsage"])
+        _ = latched.handle(usage(50), now: t0)
+        _ = latched.handle(.account(AccountInfo(loggedIn: true)), now: t0)
+        _ = latched.handle(.status(ServiceStatus(indicator: "none")), now: t0)
+        #expect(latched.handle(.tick, now: t0).isEmpty)
+        // A tripped guard while the version is unknown asks for one more look; unkeyed, the latch holds unsaved.
+        var unknown = engine()
+        start(&unknown, now: t0)
+        _ = unknown.handle(.version(local: nil, latest: "2.1.302"), now: t0)
+        #expect(kinds(unknown.handle(issue(.flagRejected("--x")), now: t0)) == ["probeVersion", "log"])
+        _ = unknown.handle(.version(local: nil, latest: "2.1.302"), now: t0)
+        _ = unknown.handle(.account(AccountInfo(loggedIn: true)), now: t0)
+        _ = unknown.handle(.status(ServiceStatus(indicator: "none")), now: t0)
+        #expect(unknown.handle(.tick, now: t0).isEmpty)
+        #expect(unknown.snapshot.usageIssue == .flagRejected("--x"))
+        // A shell without an answer and no claude anywhere: looked for once.
+        var missing = engine()
+        _ = missing.handle(.tick, now: t0)
+        _ = missing.handle(.loginShell(nil), now: t0)
+        _ = missing.handle(.located(nil, installHint: nil), now: t0)
+        _ = missing.handle(.status(ServiceStatus(indicator: "none")), now: t0)
+        #expect(missing.handle(.tick, now: t0).isEmpty)
+    }
 }

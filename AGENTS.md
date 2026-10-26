@@ -28,14 +28,15 @@ to `main` by PR; it leaves the version alone. Releases are cut from `main` by th
   and exports only its entry points. The libraries depend on `ClawBarShared` alone, except `ClawBarAnimation`, which
   composes `ClawBarClawd` and `ClawBarSky` through their entry points.
 - Before naming a type or writing about the data or the moving side, read `GLOSSARY.md`: the words for probe, data
-  snapshot, data engine, latch, snapshot mode (the `--snapshot` render, not a data snapshot), animation tick,
+  snapshot, data engine, latch, recipe, snapshot mode (the `--snapshot` render, not a data snapshot), animation tick,
   animation engine, animation frame, play area and theme palette, and the ones to avoid.
 - `AnimationEngine`, `ClawdEngine`, `DataEngine`, `RunnerEngine`, `SkyEngine`, `SkyInfo` and `WidgetPresenter` are
   pure: time, time zone and randomness arrive as inputs (`SeededRandomSource` in tests), and statics are `let`.
-  `DataController` runs `DataEngine`'s commands against processes, the network and disk, and feeds each answer back
-  as an event; the live app drives `AnimationEngine` with the wall clock, `SystemRandomSource` and the pointer, while
-  `--snapshot` and `ScenarioRun` (behind `--record` and the tests) use a virtual clock and a seeded generator, with
-  no pointer.
+  `CommandRecipes` carries out the `DataEngine` commands that reach processes, the network and disk, one recipe each,
+  and returns their answer events; `DataController` (Tasks, the error log, `onChange`) and `--diagnose` (one pass at
+  one instant, until a tick asks for nothing) are its two adapters. The live app drives `AnimationEngine` with the
+  wall clock, `SystemRandomSource` and the pointer, while `--snapshot` and `ScenarioRun` (behind `--record` and the
+  tests) use a virtual clock and a seeded generator, with no pointer.
 - The `ClawBar` target is MainActor by default: Timer and notification blocks run inside `MainActor.assumeIsolated`.
 - Regular expressions are statics built with `Rx.make` (`Sources/ClawBarShared/Rx.swift`).
 - The original rounds half to even (`[int]`, `[byte]`, `[math]::Round`): use `.rounded(.toNearestOrEven)`.
@@ -53,7 +54,8 @@ files beside them in `~/.claude/sessions/` are secrets and stay unopened.
 - `swift build && swift test`; no CI runs them.
 - Anything visible: `.build/debug/ClawBar --snapshot <dir>` renders every widget state in both languages at three
   sizes, the menu bar item, and the menus as text; open the PNGs to look.
-- Probes: `.build/debug/ClawBar --diagnose` runs each once against the real `claude` and network.
+- Probes: `.build/debug/ClawBar --diagnose` runs the engine once against the real `claude` and network, through the
+  app's recipes; its `log:` lines are what error.log would get.
 - The running app: start `CLAWBAR_HOME=<any dir> .build/debug/ClawBar` in the background; with no mode the binary
   is the app and never exits. Without `CLAWBAR_HOME` it runs on the user's real files, or, when the installed app is
   running, only tells it to show its widget and exits. `--dump-state` and `--command <cmd>` reach the copy on the
