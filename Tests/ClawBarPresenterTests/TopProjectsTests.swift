@@ -12,7 +12,7 @@ import ClawBarShared
     }
 
     private func usage(_ weights: [(String, Double)], unpriced: Int = 0) -> ProjectUsage {
-        ProjectUsage(projects: weights.map { ProjectWeight(path: $0.0, weight: $0.1) }, unpriced: unpriced)
+        ProjectUsage(projects: weights.map { ProjectWeight(path: $0.0, quarters: [0: $0.1]) }, unpriced: unpriced)
     }
 
     @Test func theProjectsShowOnlyWithTheChart() {

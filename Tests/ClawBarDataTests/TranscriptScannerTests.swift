@@ -91,6 +91,17 @@ import ClawBarShared
         #expect(scan.files == 1)
     }
 
+    @Test func theWeekStartsOnTheWholeUTCHourBeforeItsCutoff() async {
+        // Half past an hour, so a cutoff to the minute would leave out the reply at the hour's start.
+        let at = Date(timeIntervalSince1970: (now.timeIntervalSince1970 / 3600).rounded(.down) * 3600 + 1800)
+        let hour = at - 7 * 86400 - 1800
+        write(
+            "-Users-example-api/s1.jsonl",
+            assistantLine("msg_1", at: hour - 60, output: 4000) + "\n" + assistantLine("msg_2", at: hour, output: 1000) + "\n"
+        )
+        #expect(weights(await TranscriptScanner().scan(root: root, now: at).usage) == ["/Users/example/api": 0.02])
+    }
+
     @Test func anotherConfigDirStartsOver() async {
         write("-Users-example-api/s1.jsonl", line("msg_1", 1))
         dir.write("alt/projects/-Users-example-web/s1.jsonl", line("msg_2", 2, cwd: "/Users/example/web"))

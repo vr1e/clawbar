@@ -92,8 +92,15 @@ func assistantLine(
 
 /// Each project's weight in millionths of a dollar, keyed by its path.
 func weights(_ usage: ProjectUsage) -> [String: Double] {
-    Dictionary(uniqueKeysWithValues: usage.projects.map { ($0.path, ($0.weight * 1e6).rounded() / 1e6) })
+    Dictionary(uniqueKeysWithValues: usage.projects.map { ($0.path, micro($0.weight)) })
 }
+
+/// Each project's weight per quarter hour in millionths of a dollar, keyed by its path.
+func quarters(_ usage: ProjectUsage) -> [String: [Int: Double]] {
+    Dictionary(uniqueKeysWithValues: usage.projects.map { ($0.path, $0.quarters.mapValues(micro)) })
+}
+
+private func micro(_ dollars: Double) -> Double { (dollars * 1e6).rounded() / 1e6 }
 
 /// The data side over fakes: a fake claude on disk (never run), a fake runner, fake HTTP and a clock stopped at t0.
 /// The recipes, the controller and `--diagnose` all take `deps` from it.

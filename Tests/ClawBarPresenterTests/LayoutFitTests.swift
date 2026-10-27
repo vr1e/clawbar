@@ -165,7 +165,7 @@ import ClawBarShared
         let counting = try #require(render(sample(data: { $0.projects = nil }), config: config, lang: lang).projects)
         Self.expectFits([Self.label(counting.label)], "projects label")
         Self.expectFits([Self.value(counting.caption)], "projects counting")
-        let one = ProjectUsage(projects: [ProjectWeight(path: "/a", weight: 1)])
+        let one = ProjectUsage(projects: [ProjectWeight(path: "/a", quarters: [0: 1])])
         let row = try #require(render(sample(data: { $0.projects = one }), config: config, lang: lang).projects?.rows.first)
         #expect(row.share == "100%")
         Self.expectFits([Self.value(row.share)], in: ProjectsView.shareWidth, "a project's share")

@@ -1,7 +1,8 @@
 import Foundation
 import ClawBarShared
 
-/// history.ps1 Show-Projects: the week's four heaviest projects, each with its share of all of them.
+/// history.ps1 Show-Projects: the week's four heaviest projects, each with its share of all of them, and the name the
+/// chart's hover gives an hour's busiest one.
 enum TopProjects {
     static let shown = 4
 
@@ -16,13 +17,14 @@ enum TopProjects {
         guard total > 0, total.isFinite else { return nil }
         // The scan sorts heaviest first, ties by path.
         let top = Array(usage.projects.prefix(shown))
-        let rowNames = names(usage, home: home)
+        let paths = usage.projects.map { HomePath.relative($0.path, home: home) }
+        let rowNames = names(paths)
         view.rows = top.indices.map { i in
             // Show-Projects multiplies before it divides, which decides which way an exact half rounds.
             let share = 100 * top[i].weight / total
             return ProjectRow(
                 name: rowNames[i], share: percent(share), fraction: max(2 / ProjectsView.trackWidth, share / 100),
-                tooltip: HomePath.relative(top[i].path, home: home)
+                tooltip: paths[i]
             )
         }
         return view
@@ -32,13 +34,9 @@ enum TopProjects {
     /// then. A tie goes to the scan's order: the week's heavier one.
     static func busiest(in minutes: Range<Int>, of usage: ProjectUsage?, home: String) -> String? {
         guard let usage else { return nil }
-        var best: (index: Int, weight: Double)?
-        for (i, p) in usage.projects.enumerated() {
-            let weight = p.weight(in: minutes)
-            if weight > (best?.weight ?? 0) { best = (i, weight) }
-        }
-        guard let best else { return nil }
-        return names(usage, home: home)[best.index]
+        let weights = usage.projects.map { $0.weight(in: minutes) }
+        guard let top = weights.max(), top > 0, let i = weights.firstIndex(of: top) else { return nil }
+        return names(usage.projects.map { HomePath.relative($0.path, home: home) })[i]
     }
 
     /// '{0:0}%' is a .NET format string, which rounds half away from zero, unlike the original's casts.
@@ -46,10 +44,8 @@ enum TopProjects {
         "\(Int(share.rounded(.toNearestOrAwayFromZero)))%"
     }
 
-    /// Each project's `~/…` path's last part, so `~` for the home folder, and its parent too when another project of the
-    /// week ends the same, shown or not, so a row and the chart's hover name a project alike.
-    static func names(_ usage: ProjectUsage, home: String) -> [String] {
-        let paths = usage.projects.map { HomePath.relative($0.path, home: home) }
+    /// Each `~/…` path's last part, with its parent when another of the week's projects shares it, so rows and hover agree.
+    static func names(_ paths: [String]) -> [String] {
         let leaves = paths.map { tail($0, 1) }
         let counts = leaves.reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
         return zip(paths, leaves).map { path, leaf in counts[leaf, default: 0] > 1 ? tail(path, 2) : leaf }

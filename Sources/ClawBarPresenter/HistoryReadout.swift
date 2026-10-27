@@ -17,8 +17,7 @@ public enum HistoryReadout {
         let lang = input.config.lang
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = input.timeZone
-        let date = UsageSample(minute: minute).date
-        let c = calendar.dateComponents([.weekday, .hour, .minute], from: date)
+        let c = calendar.dateComponents([.weekday, .hour, .minute], from: UsageSample(minute: minute).date)
         var parts = [L10n.weekday((c.weekday ?? 1) - 1, lang) + String(format: " %02d:%02d", c.hour ?? 0, c.minute ?? 0)]
         let gap = HistoryChart.gapMinutes(usageInterval: input.config.usageIntervalSeconds)
         if let s = last(atOrBefore: minute, in: input.data.history), Double(minute - s.minute) <= gap {
@@ -27,11 +26,8 @@ public enum HistoryReadout {
         } else {
             parts.append(L10n.t(.noData, lang))
         }
-        if let hour = calendar.dateInterval(of: .hour, for: date),
-           let name = TopProjects.busiest(
-               in: UsageSample.minute(of: hour.start) ..< UsageSample.minute(of: hour.end), of: input.data.projects,
-               home: input.homeDirectory
-           ) {
+        let hour = minute - (c.minute ?? 0)
+        if let name = TopProjects.busiest(in: hour ..< hour + 60, of: input.data.projects, home: input.homeDirectory) {
             parts.append(name)
         }
         return parts.joined(separator: "  ·  ")

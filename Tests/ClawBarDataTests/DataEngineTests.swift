@@ -405,7 +405,7 @@ import ClawBarShared
             $0.expanded = true
         }
         start(&e, now: t0)
-        let usage = ProjectUsage(projects: [ProjectWeight(path: "/Users/example/api", weight: 2)], unpriced: 3)
+        let usage = ProjectUsage(projects: [ProjectWeight(path: "/Users/example/api", quarters: [0: 2])], unpriced: 3)
         let scan = ProjectScan(usage: usage, files: 4, bytes: 1000, unreadable: 1, unpricedModels: ["claude-opus-6", "claude-quill-1"])
         #expect(logs(e.handle(.projects(scan), now: t0 + 1)) == [
             "projects: unreadable transcripts: 1",

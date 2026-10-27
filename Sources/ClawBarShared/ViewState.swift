@@ -102,7 +102,7 @@ public struct HistoryView: Sendable, Hashable {
 public struct HistoryHover: Sendable, Hashable {
     /// Base units from the chart's left edge, within its width.
     public var x: Double
-    /// `Sat 14:20  ·  5h 34%  ·  week 61%`.
+    /// `Sat 14:20  ·  5h 34%  ·  week 61%  ·  api`.
     public var caption: String
 
     public init(x: Double, caption: String) {
@@ -113,7 +113,7 @@ public struct HistoryHover: Sendable, Hashable {
 
 /// One project under the 7-day chart: its name, a bar on the track, and its share of the week.
 public struct ProjectRow: Sendable, Hashable {
-    /// The folder's last part, `~` for the home folder, `parent/leaf` beside another shown row of the same leaf.
+    /// The folder's last part, `~` for the home folder, `parent/leaf` when another project of the week ends the same.
     public var name: String
     /// `42%`.
     public var share: String

@@ -185,8 +185,7 @@ import ClawBarShared
             return
         }
         #expect(scan.files == 1)
-        let quarter = UsageSample.minute(of: t0)
-        #expect(scan.usage.projects == [ProjectWeight(path: "/Users/example/api", weight: 0.02, quarters: [quarter: 0.02])])
+        #expect(scan.usage.projects == [ProjectWeight(path: "/Users/example/api", quarters: [UsageSample.minute(of: t0): 0.02])])
     }
 
     @Test func aSaveAnswersWithWhatWentWrong() async throws {
