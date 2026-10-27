@@ -50,7 +50,7 @@ struct CardRegion: Equatable {
 
 /// The card's regions, from the shown parts, the rects SwiftUI published, Clawd's sprite and the hearts.
 /// Derived on every call, never kept: a click resolved from an older view state could start a second update.
-struct CardRegions: Equatable {
+struct CardRegions {
     var all: [CardRegion] = []
 
     static func make(app: AppModel, animation: AnimationModel, layout: LayoutModel) -> CardRegions {
@@ -86,7 +86,7 @@ struct CardRegions: Equatable {
     /// The number covers the sky: WPF routes the pointer over it to the number, which has neither tooltip nor menu,
     /// and the rest of the band, the strip under the number included, to the sky. Right of the number the sky stays one
     /// rect, so its tooltip does not close as the pointer moves down past the number.
-    static func sky(band b: CGRect, number: CGRect?) -> [CGRect] {
+    private static func sky(band b: CGRect, number: CGRect?) -> [CGRect] {
         guard let n = number, n.intersects(b) else { return [b] }
         let left = max(n.minX, b.minX), right = min(n.maxX, b.maxX), top = max(n.minY, b.minY), bottom = min(n.maxY, b.maxY)
         return [

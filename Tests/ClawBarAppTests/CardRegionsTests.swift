@@ -10,6 +10,9 @@ import ClawBarShared
     /// A row of 236 × 40 at (13, 34), a number of 50 × 39.9 at its bottom left, k = 1.
     static let row = CGRect(x: 13, y: 34, width: 236, height: 40)
     static let number = CGRect(x: 13, y: 34.1, width: 50, height: 39.9)
+    /// The row with the 3 below it to the ground line.
+    static let band = CGRect(x: 13, y: 34, width: 236, height: 43)
+    static let sprite = CGRect(x: 0, y: 0, width: 36, height: 26.4)
 
     func regions(
         _ view: WidgetViewState = .sample, rects: [CardRectID: CGRect] = [:], mascot: Bool = true, sky: Bool = true,
@@ -70,11 +73,10 @@ import ClawBarShared
     }
 
     @Test func theNumberCoversTheSky() {
-        let band = CGRect(x: 13, y: 34, width: 236, height: 43)
         let r = regions(rects: [.percentRow: Self.row, .number: Self.number])
         let sky = r.rects(.sky)
         // Right of the number at the band's height, as one rect; then the slivers above and below the number.
-        #expect(sky.first == CGRect(x: Self.number.maxX, y: band.minY, width: band.maxX - Self.number.maxX, height: band.height))
+        #expect(sky.first == CGRect(x: Self.number.maxX, y: Self.band.minY, width: Self.band.maxX - Self.number.maxX, height: Self.band.height))
         #expect(sky.count == 3)
         #expect(r.tooltips.filter { $0.id == .sky }.map(\.rect) == sky)
         let inside: [CGPoint] = [CGPoint(x: 30, y: 60), CGPoint(x: 13, y: 34.1), CGPoint(x: 62.9, y: 73.9)]
@@ -93,21 +95,18 @@ import ClawBarShared
     }
 
     @Test func beforeTheNumberIsMeasuredTheSkyIsTheWholeBand() {
-        let band = CGRect(x: 13, y: 34, width: 236, height: 43)
-        #expect(regions(rects: [.percentRow: Self.row]).rects(.sky) == [band])
-        #expect(CardRegions.sky(band: band, number: nil) == [band])
+        #expect(regions(rects: [.percentRow: Self.row]).rects(.sky) == [Self.band])
     }
 
     @Test func withoutTheSkyOrClawdTheyLeaveNoRegions() {
-        let sprite = CGRect(x: 0, y: 0, width: 36, height: 26.4)
         let rects: [CardRectID: CGRect] = [.percentRow: Self.row, .number: Self.number, .hearts: CGRect(x: 180, y: 12, width: 40, height: 10)]
-        let all = regions(rects: rects, hearts: true, sprite: sprite)
+        let all = regions(rects: rects, hearts: true, sprite: Self.sprite)
         #expect(all.rects(.sprite).count == 1 && !all.rects(.sky).isEmpty)
         #expect(all.rects(.tooltip(.hearts)) == [CGRect(x: 180, y: 12, width: 40, height: 10)])
-        let noSky = regions(rects: rects, sky: false, hearts: true, sprite: sprite)
+        let noSky = regions(rects: rects, sky: false, hearts: true, sprite: Self.sprite)
         #expect(noSky.rects(.sky).isEmpty && noSky.rects(.sprite).count == 1)
         // The engine never shows the sky without Clawd.
-        let none = regions(rects: rects, mascot: false, sky: false, hearts: true, sprite: sprite)
+        let none = regions(rects: rects, mascot: false, sky: false, hearts: true, sprite: Self.sprite)
         #expect(none.rects(.sprite).isEmpty && none.rects(.sky).isEmpty && none.rects(.tooltip(.hearts)).isEmpty)
         // Hidden hearts and a sprite not yet drawn leave none either.
         let quiet = regions(rects: rects)
@@ -131,8 +130,7 @@ import ClawBarShared
         view.versionAction = .none
         view.show(.version, tooltip: "updating")
         let rects = partRects([.status, .sessions, .version])
-        let sprite = CGRect(x: 0, y: 0, width: 36, height: 26.4)
-        let r = regions(view, rects: rects.merging([.percentRow: Self.row, .number: Self.number]) { a, _ in a }, sprite: sprite)
+        let r = regions(view, rects: rects.merging([.percentRow: Self.row, .number: Self.number]) { a, _ in a }, sprite: Self.sprite)
         func center(_ id: CardPart.ID) -> CGPoint { CGPoint(x: rects[.part(id)]!.midX, y: rects[.part(id)]!.midY) }
         #expect(r.click(at: center(.status)) == .open(AppInfo.statusPage) && r.wantsHand(at: center(.status)))
         // While an update runs the line is still a control: the hand, and no drag.

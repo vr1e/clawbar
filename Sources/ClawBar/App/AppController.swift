@@ -177,9 +177,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
     }
 
     /// The chart's readout under the pointer, or the legend again once it is off the chart.
-    private func updateHistoryHover() {
+    private func updateHistoryHover(_ regions: CardRegions? = nil) {
         var hover: HistoryHover?
-        if let p = pointer, let chart = app.view.history, let x = regions().chartX(at: p) {
+        if let p = pointer, let chart = app.view.history, let x = (regions ?? self.regions()).chartX(at: p) {
             hover = HistoryReadout.hover(x: x, chart: chart, input: presenterInput(now: Date()))
         }
         if hover != app.historyHover { app.historyHover = hover }
@@ -308,15 +308,12 @@ final class AppController: NSObject, WidgetPanelDelegate {
         DispatchQueue.main.async {
             MainActor.assumeIsolated {
                 self.regionRefreshPending = false
-                self.refreshTooltips()
+                let regions = self.regions()
+                self.tooltips.update(regions.tooltips)
                 // The chart can move or close under a resting pointer.
-                self.updateHistoryHover()
+                self.updateHistoryHover(regions)
             }
         }
-    }
-
-    private func refreshTooltips() {
-        tooltips.update(regions().tooltips)
     }
 
     // MARK: WidgetPanelDelegate
@@ -347,9 +344,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
         DevMenuBuilder.menu(engine.developerMenu()) { [unowned self] in performDev($0) }
     }
 
-    func pointerMoved(to p: CGPoint) {
+    func pointerMoved(to p: CGPoint, over regions: CardRegions) {
         pointer = p
-        updateHistoryHover()
+        updateHistoryHover(regions)
     }
 
     func pointerLeft() {

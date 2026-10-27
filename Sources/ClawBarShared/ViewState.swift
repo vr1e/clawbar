@@ -176,7 +176,7 @@ public enum VersionAction: Sendable, Hashable {
 }
 
 /// Every string, colour, fraction and visibility of the widget and the menu bar item, and the parts the card shows
-/// with their tooltips. An empty line text hides that line.
+/// with their tooltips. An empty text hides a line that is not a part.
 public struct WidgetViewState: Sendable, Hashable {
     /// The themed colours, read by role by the card, the hearts, the caption and Clawd Run. Where the role depends on
     /// the state or the row, the presenter resolves it into that field's own colour instead.

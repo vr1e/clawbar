@@ -44,8 +44,8 @@ protocol WidgetPanelDelegate: AnyObject {
     func clawdClicked()
     func clicked(_ click: CardClick)
     func developerMenu() -> NSMenu?
-    /// The pointer moved over the widget, in card space.
-    func pointerMoved(to p: CGPoint)
+    /// The pointer moved over the widget, in card space, over the regions the cursor was set from.
+    func pointerMoved(to p: CGPoint, over regions: CardRegions)
     func pointerLeft()
 }
 
@@ -145,9 +145,9 @@ final class WidgetPanel: NSPanel {
 
     override func mouseMoved(with event: NSEvent) {
         let p = cardPoint(event.locationInWindow)
-        let hand = widgetDelegate?.regions().wantsHand(at: p) ?? false
-        (hand ? NSCursor.pointingHand : NSCursor.arrow).set()
-        widgetDelegate?.pointerMoved(to: p)
+        let regions = widgetDelegate?.regions()
+        (regions?.wantsHand(at: p) == true ? NSCursor.pointingHand : NSCursor.arrow).set()
+        if let regions { widgetDelegate?.pointerMoved(to: p, over: regions) }
     }
 
     override func mouseExited(with event: NSEvent) {

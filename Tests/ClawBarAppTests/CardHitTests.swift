@@ -136,10 +136,9 @@ final class LaidOutCard {
         let chart = try card.rect(.history)
         #expect(abs(chart.width - 236 * card.k) < 0.01 && abs(chart.height - 44 * card.k) < 0.01)
         let regions = card.regions
+        // The arithmetic is CardRegionsTests'; here the laid-out chart reaches it.
         let x = try #require(regions.chartX(at: CGPoint(x: chart.midX, y: chart.midY)))
         #expect(abs(x - 118) < 0.01)
-        #expect(regions.chartX(at: CGPoint(x: chart.minX, y: chart.minY)) == 0)
-        #expect(regions.chartX(at: CGPoint(x: chart.midX, y: chart.maxY + 1)) == nil)
         #expect(regions.classify(CGPoint(x: chart.midX, y: chart.midY), isSecondary: false) == .drag)
     }
 

@@ -290,13 +290,13 @@ private struct DetailsBlock: View {
             }
             Divider(k: k).padding(.bottom, 7 * k)
             HStack(alignment: .top, spacing: 0) {
-                if !v.shows(.version) {
-                    Spacer(minLength: 0)
-                } else {
+                if v.shows(.version) {
                     // A Stretch column with a transparent background: the whole column is the link.
                     WText(v.versionText, 10, color: v.versionColor, wraps: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .publish(.part(.version), to: layout)
+                } else {
+                    Spacer(minLength: 0)
                 }
                 WText(v.appVersionText, 10, color: v.palette.label)
                     .publish(.part(.appVersion), to: layout)
@@ -503,13 +503,13 @@ private struct FooterRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            if !v.shows(.account) {
-                Spacer(minLength: 0)
-            } else {
+            if v.shows(.account) {
                 WText(v.accountText, 9, color: v.accountColor, truncates: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .publish(.part(.account), to: layout)
                     .padding(.trailing, 8 * k)
+            } else {
+                Spacer(minLength: 0)
             }
             if !v.stampText.isEmpty {
                 WText(v.stampText, 9, color: v.stampColor)

@@ -97,7 +97,7 @@ final class StubPanelDelegate: WidgetPanelDelegate {
     func clawdClicked() {}
     func clicked(_ click: CardClick) {}
     func developerMenu() -> NSMenu? { nil }
-    func pointerMoved(to p: CGPoint) { pointer = p }
+    func pointerMoved(to p: CGPoint, over regions: CardRegions) { pointer = p }
     func pointerLeft() { pointer = nil }
 }
 
