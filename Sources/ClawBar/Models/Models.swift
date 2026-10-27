@@ -43,11 +43,11 @@ final class AnimationModel {
     }
 }
 
-/// Everything SwiftUI measures that AppKit needs: hit and tooltip rects, the number's width, the card's size.
+/// The rects SwiftUI publishes for the card's regions: each part's, and the ones the hearts, the sky, Clawd and the
+/// chart's readout are measured from.
 enum HitID: Hashable, Sendable {
-    case details, hide, exit, hearts, percentRow, number, reset, play, sessions, status, version, appVersion, account, history
-    /// The top projects' label, and each project's row by its index.
-    case projectsLabel, project(Int)
+    case part(CardPart.ID)
+    case hearts, percentRow, number, history
 }
 
 /// The named coordinate space the card publishes its rects in: points, origin at the card's top-left.

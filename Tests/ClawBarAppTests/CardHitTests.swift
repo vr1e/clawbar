@@ -24,6 +24,12 @@ final class LaidOutCard {
         relayout()
     }
 
+    /// The presenter's view of a `--snapshot` case, in English.
+    convenience init(case name: String, scale k: Double = 1.2) throws {
+        let c = try #require(SnapshotCases.all().first { $0.name == name })
+        self.init(SnapshotMode.view(for: c, lang: .en), scale: k)
+    }
+
     func relayout() {
         host.frame = CGRect(origin: .zero, size: host.fittingSize)
         host.layoutSubtreeIfNeeded()
@@ -31,19 +37,17 @@ final class LaidOutCard {
 
     var k: Double { app.scale }
 
-    var map: WidgetHitMap {
-        .make(
-            layout: layout, view: app.view, spriteRect: animation.clawd.spriteRect, scale: k,
-            mascotVisible: app.mascotVisible, skyVisible: app.skyVisible
-        )
-    }
+    var regions: CardRegions { .make(app: app, animation: animation, layout: layout) }
 
     func rect(_ id: HitID) throws -> CGRect { try #require(layout.rects[id], "\(id) was not published") }
+    func rect(_ part: CardPart.ID) throws -> CGRect { try rect(.part(part)) }
 
     func center(_ id: HitID) throws -> CGPoint {
         let r = try rect(id)
         return CGPoint(x: r.midX, y: r.midY)
     }
+
+    func center(_ part: CardPart.ID) throws -> CGPoint { try center(.part(part)) }
 }
 
 @MainActor
@@ -58,50 +62,68 @@ final class LaidOutCard {
         #expect(card.layout.numberWidth > 20)
     }
 
+    /// What ties the card to the parts: it publishes a rect for every part it shows, and for no other.
+    @Test func everyStateDrawsExactlyThePartsItShows() throws {
+        for c in SnapshotCases.all() where c.card {
+            let card = LaidOutCard(SnapshotMode.view(for: c, lang: .en))
+            let published = Set(card.layout.rects.keys.compactMap { id -> CardPart.ID? in
+                guard case .part(let part) = id else { return nil }
+                return part
+            })
+            #expect(published == Set(card.app.view.parts.map(\.id)), "\(c.name)")
+        }
+    }
+
     @Test func theNumberTheSkyAndTheLabelsDragTheWindow() throws {
         let card = LaidOutCard()
-        let map = card.map, k = card.k
+        let regions = card.regions, k = card.k
         let row = try card.rect(.percentRow)
-        let number = try card.center(.number)
-        #expect(map.classify(number, isSecondary: false) == .drag)
+        #expect(regions.classify(try card.center(.number), isSecondary: false) == .drag)
         let sky = CGPoint(x: row.maxX - 8 * k, y: row.minY + 8 * k)
-        #expect(map.classify(sky, isSecondary: false) == .drag)
+        #expect(regions.classify(sky, isSecondary: false) == .drag)
         let title = CGPoint(x: 13 * k + 12 * k, y: try card.center(.details).y)
-        #expect(map.classify(title, isSecondary: false) == .drag)
+        #expect(regions.classify(title, isSecondary: false) == .drag)
         let sessions = try card.rect(.sessions)
-        #expect(map.classify(CGPoint(x: sessions.minX + 4 * k, y: sessions.midY), isSecondary: false) == .drag)
-        #expect(map.classify(try card.center(.reset), isSecondary: false) == .drag)
+        #expect(regions.classify(CGPoint(x: sessions.minX + 4 * k, y: sessions.midY), isSecondary: false) == .drag)
+        #expect(regions.classify(try card.center(.reset), isSecondary: false) == .drag)
     }
 
     @Test func clawdAndTheButtonsAreNotDragHandles() throws {
         let card = LaidOutCard()
-        let map = card.map
-        let sprite = try #require(map.sprite)
-        #expect(map.classify(CGPoint(x: sprite.midX, y: sprite.midY), isSecondary: false) == .clawd)
-        for id in [HitID.details, .hide, .exit, .status] {
+        let regions = card.regions
+        let sprite = try #require(regions.rects(.sprite).first)
+        #expect(regions.classify(CGPoint(x: sprite.midX, y: sprite.midY), isSecondary: false) == .clawd)
+        let clicks: [(CardPart.ID, CardClick)] = [
+            (.details, .toggleDetails), (.hide, .hide), (.exit, .quit), (.status, .open(AppInfo.statusPage)),
+        ]
+        for (id, click) in clicks {
             let p = try card.center(id)
-            #expect(map.classify(p, isSecondary: false) == .control, "\(id)")
-            #expect(map.control(at: p) == id)
+            #expect(regions.classify(p, isSecondary: false) == .control, "\(id)")
+            #expect(regions.click(at: p) == click)
         }
     }
 
     @Test func secondaryClicksOpenTheDeveloperMenuOnlyOnClawdAndTheSky() throws {
         let card = LaidOutCard()
-        let map = card.map, k = card.k
-        let row = try card.rect(.percentRow)
-        let sprite = try #require(map.sprite)
-        #expect(map.classify(CGPoint(x: sprite.midX, y: sprite.midY), isSecondary: true) == .menu)
-        #expect(map.classify(CGPoint(x: row.maxX - 8 * k, y: row.minY + 8 * k), isSecondary: true) == .menu)
+        let regions = card.regions, k = card.k
+        let row = try card.rect(.percentRow), number = try card.rect(.number)
+        let sprite = try #require(regions.rects(.sprite).first)
+        #expect(regions.classify(CGPoint(x: sprite.midX, y: sprite.midY), isSecondary: true) == .menu)
+        #expect(regions.classify(CGPoint(x: row.maxX - 8 * k, y: row.minY + 8 * k), isSecondary: true) == .menu)
         // The number covers the sky: right-clicking it does nothing, as in WPF.
-        #expect(map.classify(try card.center(.number), isSecondary: true) == .control)
-        #expect(map.classify(try card.center(.reset), isSecondary: true) == .control)
+        #expect(regions.classify(try card.center(.number), isSecondary: true) == .control)
+        #expect(regions.classify(try card.center(.reset), isSecondary: true) == .control)
+        // The sky reaches 3 below the row, under the number too, for its menu and its tooltip alike.
+        let under = CGPoint(x: number.midX, y: row.minY + 41.5 * k)
+        #expect(regions.classify(under, isSecondary: true) == .menu)
+        #expect(regions.tooltips.contains { $0.id == .sky && $0.rect.contains(under) })
     }
 
     @Test func theSpriteStandsOnTheGroundRightOfTheNumber() throws {
         let card = LaidOutCard()
         let k = card.k
         let row = try card.rect(.percentRow)
-        let sprite = try #require(card.map.sprite)
+        let sprite = try #require(card.regions.rects(.sprite).first)
         let s = ClawdFrame.sample.spriteRect
         #expect(abs(sprite.minX - (row.minX + (card.layout.numberWidth + 10 + s.minX) * k)) < 0.01)
         // The 26.4-tall box hangs 4.4 below the ground line, which is 3 below the 40-tall row.
@@ -109,68 +131,25 @@ final class LaidOutCard {
         #expect(abs(sprite.width - 36 * k) < 0.01 && abs(sprite.height - 26.4 * k) < 0.01)
     }
 
-    @Test func theDetailsAddTheVersionLinesAsControls() throws {
-        var v = WidgetViewState.sample
-        v.detailsExpanded = true
-        let card = LaidOutCard(v)
-        let map = card.map
-        #expect(map.control(at: try card.center(.version)) == .version)
-        #expect(map.control(at: try card.center(.appVersion)) == .appVersion)
-    }
-
-    @Test func hiddenRowsLeaveNoControlsBehind() throws {
-        var v = WidgetViewState.sample
-        v.detailsExpanded = true
-        let card = LaidOutCard(v)
-        let status = try card.center(.status)
-        let version = try card.center(.version)
-        v.statusVisible = false
-        v.detailsExpanded = false
-        card.app.view = v
-        card.relayout()
-        #expect(card.map.control(at: status) == nil)
-        #expect(card.map.control(at: version) == nil)
-    }
-
     @Test func theChartReadsOutItsXAndStillDragsTheWindow() throws {
-        var v = WidgetViewState.sample
-        v.detailsExpanded = true
-        v.history = HistoryView(label: "LIMITS · 7 DAYS")
-        let card = LaidOutCard(v)
+        let card = try LaidOutCard(case: "history")
         let chart = try card.rect(.history)
         #expect(abs(chart.width - 236 * card.k) < 0.01 && abs(chart.height - 44 * card.k) < 0.01)
-        let map = card.map
-        let x = try #require(map.chartX(at: CGPoint(x: chart.midX, y: chart.midY)))
+        let regions = card.regions
+        let x = try #require(regions.chartX(at: CGPoint(x: chart.midX, y: chart.midY)))
         #expect(abs(x - 118) < 0.01)
-        #expect(map.chartX(at: CGPoint(x: chart.minX, y: chart.minY)) == 0)
-        #expect(map.chartX(at: CGPoint(x: chart.midX, y: chart.maxY + 1)) == nil)
-        #expect(map.classify(CGPoint(x: chart.midX, y: chart.midY), isSecondary: false) == .drag)
-        // Closed, the chart's rect stays published but reads out nothing.
-        v.detailsExpanded = false
-        v.history = nil
-        card.app.view = v
-        card.relayout()
-        #expect(card.map.chartX(at: CGPoint(x: chart.midX, y: chart.midY)) == nil)
-    }
-
-    @Test func theProjectsDragTheWindow() throws {
-        var v = WidgetViewState.sample
-        v.detailsExpanded = true
-        v.history = HistoryView(label: "LIMITS · 7 DAYS")
-        v.projects = ProjectsView(label: "PROJECTS · 7 DAYS", rows: [ProjectRow(name: "api", share: "100%", fraction: 1, tooltip: "~/api")])
-        let card = LaidOutCard(v)
-        for id in [HitID.projectsLabel, .project(0)] {
-            #expect(card.map.classify(try card.center(id), isSecondary: false) == .drag, "\(id)")
-        }
+        #expect(regions.chartX(at: CGPoint(x: chart.minX, y: chart.minY)) == 0)
+        #expect(regions.chartX(at: CGPoint(x: chart.midX, y: chart.maxY + 1)) == nil)
+        #expect(regions.classify(CGPoint(x: chart.midX, y: chart.midY), isSecondary: false) == .drag)
     }
 
     @Test func withoutClawdOrTheSkyThereIsNoDeveloperMenu() throws {
         let card = LaidOutCard(mascot: false, sky: false)
-        let map = card.map, k = card.k
+        let regions = card.regions, k = card.k
         let row = try card.rect(.percentRow)
-        #expect(map.sprite == nil && map.sky == nil)
-        #expect(map.classify(CGPoint(x: row.maxX - 8 * k, y: row.minY + 8 * k), isSecondary: true) == .control)
-        #expect(map.classify(CGPoint(x: row.minX + 100 * k, y: row.minY + 30 * k), isSecondary: false) == .drag)
+        #expect(regions.rects(.sprite).isEmpty && regions.rects(.sky).isEmpty)
+        #expect(regions.classify(CGPoint(x: row.maxX - 8 * k, y: row.minY + 8 * k), isSecondary: true) == .control)
+        #expect(regions.classify(CGPoint(x: row.minX + 100 * k, y: row.minY + 30 * k), isSecondary: false) == .drag)
     }
 }
 

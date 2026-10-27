@@ -7,25 +7,25 @@ enum TopProjects {
     static let shown = 4
 
     /// `counting...` before the first scan; nil once a scan found no usage this week, as the original collapses ProjPanel.
-    static func view(_ usage: ProjectUsage?, home: String, lang: Lang) -> ProjectsView? {
-        var view = ProjectsView(label: L10n.t(.uiProjects, lang), tooltip: tooltip(usage, lang: lang))
+    /// The parts are the label, saying how the shares are estimated, and a row per project with its folder.
+    static func view(_ usage: ProjectUsage?, home: String, lang: Lang) -> (view: ProjectsView, parts: [CardPart])? {
+        var view = ProjectsView(label: L10n.t(.uiProjects, lang))
+        let label = CardPart(.projectsLabel, tooltip: tooltip(usage, lang: lang))
         guard let usage else {
             view.caption = L10n.t(.histCounting, lang)
-            return view
+            return (view, [label])
         }
         let total = usage.projects.reduce(0) { $0 + $1.weight }
         guard total > 0, total.isFinite else { return nil }
         let named = names(usage, home: home)
         // The scan sorts heaviest first, ties by path.
-        view.rows = usage.projects.prefix(shown).indices.map { i in
+        let top = usage.projects.prefix(shown).indices
+        view.rows = top.map { i in
             // Show-Projects multiplies before it divides, which decides which way an exact half rounds.
             let share = 100 * usage.projects[i].weight / total
-            return ProjectRow(
-                name: named[i].name, share: percent(share), fraction: max(2 / ProjectsView.trackWidth, share / 100),
-                tooltip: named[i].path
-            )
+            return ProjectRow(name: named[i].name, share: percent(share), fraction: max(2 / ProjectsView.trackWidth, share / 100))
         }
-        return view
+        return (view, [label] + top.map { CardPart(.project($0), tooltip: named[$0].path) })
     }
 
     /// The name of the project with the most weight in `minutes`; nil before the first scan or when none has weight

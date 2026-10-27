@@ -32,7 +32,7 @@ enum PanelRoute: Equatable {
     case clawd
     case devMenu
     case drag
-    case control(HitID)
+    case control(CardClick)
     /// Not ours: AppKit's normal handling.
     case pass
 }
@@ -40,12 +40,10 @@ enum PanelRoute: Equatable {
 /// What the panel asks of the app.
 @MainActor
 protocol WidgetPanelDelegate: AnyObject {
-    func hitMap() -> WidgetHitMap
+    func regions() -> CardRegions
     func clawdClicked()
-    func controlClicked(_ id: HitID)
+    func clicked(_ click: CardClick)
     func developerMenu() -> NSMenu?
-    /// Whether the point (card space) should show the hand cursor.
-    func wantsHandCursor(at p: CGPoint) -> Bool
     /// The pointer moved over the widget, in card space.
     func pointerMoved(to p: CGPoint)
     func pointerLeft()
@@ -114,17 +112,17 @@ final class WidgetPanel: NSPanel {
 
     // MARK: Events
 
-    /// The one choke point for clicks: Clawd, the developer menu, drags and controls, from published hit rects.
+    /// The one choke point for clicks: Clawd, the developer menu, drags and controls, from the card's regions.
     func route(_ event: NSEvent) -> PanelRoute {
-        guard event.type == .leftMouseDown || event.type == .rightMouseDown, let map = widgetDelegate?.hitMap() else { return .pass }
+        guard event.type == .leftMouseDown || event.type == .rightMouseDown, let regions = widgetDelegate?.regions() else { return .pass }
         let p = cardPoint(event.locationInWindow)
         let secondary = event.type == .rightMouseDown || event.modifierFlags.contains(.control)
-        switch map.classify(p, isSecondary: secondary) {
+        switch regions.classify(p, isSecondary: secondary) {
         case .clawd: return .clawd
         case .menu: return .devMenu
         case .drag: return .drag
         case .control:
-            if !secondary, let id = map.control(at: p) { return .control(id) }
+            if !secondary, let click = regions.click(at: p) { return .control(click) }
             return .pass
         }
     }
@@ -140,14 +138,14 @@ final class WidgetPanel: NSPanel {
                 NSMenu.popUpContextMenu(menu, with: event, for: view)
             }
         case .drag: performDrag(with: event)
-        case .control(let id): widgetDelegate?.controlClicked(id)
+        case .control(let click): widgetDelegate?.clicked(click)
         case .pass: super.sendEvent(event)
         }
     }
 
     override func mouseMoved(with event: NSEvent) {
         let p = cardPoint(event.locationInWindow)
-        let hand = widgetDelegate?.wantsHandCursor(at: p) ?? false
+        let hand = widgetDelegate?.regions().wantsHand(at: p) ?? false
         (hand ? NSCursor.pointingHand : NSCursor.arrow).set()
         widgetDelegate?.pointerMoved(to: p)
     }

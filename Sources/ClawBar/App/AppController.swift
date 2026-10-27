@@ -21,7 +21,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     let layout = LayoutModel()
     private let host: CardHostView
     private let panel: WidgetPanel
-    private let tooltips: TooltipRegions
+    private let tooltips: TooltipRegistrar
     private let statusItem = StatusItemController()
     private let loginItem: LoginItemController
     private let ipc = IPCListener()
@@ -48,7 +48,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         engine = AnimationEngine(random: SystemRandomSource(), config: config, now: Date())
         host = CardHostView(root: WidgetRootView(app: app, animation: animation, layout: layout))
         panel = WidgetPanel(content: host)
-        tooltips = TooltipRegions(view: host)
+        tooltips = TooltipRegistrar(view: host)
         let installed = LaunchAtLogin.managesLoginItem(installed: LaunchAtLogin.runsFromInstalledApp, paths: paths)
         loginItem = LoginItemController(service: MainAppLoginItem(), installed: installed, log: errorLog)
         super.init()
@@ -60,7 +60,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         apply(config: config, initial: true)
         panel.widgetDelegate = self
         tooltips.text = { [unowned self] id in
-            TooltipLayout.text(id, view: app.view, hearts: animation.hearts) { self.engine.skyTooltip(now: Date(), timeZone: self.zone) }
+            CardRegions.text(id, view: app.view, hearts: animation.hearts) { self.engine.skyTooltip(now: Date(), timeZone: self.zone) }
         }
         layout.onCardSize = { [unowned self] _ in
             // After SwiftUI's layout pass: resizing the window inside its geometry callback would re-enter it.
@@ -179,7 +179,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     /// The chart's readout under the pointer, or the legend again once it is off the chart.
     private func updateHistoryHover() {
         var hover: HistoryHover?
-        if let p = pointer, let chart = app.view.history, let x = hitMap().chartX(at: p) {
+        if let p = pointer, let chart = app.view.history, let x = regions().chartX(at: p) {
             hover = HistoryReadout.hover(x: x, chart: chart, input: presenterInput(now: Date()))
         }
         if hover != app.historyHover { app.historyHover = hover }
@@ -316,52 +316,35 @@ final class AppController: NSObject, WidgetPanelDelegate {
     }
 
     private func refreshTooltips() {
-        tooltips.update(TooltipLayout.regions(
-            rects: layout.rects, view: app.view, heartsVisible: animation.hearts.visible,
-            mascotVisible: app.mascotVisible, skyVisible: app.skyVisible, scale: config.scale
-        ))
+        tooltips.update(regions().tooltips)
     }
 
     // MARK: WidgetPanelDelegate
 
-    func hitMap() -> WidgetHitMap {
-        WidgetHitMap.make(
-            layout: layout, view: app.view, spriteRect: animation.clawd.spriteRect, scale: config.scale,
-            mascotVisible: app.mascotVisible, skyVisible: app.skyVisible
-        )
+    func regions() -> CardRegions {
+        .make(app: app, animation: animation, layout: layout)
     }
 
     func clawdClicked() {
         engine.click(now: Date())
     }
 
-    func controlClicked(_ id: HitID) {
-        switch id {
-        case .details: change { $0.expanded.toggle() }
+    func clicked(_ click: CardClick) {
+        switch click {
+        case .toggleDetails: change { $0.expanded.toggle() }
         case .hide: hideWidget()
-        case .exit: NSApp.terminate(nil)
-        case .status: NSWorkspace.shared.open(app.view.statusURL)
-        case .version:
-            switch app.view.versionAction {
-            case .runUpdate:
-                data.startClaudeUpdate()
-                recompute()
-            case .open(let url): NSWorkspace.shared.open(url)
-            case .none: break
-            }
-        case .appVersion: NSWorkspace.shared.open(app.view.appVersionURL)
+        case .quit: NSApp.terminate(nil)
         case .play: game.show()
-        case .hearts, .percentRow, .number, .reset, .sessions, .account, .history, .projectsLabel, .project: break
+        case .open(let url): NSWorkspace.shared.open(url)
+        case .runUpdate:
+            data.startClaudeUpdate()
+            recompute()
+        case .nothing: break
         }
     }
 
     func developerMenu() -> NSMenu? {
         DevMenuBuilder.menu(engine.developerMenu()) { [unowned self] in performDev($0) }
-    }
-
-    func wantsHandCursor(at p: CGPoint) -> Bool {
-        let map = hitMap()
-        return map.control(at: p) != nil || (map.sprite?.contains(p) ?? false)
     }
 
     func pointerMoved(to p: CGPoint) {

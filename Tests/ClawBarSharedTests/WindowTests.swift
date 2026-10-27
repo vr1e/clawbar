@@ -59,7 +59,7 @@ import ClawBarShared
     let controls = [CGRect(x: 200, y: 8, width: 12, height: 12), CGRect(x: 13, y: 200, width: 236, height: 14)]
 
     func hit(_ x: Double, _ y: Double, secondary: Bool = false) -> WidgetHit {
-        classifyHit(CGPoint(x: x, y: y), isSecondary: secondary, controls: controls, sprite: sprite, sky: sky)
+        classifyHit(CGPoint(x: x, y: y), isSecondary: secondary, controls: controls, sprite: sprite, sky: [sky])
     }
 
     @Test func leftClickOnClawdIsForClawd() {
@@ -87,8 +87,8 @@ import ClawBarShared
     }
 
     @Test func withoutClawdAndSkyThereIsNoDeveloperMenu() {
-        let r = classifyHit(CGPoint(x: 30, y: 40), isSecondary: true, controls: [], sprite: nil, sky: nil)
+        let r = classifyHit(CGPoint(x: 30, y: 40), isSecondary: true, controls: [], sprite: nil, sky: [])
         #expect(r == .control)
-        #expect(classifyHit(CGPoint(x: 30, y: 40), isSecondary: false, controls: [], sprite: nil, sky: nil) == .drag)
+        #expect(classifyHit(CGPoint(x: 30, y: 40), isSecondary: false, controls: [], sprite: nil, sky: []) == .drag)
     }
 }

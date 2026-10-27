@@ -119,14 +119,11 @@ public struct ProjectRow: Sendable, Hashable {
     public var share: String
     /// 0...1 of the track.
     public var fraction: Double
-    /// The folder, as `~/…` under the home folder.
-    public var tooltip: String
 
-    public init(name: String, share: String, fraction: Double, tooltip: String) {
+    public init(name: String, share: String, fraction: Double) {
         self.name = name
         self.share = share
         self.fraction = fraction
-        self.tooltip = tooltip
     }
 }
 
@@ -138,18 +135,36 @@ public struct ProjectsView: Sendable, Hashable {
 
     /// PROJECTS · 7 DAYS.
     public var label: String
-    /// How the shares are estimated, on the label.
-    public var tooltip: String
     /// The top 4, heaviest first; empty before the first scan.
     public var rows: [ProjectRow]
     /// `counting...` in place of the rows before the first scan.
     public var caption: String
 
-    public init(label: String, tooltip: String = "", rows: [ProjectRow] = [], caption: String = "") {
+    public init(label: String, rows: [ProjectRow] = [], caption: String = "") {
         self.label = label
-        self.tooltip = tooltip
         self.rows = rows
         self.caption = caption
+    }
+}
+
+/// A part of the card the pointer can reach, shown, with its tooltip; an empty tooltip means none.
+public struct CardPart: Sendable, Hashable {
+    /// Declared in the card's order, so sorting by id sorts the parts as the card stacks them.
+    public enum ID: Sendable, Hashable, Comparable {
+        case details, hide, exit, reset, play, sessions, status, projectsLabel
+        /// A row of the top projects, by its index.
+        case project(Int)
+        /// The Claude Code version line, and the ClawBar line beside it.
+        case version, appVersion
+        case account
+    }
+
+    public var id: ID
+    public var tooltip: String
+
+    public init(_ id: ID, tooltip: String = "") {
+        self.id = id
+        self.tooltip = tooltip
     }
 }
 
@@ -160,20 +175,19 @@ public enum VersionAction: Sendable, Hashable {
     case open(URL)
 }
 
-/// Every string, colour, fraction, visibility and tooltip of the widget and the menu bar item.
-/// An empty tooltip means none; an empty line text hides that line.
+/// Every string, colour, fraction and visibility of the widget and the menu bar item, and the parts the card shows
+/// with their tooltips. An empty line text hides that line.
 public struct WidgetViewState: Sendable, Hashable {
     /// The themed colours, read by role by the card, the hearts, the caption and Clawd Run. Where the role depends on
     /// the state or the row, the presenter resolves it into that field's own colour instead.
     public var palette: ThemePalette
+    /// The parts the card shows, in its order; a part left out is not drawn and the pointer finds nothing there.
+    public var parts: [CardPart]
 
     // Header
     public var title: String
     /// ▾ closed, ▴ open.
     public var detailsGlyph: String
-    public var detailsTooltip: String
-    public var hideTooltip: String
-    public var exitTooltip: String
 
     // Percent row and session bar
     /// The number without `%` ("42"), or "--".
@@ -185,14 +199,12 @@ public struct WidgetViewState: Sendable, Hashable {
     // Reset line
     public var resetText: String
     public var resetColor: RGBA
-    public var resetTooltip: String
 
     // Clawd Run
     /// The session limit is used up: the card and the menu offer the game.
     public var limitReached: Bool
     /// The button under the reset line, shown while the limit is reached.
     public var playText: String
-    public var playTooltip: String
     /// The game's corner: the time until the limit resets while it lasts, then the news that it has.
     public var gameCaption: String
 
@@ -201,21 +213,15 @@ public struct WidgetViewState: Sendable, Hashable {
     public var modelWeeks: [BarRow]
 
     // Sessions
-    public var sessionsVisible: Bool
     public var sessionsLabel: String
     public var sessionsText: String
-    /// One line per session.
-    public var sessionsTooltip: String
 
     // Service status
-    public var statusVisible: Bool
     public var statusDotColor: RGBA
     public var statusText: String
     public var statusTextColor: RGBA
     /// Broken components; empty hides the second line.
     public var statusLine2: String
-    public var statusTooltip: String
-    public var statusURL: URL
 
     // Details
     public var detailsExpanded: Bool
@@ -232,17 +238,13 @@ public struct WidgetViewState: Sendable, Hashable {
     public var projects: ProjectsView?
     public var versionText: String
     public var versionColor: RGBA
-    public var versionTooltip: String
     public var versionAction: VersionAction
     /// "ClawBar v0.1.0".
     public var appVersionText: String
-    public var appVersionTooltip: String
-    public var appVersionURL: URL
 
     // Footer
     public var accountText: String
     public var accountColor: RGBA
-    public var accountTooltip: String
     public var stampText: String
     public var stampColor: RGBA
 
@@ -256,35 +258,26 @@ public struct WidgetViewState: Sendable, Hashable {
 
     public init(
         palette: ThemePalette = .classic,
+        parts: [CardPart] = [],
         title: String = "CLAUDE USAGE",
         detailsGlyph: String = "▾",
-        detailsTooltip: String = "",
-        hideTooltip: String = "",
-        exitTooltip: String = "",
         pctText: String = "--",
         pctColor: RGBA = Palette.dead,
         sessionFraction: Double = 0,
         sessionBarColor: RGBA = Palette.dead,
         resetText: String = "",
         resetColor: RGBA = Palette.secondary,
-        resetTooltip: String = "",
         limitReached: Bool = false,
         playText: String = "",
-        playTooltip: String = "",
         gameCaption: String = "",
         week: BarRow = BarRow(label: "WEEK", value: "", fraction: 0, color: Palette.weekBar),
         modelWeeks: [BarRow] = [],
-        sessionsVisible: Bool = true,
         sessionsLabel: String = "SESSIONS",
         sessionsText: String = "",
-        sessionsTooltip: String = "",
-        statusVisible: Bool = true,
         statusDotColor: RGBA = Palette.dead,
         statusText: String = "",
         statusTextColor: RGBA = Palette.muted,
         statusLine2: String = "",
-        statusTooltip: String = "",
-        statusURL: URL = AppInfo.statusPage,
         detailsExpanded: Bool = false,
         statsVisible: Bool = true,
         dayLabel: String = "",
@@ -297,14 +290,10 @@ public struct WidgetViewState: Sendable, Hashable {
         projects: ProjectsView? = nil,
         versionText: String = "",
         versionColor: RGBA = Palette.muted,
-        versionTooltip: String = "",
         versionAction: VersionAction = .none,
         appVersionText: String = AppInfo.title,
-        appVersionTooltip: String = "",
-        appVersionURL: URL = AppInfo.originalRepo,
         accountText: String = "",
         accountColor: RGBA = Palette.footer,
-        accountTooltip: String = "",
         stampText: String = "",
         stampColor: RGBA = Palette.footer,
         trayText: String = "--",
@@ -313,35 +302,26 @@ public struct WidgetViewState: Sendable, Hashable {
         trayMascot: Bool = true
     ) {
         self.palette = palette
+        self.parts = parts
         self.title = title
         self.detailsGlyph = detailsGlyph
-        self.detailsTooltip = detailsTooltip
-        self.hideTooltip = hideTooltip
-        self.exitTooltip = exitTooltip
         self.pctText = pctText
         self.pctColor = pctColor
         self.sessionFraction = sessionFraction
         self.sessionBarColor = sessionBarColor
         self.resetText = resetText
         self.resetColor = resetColor
-        self.resetTooltip = resetTooltip
         self.limitReached = limitReached
         self.playText = playText
-        self.playTooltip = playTooltip
         self.gameCaption = gameCaption
         self.week = week
         self.modelWeeks = modelWeeks
-        self.sessionsVisible = sessionsVisible
         self.sessionsLabel = sessionsLabel
         self.sessionsText = sessionsText
-        self.sessionsTooltip = sessionsTooltip
-        self.statusVisible = statusVisible
         self.statusDotColor = statusDotColor
         self.statusText = statusText
         self.statusTextColor = statusTextColor
         self.statusLine2 = statusLine2
-        self.statusTooltip = statusTooltip
-        self.statusURL = statusURL
         self.detailsExpanded = detailsExpanded
         self.statsVisible = statsVisible
         self.dayLabel = dayLabel
@@ -354,19 +334,36 @@ public struct WidgetViewState: Sendable, Hashable {
         self.projects = projects
         self.versionText = versionText
         self.versionColor = versionColor
-        self.versionTooltip = versionTooltip
         self.versionAction = versionAction
         self.appVersionText = appVersionText
-        self.appVersionTooltip = appVersionTooltip
-        self.appVersionURL = appVersionURL
         self.accountText = accountText
         self.accountColor = accountColor
-        self.accountTooltip = accountTooltip
         self.stampText = stampText
         self.stampColor = stampColor
         self.trayText = trayText
         self.trayColor = trayColor
         self.trayTooltip = trayTooltip
         self.trayMascot = trayMascot
+    }
+}
+
+extension WidgetViewState {
+    /// The part `id` while the card shows it.
+    public func part(_ id: CardPart.ID) -> CardPart? {
+        parts.first { $0.id == id }
+    }
+
+    public func shows(_ id: CardPart.ID) -> Bool {
+        part(id) != nil
+    }
+
+    /// Shows the part `id` with this tooltip, in its place in the card's order; a shown one takes the new tooltip.
+    public mutating func show(_ id: CardPart.ID, tooltip: String = "") {
+        let part = CardPart(id, tooltip: tooltip)
+        if let i = parts.firstIndex(where: { $0.id == id }) {
+            parts[i] = part
+        } else {
+            parts.insert(part, at: parts.firstIndex { $0.id > id } ?? parts.endIndex)
+        }
     }
 }

@@ -10,7 +10,7 @@ import ClawBarShared
         let v = render(sample { $0.sessionPercent = pct })
         #expect(v.limitReached)
         #expect(v.playText == "Play Clawd Run while you wait")
-        #expect(!v.playTooltip.isEmpty)
+        #expect(v.tooltip(.play)?.isEmpty == false)
         // The reset line keeps saying when the wait ends.
         #expect(v.resetText.hasPrefix("resets in"))
     }
@@ -19,7 +19,7 @@ import ClawBarShared
     func belowTheLimitNothingIsOffered(pct: Int) {
         let v = render(sample { $0.sessionPercent = pct })
         #expect(!v.limitReached)
-        #expect(v.playText.isEmpty && v.playTooltip.isEmpty)
+        #expect(v.playText.isEmpty && !v.shows(.play))
     }
 
     @Test func withoutNumbersNothingIsOffered() {
@@ -29,7 +29,7 @@ import ClawBarShared
         notFound.usageIssue = .claudeNotFound
         for data in [DataSnapshot(), noLimits, notFound] {
             let v = render(data)
-            #expect(!v.limitReached)
+            #expect(!v.limitReached && !v.shows(.play))
             #expect(v.playText.isEmpty)
         }
     }

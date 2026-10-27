@@ -127,38 +127,42 @@ extension DataSnapshot {
 extension WidgetViewState {
     /// Before the first probe answers.
     public static let placeholder = WidgetViewState(
-        detailsTooltip: "Details", hideTooltip: "Hide", exitTooltip: "Quit",
+        parts: [
+            CardPart(.details, tooltip: "Details"), CardPart(.hide, tooltip: "Hide"), CardPart(.exit, tooltip: "Quit"),
+            CardPart(.reset), CardPart(.sessions), CardPart(.status, tooltip: "Open status.claude.com"),
+        ],
         resetText: "loading...",
         gameCaption: "The limit has reset: back to work!",
         week: BarRow(label: "WEEK", value: "no data", fraction: 0, color: Palette.weekBar),
         sessionsText: "none running",
-        statusText: "status: loading...", statusTooltip: "Open status.claude.com",
+        statusText: "status: loading...",
         dayLabel: "LAST 24 HOURS · THIS COMPUTER", dayMain: "no data",
         week7Label: "LAST 7 DAYS", week7Main: "no data",
-        appVersionTooltip: "macOS port of clawd-usage-winwidget 1.3.0, with some features of later releases (MIT)",
         trayTooltip: "ClawBar: no data"
     )
 
     /// `DataSnapshot.sample` at `Samples.now` in Berlin, rendered by hand.
     public static let sample = WidgetViewState(
-        detailsTooltip: "Details", hideTooltip: "Hide", exitTooltip: "Quit",
+        parts: [
+            CardPart(.details, tooltip: "Details"), CardPart(.hide, tooltip: "Hide"), CardPart(.exit, tooltip: "Quit"),
+            CardPart(.reset),
+            CardPart(.sessions, tooltip: "▶ clawbar — ~/Dev/clawbar\n? notes [permission] — ~/notes"),
+            CardPart(.status, tooltip: "Open status.claude.com"),
+            CardPart(.account, tooltip: "Max  ·  user@example.com"),
+        ],
         pctText: "34", pctColor: Palette.ok, sessionFraction: 0.34, sessionBarColor: Palette.ok,
         resetText: "resets in 2h 05m",
         gameCaption: "The limit has reset: back to work!",
         week: BarRow(label: "WEEK", value: "59%  ·  4d 15h", fraction: 0.59, color: Palette.weekBar),
         modelWeeks: [BarRow(label: "FABLE · WEEK", value: "8%  ·  4d 15h", fraction: 0.08, color: Palette.modelWeekBar)],
         sessionsText: "2 sessions  ·  1 working  ·  1 waiting",
-        sessionsTooltip: "▶ clawbar — ~/Dev/clawbar\n? notes [permission] — ~/notes",
         statusDotColor: Palette.ok, statusText: "All Claude systems operational", statusTextColor: Palette.muted,
-        statusTooltip: "Open status.claude.com",
         dayLabel: "LAST 24 HOURS · THIS COMPUTER", dayMain: "3875 requests  ·  23 sessions",
         dayExtra: "87% subagent-heavy sessions  ·  74% at max effort  ·  plugins: alpha 12%",
         week7Label: "LAST 7 DAYS", week7Main: "7589 requests  ·  96 sessions",
         week7Extra: "82% subagent-heavy sessions  ·  70% at >150k context  ·  subagents: helper 35%, reviewer 7%, +1 more",
-        versionText: "v2.1.302  ·  latest", versionColor: Palette.muted,
-        versionTooltip: "Click for the Claude Code changelog", versionAction: .open(AppInfo.changelogPage),
-        appVersionTooltip: "macOS port of clawd-usage-winwidget 1.3.0, with some features of later releases (MIT)",
-        accountText: "Max  ·  user@example.com", accountTooltip: "Max  ·  user@example.com",
+        versionText: "v2.1.302  ·  latest", versionColor: Palette.muted, versionAction: .open(AppInfo.changelogPage),
+        accountText: "Max  ·  user@example.com",
         stampText: "14:04:35",
         trayText: "34", trayColor: Palette.ok,
         trayTooltip: "34% of session · 2h 05m (16:10)\nweek 59% · 4d 15h (Thu 06:00)\nFable 8% · 4d 15h (Thu 06:00)\n2 sessions · 1 working · 1 waiting"

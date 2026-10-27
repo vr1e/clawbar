@@ -204,7 +204,7 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
                 session("twin", .idle, cwd: "/Users/example2/twin"),
                 session("bare", .idle),
             ]
-        })).sessionsTooltip
+        })).tooltip(.sessions)
         #expect(tip == """
             ▶ api — ~/Dev/api
             ? notes [question] — ~
@@ -219,14 +219,14 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         func tooltip(home: String) -> String {
             WidgetPresenter.make(PresenterInput(
                 config: Config(), now: Samples.now, timeZone: Samples.timeZone, data: .sample, homeDirectory: home
-            )).sessionsTooltip
+            )).tooltip(.sessions) ?? ""
         }
         #expect(tooltip(home: "/Users/example/") == "▶ clawbar — ~/Dev/clawbar\n? notes [permission] — ~/notes")
         #expect(tooltip(home: "") == "▶ clawbar — /Users/example/Dev/clawbar\n? notes [permission] — /Users/example/notes")
     }
 
     @Test func noSessionsMeansNoTooltip() {
-        #expect(render(sample(data: { $0.sessions = [] })).sessionsTooltip == "")
+        #expect(render(sample(data: { $0.sessions = [] })).tooltip(.sessions) == "")
     }
 }
 
@@ -242,7 +242,7 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         let v = status(nil)
         #expect(v.statusText == "status: loading...")
         #expect(v.statusDotColor == Palette.dead && v.statusTextColor == Palette.muted && v.statusLine2 == "")
-        #expect(v.statusTooltip == "Open status.claude.com" && v.statusURL == AppInfo.statusPage)
+        #expect(v.tooltip(.status) == "Open status.claude.com")
     }
 
     @Test func anOldStatusIsNoConnection() {
@@ -289,8 +289,8 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
     @Test func hiddenWhenTurnedOff() {
         var config = Config()
         config.showStatus = false
-        #expect(render(config: config).statusVisible == false)
-        #expect(render().statusVisible)
+        #expect(!render(config: config).shows(.status))
+        #expect(render().shows(.status))
     }
 }
 
@@ -316,13 +316,15 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         config.menuBarMascot = false
         let v = render(config: config)
         #expect(v.detailsGlyph == "▴" && v.detailsExpanded)
-        #expect(!v.statsVisible && !v.sessionsVisible && !v.trayMascot)
-        // Hiding a block changes nothing else, but hidden sessions leave the menu bar too.
+        #expect(!v.statsVisible && !v.shows(.sessions) && !v.trayMascot)
+        // Hiding a block changes nothing else, but hidden sessions leave the menu bar too; open details add the lines.
         var expected = WidgetViewState.sample
         expected.detailsGlyph = "▴"
         expected.detailsExpanded = true
         expected.statsVisible = false
-        expected.sessionsVisible = false
+        expected.parts.removeAll { $0.id == .sessions }
+        expected.show(.version, tooltip: "Click for the Claude Code changelog")
+        expected.show(.appVersion, tooltip: "macOS port of clawd-usage-winwidget 1.3.0, with some features of later releases (MIT)")
         expected.trayTooltip = "34% of session · 2h 05m (16:10)\nweek 59% · 4d 15h (Thu 06:00)\nFable 8% · 4d 15h (Thu 06:00)"
         expected.trayMascot = false
         #expect(differences(v, expected) == [])
@@ -330,25 +332,24 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
 
     @Test func theClawBarLineCarriesTheAppVersionAndCreditsTheOriginal() {
         let v = WidgetPresenter.make(PresenterInput(
-            config: Config(), now: Samples.now, timeZone: Samples.timeZone, data: .sample, appVersion: "9.9.9"
+            config: Config(expanded: true), now: Samples.now, timeZone: Samples.timeZone, data: .sample, appVersion: "9.9.9"
         ))
         #expect(v.appVersionText == "ClawBar v9.9.9")
-        #expect(v.appVersionTooltip == "macOS port of clawd-usage-winwidget 1.3.0, with some features of later releases (MIT)")
-        #expect(v.appVersionURL == AppInfo.originalRepo)
+        #expect(v.tooltip(.appVersion) == "macOS port of clawd-usage-winwidget 1.3.0, with some features of later releases (MIT)")
     }
 }
 
 @Suite struct FooterTests {
     @Test func loggedOutIsRed() {
         let v = render(sample(data: { $0.account = AccountInfo(loggedIn: false) }))
-        #expect(v.accountText == "not logged in: claude /login" && v.accountColor == Palette.crit && v.accountTooltip == "")
+        #expect(v.accountText == "not logged in: claude /login" && v.accountColor == Palette.crit && v.tooltip(.account) == "")
         #expect(render(sample(data: { $0.account = AccountInfo(loggedIn: false) }), lang: .de).accountText
             == "nicht angemeldet: claude /login")
     }
 
     @Test func emptyPartsAreDropped() {
         let v = render(sample(data: { $0.account = AccountInfo(loggedIn: true, plan: "", email: "user@example.com") }))
-        #expect(v.accountText == "user@example.com" && v.accountTooltip == "user@example.com" && v.accountColor == Palette.footer)
+        #expect(v.accountText == "user@example.com" && v.tooltip(.account) == "user@example.com" && v.accountColor == Palette.footer)
     }
 
     @Test func noAccountOrTurnedOffIsEmpty() {
@@ -356,7 +357,7 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         var config = Config()
         config.showAccount = false
         let v = render(config: config)
-        #expect(v.accountText == "" && v.accountTooltip == "")
+        #expect(v.accountText == "" && !v.shows(.account))
     }
 
     @Test func theStampTurnsStaleAfterThreeIntervalsAndThirtySeconds() {

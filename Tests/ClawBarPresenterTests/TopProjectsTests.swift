@@ -11,6 +11,16 @@ import ClawBarShared
         render(sample(data: { $0.projects = usage }), config: config, lang: lang).projects
     }
 
+    /// The label's tooltip, then each row's, the folder.
+    private func tooltips(_ usage: ProjectUsage?, lang: Lang = .en) -> (label: String?, rows: [String]) {
+        let v = render(sample(data: { $0.projects = usage }), config: Self.chartOn, lang: lang)
+        let rows = v.parts.compactMap { part -> String? in
+            guard case .project = part.id else { return nil }
+            return part.tooltip
+        }
+        return (v.tooltip(.projectsLabel), rows)
+    }
+
     private func usage(_ weights: [(String, Double)], unpriced: Int = 0) -> ProjectUsage {
         ProjectUsage(projects: weights.map { ProjectWeight(path: $0.0, quarters: [0: $0.1]) }, unpriced: unpriced)
     }
@@ -27,7 +37,8 @@ import ClawBarShared
         #expect(p.rows.isEmpty)
         #expect(p.caption == L10n.t(.histCounting, lang))
         #expect(p.label == L10n.t(.uiProjects, lang))
-        #expect(p.tooltip == L10n.t(.histProjTip, lang))
+        let tips = tooltips(nil, lang: lang)
+        #expect(tips.label == L10n.t(.histProjTip, lang) && tips.rows.isEmpty)
     }
 
     @Test func aWeekWithoutUsageHidesThem() {
@@ -41,7 +52,7 @@ import ClawBarShared
         // notes' 8.2 is left out of the rows but not of the total.
         #expect(p.rows.map(\.share) == ["42%", "23%", "15%", "12%"])
         #expect(abs(p.rows[0].fraction - 0.416) < 1e-9)
-        #expect(p.rows.map(\.tooltip) == ["~/code/api", "~/code/web", "~/code/docs", "~/code/infra"])
+        #expect(tooltips(Samples.projects).rows == ["~/code/api", "~/code/web", "~/code/docs", "~/code/infra"])
         #expect(p.caption.isEmpty)
     }
 
@@ -67,7 +78,7 @@ import ClawBarShared
     @Test func theHomeFolderIsATilde() throws {
         let p = try #require(projects(usage([(Samples.home, 2), ("/srv/work", 1)])))
         #expect(p.rows.map(\.name) == ["~", "work"])
-        #expect(p.rows.map(\.tooltip) == ["~", "/srv/work"])
+        #expect(tooltips(usage([(Samples.home, 2), ("/srv/work", 1)])).rows == ["~", "/srv/work"])
     }
 
     /// The original sums folders by their last part; ClawBar keeps them apart and names them by their parent too.
@@ -97,8 +108,8 @@ import ClawBarShared
 
     @Test(arguments: Lang.allCases)
     func theLabelSaysHowManyRepliesWereEstimated(lang: Lang) throws {
-        let p = try #require(projects(usage([("/a", 1)], unpriced: 3), lang: lang))
-        let lines = p.tooltip.components(separatedBy: "\n")
+        let label = try #require(tooltips(usage([("/a", 1)], unpriced: 3), lang: lang).label)
+        let lines = label.components(separatedBy: "\n")
         #expect(lines == [L10n.t(.histProjTip, lang), L10n.t(.histUnpriced, lang, L10n.count(3, .pluralReply, lang))])
         #expect(lines[1].hasPrefix(lang == .en ? "3 replies " : "3 Antworten "))
     }
