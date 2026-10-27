@@ -42,7 +42,9 @@ actor TranscriptScanner {
             ledger = ProjectLedger()
         }
         let cutoff = now.addingTimeInterval(-Self.window)
-        let since = TranscriptReply.hour(of: cutoff)
+        // The week starts on a whole UTC hour, as the original's does.
+        let first = UsageSample.minute(of: cutoff)
+        let since = first - first % 60
         var scan = ProjectScan()
         var seen: Set<String> = []
         let fm = FileManager.default

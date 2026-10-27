@@ -40,7 +40,7 @@ import ClawBarShared
     @Test func theProjectsAreReportedByCountNotByName() {
         #expect(dump().render().contains("\nprojects: none\n"))
         var d = dump()
-        d.snapshot.projects = ProjectUsage(projects: [ProjectWeight(path: "/Users/example/secret", weight: 1)])
+        d.snapshot.projects = ProjectUsage(projects: [ProjectWeight(path: "/Users/example/secret", quarters: [0: 1])])
         d.snapshot.projectsAt = Samples.now
         let text = d.render()
         #expect(text.contains("\nprojects: 1, scanned \(StateDump.iso(Samples.now))\n"))

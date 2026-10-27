@@ -9,14 +9,12 @@ struct TranscriptReply: Sendable, Hashable {
     /// `fast` in fast mode.
     var speed: String?
     var tokens: TokenCounts
-    /// Hours since 1970 in UTC.
-    var hour: Int
+    /// The Unix minute it was written in.
+    var minute: Int
     var cwd: String?
 
     private static let stamp = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
     private static let wholeSeconds = Date.ISO8601FormatStyle()
-
-    static func hour(of date: Date) -> Int { Int((date.timeIntervalSince1970 / 3600).rounded(.down)) }
 
     /// nil for any other line, a synthetic reply (Claude Code's own error notes), or a line without usage or time.
     init?(line: Data) {
@@ -38,7 +36,7 @@ struct TranscriptReply: Sendable, Hashable {
             input: Lenient.int(usage["input_tokens"]) ?? 0, write5m: max(0, writes - write1h), write1h: write1h,
             cacheRead: Lenient.int(usage["cache_read_input_tokens"]) ?? 0, output: Lenient.int(usage["output_tokens"]) ?? 0
         )
-        hour = Self.hour(of: at)
+        minute = UsageSample.minute(of: at)
         cwd = j["cwd"] as? String
     }
 }
@@ -53,16 +51,16 @@ struct ProjectLedger: Sendable {
         var dollars = 0.0
         var listed = true
         var folder: String
-        var hour: Int
+        var minute: Int
         var cwd: String?
     }
 
     private var replies: [String: Counted] = [:]
 
-    /// Merges `reply` into its id's earlier lines; a reply from before `since` (a UTC hour) is left out.
+    /// Merges `reply` into its id's earlier lines; a reply from before `since` (a Unix minute) is left out.
     mutating func add(_ reply: TranscriptReply, folder: String, since: Int) {
-        guard reply.hour >= since else { return }
-        var c = replies[reply.id] ?? Counted(model: reply.model, folder: folder, hour: reply.hour)
+        guard reply.minute >= since else { return }
+        var c = replies[reply.id] ?? Counted(model: reply.model, folder: folder, minute: reply.minute)
         // A line without a speed or a cwd does not undo an earlier one's.
         c.speed = reply.speed ?? c.speed
         c.cwd = c.cwd ?? reply.cwd
@@ -73,15 +71,17 @@ struct ProjectLedger: Sendable {
 
     /// Forgets the replies before `since`.
     mutating func prune(before since: Int) {
-        replies = replies.filter { $0.value.hour >= since }
+        replies = replies.filter { $0.value.minute >= since }
     }
 
     /// Every folder with weight, heaviest first, named from its week's replies, so a file read again names it alike.
     var usage: ProjectUsage {
         let projects = Dictionary(grouping: replies.values, by: \.folder).compactMap { folder, replies -> ProjectWeight? in
-            let weight = replies.reduce(0) { $0 + $1.dollars }
             let cwds = replies.reduce(into: [String: Int]()) { tally, r in if let cwd = r.cwd { tally[cwd, default: 0] += 1 } }
-            return weight > 0 ? ProjectWeight(path: Self.path(folder: folder, cwds: cwds), weight: weight) : nil
+            let byMinute = replies.reduce(into: [Int: Double]()) { m, r in
+                if r.dollars > 0 { m[r.minute, default: 0] += r.dollars }
+            }
+            return byMinute.isEmpty ? nil : ProjectWeight(path: Self.path(folder: folder, cwds: cwds), quarters: byMinute)
         }
         return ProjectUsage(
             projects: projects.sorted { $0.weight != $1.weight ? $0.weight > $1.weight : $0.path < $1.path },

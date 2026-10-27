@@ -12,7 +12,7 @@ import ClawBarShared
     }
 
     private func usage(_ weights: [(String, Double)], unpriced: Int = 0) -> ProjectUsage {
-        ProjectUsage(projects: weights.map { ProjectWeight(path: $0.0, weight: $0.1) }, unpriced: unpriced)
+        ProjectUsage(projects: weights.map { ProjectWeight(path: $0.0, quarters: [0: $0.1]) }, unpriced: unpriced)
     }
 
     @Test func theProjectsShowOnlyWithTheChart() {
@@ -76,6 +76,11 @@ import ClawBarShared
             ("/Users/example/work/app", 3), ("/Users/example/play/app", 2), ("/Users/example/docs", 1),
         ])))
         #expect(p.rows.map(\.name) == ["work/app", "play/app", "docs"])
+        // A fifth project of the same name, which no row shows, still tells them apart, as the chart's hover names it.
+        let fifth = try #require(projects(usage([
+            ("/Users/example/work/app", 5), ("/a", 4), ("/b", 3), ("/c", 2), ("/Users/example/play/app", 1),
+        ])))
+        #expect(fifth.rows.map(\.name) == ["work/app", "a", "b", "c"])
     }
 
     /// A folder right in the home folder names its parent `~`, as its tooltip does.

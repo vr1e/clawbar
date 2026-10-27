@@ -112,11 +112,27 @@ public struct ProjectWeight: Sendable, Hashable {
     /// The folder Claude Code was started in, else the one most replies ran in, else the transcript folder's name.
     public var path: String
     /// The replies at list prices, in dollars; only its ratio to the other projects' weights means anything.
-    public var weight: Double
+    public let weight: Double
+    /// The weight per quarter hour, keyed by the Unix minute it starts at. Every time zone is a whole number of
+    /// quarter hours off UTC, so four of them make any local hour.
+    public let quarters: [Int: Double]
 
-    public init(path: String, weight: Double) {
+    /// `quarters` may be keyed by any minute of its quarter hour.
+    public init(path: String, quarters: [Int: Double]) {
         self.path = path
-        self.weight = weight
+        self.quarters = Dictionary(quarters.map { (Self.quarterStart(of: $0.key), $0.value) }, uniquingKeysWith: +)
+        // Added in time order, so the same quarters always weigh the same.
+        weight = self.quarters.sorted { $0.key < $1.key }.reduce(0) { $0 + $1.value }
+    }
+
+    /// The Unix minute the quarter hour holding `minute` starts at.
+    public static func quarterStart(of minute: Int) -> Int { minute - minute % 15 }
+
+    /// The weight of every quarter hour that overlaps `minutes`.
+    public func weight(in minutes: Range<Int>) -> Double {
+        stride(from: Self.quarterStart(of: minutes.lowerBound), to: minutes.upperBound, by: 15).reduce(0) {
+            $0 + (quarters[$1] ?? 0)
+        }
     }
 }
 
