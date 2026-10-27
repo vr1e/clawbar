@@ -78,10 +78,10 @@ struct ProjectLedger: Sendable {
     var usage: ProjectUsage {
         let projects = Dictionary(grouping: replies.values, by: \.folder).compactMap { folder, replies -> ProjectWeight? in
             let cwds = replies.reduce(into: [String: Int]()) { tally, r in if let cwd = r.cwd { tally[cwd, default: 0] += 1 } }
-            let quarters = replies.reduce(into: [Int: Double]()) { q, r in
-                if r.dollars > 0 { q[ProjectWeight.quarterStart(of: r.minute), default: 0] += r.dollars }
+            let byMinute = replies.reduce(into: [Int: Double]()) { m, r in
+                if r.dollars > 0 { m[r.minute, default: 0] += r.dollars }
             }
-            return quarters.isEmpty ? nil : ProjectWeight(path: Self.path(folder: folder, cwds: cwds), quarters: quarters)
+            return byMinute.isEmpty ? nil : ProjectWeight(path: Self.path(folder: folder, cwds: cwds), quarters: byMinute)
         }
         return ProjectUsage(
             projects: projects.sorted { $0.weight != $1.weight ? $0.weight > $1.weight : $0.path < $1.path },

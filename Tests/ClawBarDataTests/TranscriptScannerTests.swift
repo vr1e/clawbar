@@ -93,8 +93,9 @@ import ClawBarShared
 
     @Test func theWeekStartsOnTheWholeUTCHourBeforeItsCutoff() async {
         // Half past an hour, so a cutoff to the minute would leave out the reply at the hour's start.
-        let at = Date(timeIntervalSince1970: (now.timeIntervalSince1970 / 3600).rounded(.down) * 3600 + 1800)
-        let hour = at - 7 * 86400 - 1800
+        let m = UsageSample.minute(of: now)
+        let at = UsageSample(minute: m - m % 60 + 30).date
+        let hour = at - TranscriptScanner.window - 30 * 60
         write(
             "-Users-example-api/s1.jsonl",
             assistantLine("msg_1", at: hour - 60, output: 4000) + "\n" + assistantLine("msg_2", at: hour, output: 1000) + "\n"
