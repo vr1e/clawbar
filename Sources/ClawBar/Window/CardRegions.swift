@@ -10,8 +10,8 @@ enum CardClick: Equatable {
     /// The version line while an update runs: still a control, so the click does not drag the window.
     case nothing
 
-    /// Which parts are controls, the elements whose MouseLeftButtonDown handlers mark the click handled in events.ps1,
-    /// and what a click on one does now; nil for a part that only explains itself, which drags the window.
+    /// Which parts are controls, as events.ps1's MouseLeftButtonDown handlers mark their clicks handled, and what a
+    /// click on one does now; nil for a part that only explains itself, which drags the window.
     static func on(_ id: CardPart.ID, in view: WidgetViewState) -> CardClick? {
         switch id {
         case .details: .toggleDetails

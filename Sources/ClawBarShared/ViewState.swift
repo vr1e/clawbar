@@ -359,11 +359,14 @@ extension WidgetViewState {
 
     /// Shows the part `id` with this tooltip, in its place in the card's order; a shown one takes the new tooltip.
     public mutating func show(_ id: CardPart.ID, tooltip: String = "") {
-        let part = CardPart(id, tooltip: tooltip)
-        if let i = parts.firstIndex(where: { $0.id == id }) {
+        show(CardPart(id, tooltip: tooltip))
+    }
+
+    public mutating func show(_ part: CardPart) {
+        if let i = parts.firstIndex(where: { $0.id == part.id }) {
             parts[i] = part
         } else {
-            parts.insert(part, at: parts.firstIndex { $0.id > id } ?? parts.endIndex)
+            parts.insert(part, at: parts.firstIndex { $0.id > part.id } ?? parts.endIndex)
         }
     }
 }

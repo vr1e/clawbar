@@ -249,7 +249,7 @@ private struct Render {
             v.history = HistoryChart.view(data, config: cfg, now: now, timeZone: input.timeZone)
             if let top = TopProjects.view(data.projects, home: input.homeDirectory, lang: lang) {
                 v.projects = top.view
-                for part in top.parts { v.show(part.id, tooltip: part.tooltip) }
+                top.parts.forEach { v.show($0) }
             }
         }
         v.appVersionText = "\(AppInfo.name) v\(input.appVersion)"

@@ -12,7 +12,7 @@ import ClawBarShared
     static let number = CGRect(x: 13, y: 34.1, width: 50, height: 39.9)
 
     func regions(
-        _ view: WidgetViewState = .sample, rects: [HitID: CGRect] = [:], mascot: Bool = true, sky: Bool = true,
+        _ view: WidgetViewState = .sample, rects: [CardRectID: CGRect] = [:], mascot: Bool = true, sky: Bool = true,
         hearts: Bool = false, sprite: CGRect = .zero
     ) -> CardRegions {
         let app = AppModel(), animation = AnimationModel(), layout = LayoutModel()
@@ -29,9 +29,9 @@ import ClawBarShared
     }
 
     /// One rect per part, each in a row of its own.
-    func partRects(_ ids: [CardPart.ID]) -> [HitID: CGRect] {
+    func partRects(_ ids: [CardPart.ID]) -> [CardRectID: CGRect] {
         Dictionary(uniqueKeysWithValues: ids.enumerated().map { i, id in
-            (HitID.part(id), CGRect(x: 13, y: 100 + 20 * Double(i), width: 236, height: 12))
+            (CardRectID.part(id), CGRect(x: 13, y: 100 + 20 * Double(i), width: 236, height: 12))
         })
     }
 
@@ -56,18 +56,17 @@ import ClawBarShared
 
     @Test func aHiddenPartsRectAndAPartWithoutARectLeaveNone() {
         // Rects a closed details block, a reset limit and a gone row left behind; the sessions never published.
-        var rects = partRects([.details, .hide, .exit, .status, .account, .version, .appVersion, .play, .project(0)])
+        let shown: [CardPart.ID] = [.details, .hide, .exit, .status, .account]
+        let hidden: [CardPart.ID] = [.version, .appVersion, .play, .project(0)]
+        var rects = partRects(shown + hidden)
         rects[.history] = CGRect(x: 13, y: 300, width: 236, height: 44)
-        let ids = Set(regions(rects: rects).all.compactMap { region -> CardPart.ID? in
-            switch region.role {
-            case .control, .chart, .sky, .sprite: return nil
-            case .tooltip(let id):
-                guard case .part(let part) = id else { return nil }
-                return part
-            }
-        })
-        #expect(ids == [.details, .hide, .exit, .status, .account])
-        #expect(regions(rects: rects).rects(.chart).isEmpty)
+        let r = regions(rects: rects)
+        // Neither a click nor a tooltip nor the chart's readout lands on a rect left behind.
+        let leftBehind = hidden.map { rects[.part($0)]! } + [rects[.history]!]
+        #expect(!r.all.contains { leftBehind.contains($0.rect) })
+        let shownRects = shown.map { rects[.part($0)]! }
+        #expect(r.all.allSatisfy { shownRects.contains($0.rect) })
+        #expect(shownRects.allSatisfy { rect in r.all.contains { $0.rect == rect } })
     }
 
     @Test func theNumberCoversTheSky() {
@@ -101,7 +100,7 @@ import ClawBarShared
 
     @Test func withoutTheSkyOrClawdTheyLeaveNoRegions() {
         let sprite = CGRect(x: 0, y: 0, width: 36, height: 26.4)
-        let rects: [HitID: CGRect] = [.percentRow: Self.row, .number: Self.number, .hearts: CGRect(x: 180, y: 12, width: 40, height: 10)]
+        let rects: [CardRectID: CGRect] = [.percentRow: Self.row, .number: Self.number, .hearts: CGRect(x: 180, y: 12, width: 40, height: 10)]
         let all = regions(rects: rects, hearts: true, sprite: sprite)
         #expect(all.rects(.sprite).count == 1 && !all.rects(.sky).isEmpty)
         #expect(all.rects(.tooltip(.hearts)) == [CGRect(x: 180, y: 12, width: 40, height: 10)])

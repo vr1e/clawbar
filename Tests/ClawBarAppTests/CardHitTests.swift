@@ -39,10 +39,10 @@ final class LaidOutCard {
 
     var regions: CardRegions { .make(app: app, animation: animation, layout: layout) }
 
-    func rect(_ id: HitID) throws -> CGRect { try #require(layout.rects[id], "\(id) was not published") }
+    func rect(_ id: CardRectID) throws -> CGRect { try #require(layout.rects[id], "\(id) was not published") }
     func rect(_ part: CardPart.ID) throws -> CGRect { try rect(.part(part)) }
 
-    func center(_ id: HitID) throws -> CGPoint {
+    func center(_ id: CardRectID) throws -> CGPoint {
         let r = try rect(id)
         return CGPoint(x: r.midX, y: r.midY)
     }
