@@ -45,6 +45,13 @@ import ClawBarShared
         #expect(L10n.health(-1, .en) == "out of strength")
     }
 
+    // The names come from key lists, where a key listed twice would hide another.
+    @Test(arguments: Lang.allCases)
+    func everyMoonPhaseAndHealthTierHasItsOwnName(lang: Lang) {
+        #expect(Set((0 ... 7).map { L10n.moonName($0, lang) }).count == 8)
+        #expect(Set((0 ... 6).map { L10n.health($0, lang) }).count == 7)
+    }
+
     @Test func unknownComponentStatesShowRaw() {
         #expect(L10n.component("partial_outage", .en) == "partial outage")
         #expect(L10n.component("brand_new_state", .en) == "brand_new_state")
