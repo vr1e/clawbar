@@ -30,6 +30,11 @@ func sample(data change: (inout DataSnapshot) -> Void) -> DataSnapshot {
     return d
 }
 
+extension WidgetViewState {
+    /// The part's tooltip while it shows; nil while it does not.
+    func tooltip(_ id: CardPart.ID) -> String? { part(id)?.tooltip }
+}
+
 /// Every field where two view states differ, so a failure names what broke.
 func differences(_ a: WidgetViewState, _ b: WidgetViewState) -> [String] {
     zip(Mirror(reflecting: a).children, Mirror(reflecting: b).children).compactMap { x, y in

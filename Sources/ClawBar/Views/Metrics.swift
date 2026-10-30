@@ -83,9 +83,8 @@ struct WPFLineSpacing: ViewModifier {
 }
 
 extension View {
-    /// Reports this view's frame in card space under `id`. A hidden row's rect may linger: its readers
-    /// check the view state's visibility, which also survives ImageRenderer tearing its views down.
-    func publish(_ id: HitID, to layout: LayoutModel) -> some View {
+    /// Reports this view's frame in card space under `id`, where it stays once the view is gone.
+    func publish(_ id: CardRectID, to layout: LayoutModel) -> some View {
         onGeometryChange(for: CGRect.self) { proxy in
             proxy.frame(in: .named(CardSpace.name))
         } action: { rect in

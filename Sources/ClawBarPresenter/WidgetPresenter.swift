@@ -50,9 +50,9 @@ private struct Render {
     private func header(_ v: inout WidgetViewState) {
         v.title = "CLAUDE USAGE"
         v.detailsGlyph = cfg.expanded ? "▴" : "▾"
-        v.detailsTooltip = t(.uiDetails)
-        v.hideTooltip = t(.uiHide)
-        v.exitTooltip = t(.uiExit)
+        v.show(.details, tooltip: t(.uiDetails))
+        v.show(.hide, tooltip: t(.uiHide))
+        v.show(.exit, tooltip: t(.uiExit))
         v.detailsExpanded = cfg.expanded
     }
 
@@ -70,7 +70,8 @@ private struct Render {
     private func sessionNumbers(_ v: inout WidgetViewState) {
         let usage = data.usageIssue?.voidsLimits == true ? nil : data.usage
         v.resetColor = palette.secondary
-        v.resetTooltip = ""
+        // The line keeps its box even without text, so the part always shows; an issue gives it a tooltip.
+        v.show(.reset)
         guard let usage, let pct = usage.sessionPercent else {
             v.pctText = "--"
             v.pctColor = Palette.dead
@@ -101,7 +102,7 @@ private struct Render {
         v.limitReached = pct >= 100
         if v.limitReached {
             v.playText = t(.uiPlay)
-            v.playTooltip = t(.uiPlayTip)
+            v.show(.play, tooltip: t(.uiPlayTip))
         }
     }
 
@@ -113,7 +114,7 @@ private struct Render {
             v.trayTooltip = t(.errNoClaude)
         case .noLimits:
             v.resetText = t(.noData)
-            v.resetTooltip = t(.issueNoLimits)
+            v.show(.reset, tooltip: t(.issueNoLimits))
             v.trayTooltip = t(.trayNoData) + "\n" + t(.issueNoLimits)
         case .flagRejected(let option):
             paused(t(.issueFlagRejected, option), &v)
@@ -128,7 +129,7 @@ private struct Render {
     private func stopped(_ text: String, _ v: inout WidgetViewState) {
         v.resetText = text
         v.resetColor = Palette.crit
-        v.resetTooltip = text
+        v.show(.reset, tooltip: text)
     }
 
     /// A latched probe keeps its last numbers up, so the menu bar also says why they stopped moving.
@@ -181,21 +182,20 @@ private struct Render {
     }
 
     private func sessions(_ v: inout WidgetViewState) {
-        v.sessionsVisible = cfg.showSessions
         v.sessionsLabel = t(.uiSessions)
         v.sessionsText = sessionCounts()?.joined(separator: "  ·  ") ?? t(.sessNone)
-        v.sessionsTooltip = data.sessions.map(sessionLine).joined(separator: "\n")
+        if cfg.showSessions { v.show(.sessions, tooltip: data.sessions.map(sessionLine).joined(separator: "\n")) }
     }
 
     /// How many sessions, then how many work and wait; nil without any.
     private func sessionCounts() -> [String]? {
         guard !data.sessions.isEmpty else { return nil }
         let busy = data.count(of: .busy), waiting = data.count(of: .waiting)
-        var parts = [L10n.count(data.sessions.count, .pluralSession, lang)]
+        var counts = [L10n.count(data.sessions.count, .pluralSession, lang)]
         // Someone waiting matters more than "0 working", and keeps the line short.
-        if busy > 0 || waiting == 0 { parts.append(t(.sessBusy, busy)) }
-        if waiting > 0 { parts.append(t(.sessWait, waiting)) }
-        return parts
+        if busy > 0 || waiting == 0 { counts.append(t(.sessBusy, busy)) }
+        if waiting > 0 { counts.append(t(.sessWait, waiting)) }
+        return counts
     }
 
     /// `▶ name — ~/cwd`, with ` [what]` for a session that waits for something.
@@ -212,9 +212,7 @@ private struct Render {
     }
 
     private func status(_ v: inout WidgetViewState) {
-        v.statusVisible = cfg.showStatus
-        v.statusTooltip = t(.uiOpenStatus)
-        v.statusURL = AppInfo.statusPage
+        if cfg.showStatus { v.show(.status, tooltip: t(.uiOpenStatus)) }
         v.statusLine2 = ""
         let stale = DataSnapshot.isStale(data.statusAt, interval: cfg.statusIntervalSeconds, now: now)
         guard let st = data.status, !stale else {
@@ -249,11 +247,13 @@ private struct Render {
         (v.week7Main, v.week7Extra) = period(data.usage?.week7)
         if cfg.showHistory, cfg.expanded {
             v.history = HistoryChart.view(data, config: cfg, now: now, timeZone: input.timeZone)
-            v.projects = TopProjects.view(data.projects, home: input.homeDirectory, lang: lang)
+            if let top = TopProjects.view(data.projects, home: input.homeDirectory, lang: lang) {
+                v.projects = top.view
+                top.parts.forEach { v.show($0) }
+            }
         }
         v.appVersionText = "\(AppInfo.name) v\(input.appVersion)"
-        v.appVersionTooltip = t(.uiPortOf, AppInfo.originalVersion)
-        v.appVersionURL = AppInfo.originalRepo
+        if cfg.expanded { v.show(.appVersion, tooltip: t(.uiPortOf, AppInfo.originalVersion)) }
     }
 
     /// update.ps1 Set-Period: the counts, then every stat line translated.
@@ -268,7 +268,6 @@ private struct Render {
         let ver = data.version
         guard let local = ver.local else {
             v.versionText = ""
-            v.versionTooltip = ""
             v.versionAction = .none
             return
         }
@@ -279,14 +278,14 @@ private struct Render {
         } else {
             v.versionAction = .open(AppInfo.changelogPage)
         }
-        v.versionTooltip = update ? changesTooltip(local, ver.latest ?? "", ver.changes) : t(.chgOpen)
+        var tooltip = update ? changesTooltip(local, ver.latest ?? "", ver.changes) : t(.chgOpen)
         if ver.updating {
             v.versionText = "v\(local)  ·  \(t(.verUpdating))"
             v.versionColor = Palette.warn
         } else if let failure = ver.updateFailure {
             v.versionText = "v\(local)  ·  \(t(.verUpdateFailed))"
             v.versionColor = Palette.crit
-            v.versionTooltip = failureTooltip(failure, hint: ver.installHint)
+            tooltip = failureTooltip(failure, hint: ver.installHint)
         } else if update {
             v.versionText = "v\(local)  ·  \(t(.verAvailable, ver.latest ?? ""))"
             v.versionColor = Palette.warn
@@ -294,6 +293,8 @@ private struct Render {
             v.versionText = ver.latest == nil ? "v\(local)" : "v\(local)  ·  \(t(.verLatest))"
             v.versionColor = palette.muted
         }
+        // The line sits in the details.
+        if cfg.expanded { v.show(.version, tooltip: tooltip) }
     }
 
     /// version.ps1 New-ChangesTooltip; an excerpt cut for another pair of versions still counts as loading.
@@ -316,15 +317,15 @@ private struct Render {
         case 0?: t(.verFailUnchanged, failure.from ?? "")
         case let code?: t(.verFailExit, Int(code))
         }
-        var parts = [head]
+        var paragraphs = [head]
         let tail = failure.outputTail.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !tail.isEmpty { parts.append(tail) }
+        if !tail.isEmpty { paragraphs.append(tail) }
         switch hint {
-        case .homebrew: parts.append(t(.verHintHomebrew))
-        case .npm: parts.append(t(.verHintNpm))
+        case .homebrew: paragraphs.append(t(.verHintHomebrew))
+        case .npm: paragraphs.append(t(.verHintNpm))
         case nil: break
         }
-        return parts.joined(separator: "\n\n")
+        return paragraphs.joined(separator: "\n\n")
     }
 
     private func footer(_ v: inout WidgetViewState) {
@@ -333,10 +334,11 @@ private struct Render {
             if account.loggedIn {
                 let text = [account.plan, account.email].filter { !$0.isEmpty }.joined(separator: "  ·  ")
                 v.accountText = text
-                v.accountTooltip = text
+                if !text.isEmpty { v.show(.account, tooltip: text) }
             } else {
                 v.accountText = t(.accOut)
                 v.accountColor = Palette.crit
+                v.show(.account)
             }
         }
         v.stampColor = palette.footer

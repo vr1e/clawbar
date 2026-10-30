@@ -47,3 +47,15 @@ _Avoid_: theme (the config's choice of look), colour scheme, skin
 **Play area**:
 The strip of the percent row right of the number where Clawd walks: as wide as the number leaves it, reaching 3 below the row to the ground line he stands on. The sky spans the whole row behind it.
 _Avoid_: mascot area, stage
+
+**Part**:
+A piece of the card the pointer can reach, as the presenter names it: a header button, a line or a row, with whether it shows and its tooltip. The card draws it; the window gives it its regions.
+_Avoid_: element, item, block, control (a role), the moving parts
+
+**Region**:
+A rect of the card, in card space, with one role. The window derives them from the shown parts, the rects the card published, Clawd's sprite and the hearts; clicks, the cursor, the tooltips and the chart's readout all read that one list.
+_Avoid_: hit rect, hit map, zone, area (the play area's)
+
+**Role**:
+What a region does: a control (a click that is the part's own, not a drag), a tooltip, the chart's readout, the sky (its tooltip, and the developer menu on a secondary click) or Clawd's sprite (a pet, or the developer menu).
+_Avoid_: kind, type

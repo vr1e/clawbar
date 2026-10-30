@@ -31,8 +31,8 @@ final class CardHostView: HostView<WidgetRootView> {
 }
 
 enum TooltipID: Hashable {
-    case hit(HitID)
-    case sky
+    case part(CardPart.ID)
+    case hearts, sky
 }
 
 struct TooltipRegion: Equatable {
@@ -43,7 +43,7 @@ struct TooltipRegion: Equatable {
 
 /// AppKit tooltips that ask for their text when shown, so a tooltip never goes stale and is only
 /// re-registered when the regions move (re-registering would close one that is showing).
-final class TooltipRegions: NSObject, NSViewToolTipOwner {
+final class TooltipRegistrar: NSObject, NSViewToolTipOwner {
     private weak var view: NSView?
     private(set) var regions: [TooltipRegion] = []
     private var tags: [NSView.ToolTipTag: TooltipID] = [:]

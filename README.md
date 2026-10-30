@@ -140,12 +140,12 @@ Everything ClawBar touches, so you know there is nothing else:
 ## Differences from the original
 
 <!-- parity-table: begin; generated from a private feature map, so edits here are overwritten -->
-ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.18.0.
+ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.19.0.
 *Ported differently* has its gist in the notes and its details in the bullets below.
 
 | Feature | In ClawBar | Notes |
 |---|---|---|
-| Usage limits | ✅ Ported differently | A stricter token-free check, more reset-time formats and a row for every model's week. |
+| Usage limits | ✅ Ported differently | A stricter token-free check, more reset-time formats and a row for every model's week. Not yet: Week as the main limit. |
 | Sessions | ✅ Ported differently | Refreshed every 2 s, and stricter about what counts as a session. Not yet: Sessions from other machines. |
 | Clawd and his hearts | ✅ Ported | |
 | Sky and weather | ✅ Ported differently | The sky keeps the weather location's time zone, and its moon is closer to the real one. |
@@ -154,7 +154,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Claude Code version and update | ✅ Ported differently | The update runs in the background and explains a failure. |
 | Widget window | ✅ Ported differently | On every Space, and opens at login by itself. |
 | Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit with its reset. Not yet: A shorter menu with Settings. |
-| Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French. |
+| Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French; Brazilian Portuguese; Spanish. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
 | 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval; the top projects keep folders of the same name apart and weigh each reply at its model's list price; the hover's busiest project is the local hour's, not the UTC hour's. |
 | Themes and skins | ⏳ Not yet | |

@@ -18,7 +18,7 @@ import ClawBarShared
 
     @Test func claudeNotFoundShowsTheInstallHintInRedAndGreyDashesInTheMenuBar() {
         let v = issue(.claudeNotFound)
-        #expect(v.resetText == Self.noClaudeEN && v.resetColor == Palette.crit && v.resetTooltip == Self.noClaudeEN)
+        #expect(v.resetText == Self.noClaudeEN && v.resetColor == Palette.crit && v.tooltip(.reset) == Self.noClaudeEN)
         #expect(v.pctText == "--" && v.pctColor == Palette.dead && v.sessionFraction == 0)
         #expect(v.trayText == "--" && v.trayColor == Palette.dead && v.trayTooltip == Self.noClaudeEN)
         let de = issue(.claudeNotFound, lang: .de)
@@ -37,19 +37,19 @@ import ClawBarShared
     @Test func noLimitsIsNoDataWithAnExplanation() {
         let v = issue(.noLimits)
         #expect(v.resetText == "no data" && v.resetColor == Palette.secondary)
-        #expect(v.resetTooltip == "/usage shows no plan limits. Signed in with an API key?")
+        #expect(v.tooltip(.reset) == "/usage shows no plan limits. Signed in with an API key?")
         #expect(v.trayText == "--" && v.trayColor == Palette.dead)
         #expect(v.trayTooltip == "ClawBar: no data\n/usage shows no plan limits. Signed in with an API key?")
         // Numbers from an earlier subscription login no longer apply.
         let old = issue(.noLimits, usage: DataSnapshot.sample.usage)
         #expect(old.pctText == "--" && old.resetText == "no data" && old.trayText == "--")
-        #expect(issue(.noLimits, lang: .de).resetTooltip == "/usage zeigt keine Planlimits. Mit einem API-Schlüssel angemeldet?")
+        #expect(issue(.noLimits, lang: .de).tooltip(.reset) == "/usage zeigt keine Planlimits. Mit einem API-Schlüssel angemeldet?")
     }
 
     @Test func aRejectedFlagStopsTheProbeAndSaysWhyInRed() {
         let text = "claude rejects --no-session-persistence\nChecks paused until Claude Code updates"
         let v = issue(.flagRejected("--no-session-persistence"), usage: DataSnapshot.sample.usage)
-        #expect(v.resetText == text && v.resetColor == Palette.crit && v.resetTooltip == text)
+        #expect(v.resetText == text && v.resetColor == Palette.crit && v.tooltip(.reset) == text)
         // The last numbers stay up, as with any stale probe; the menu bar says why they no longer move.
         #expect(v.pctText == "34" && v.trayText == "34" && v.trayColor == Palette.ok)
         #expect(v.trayTooltip == "34% of session · 2h 05m (16:10)\nweek 59% · 4d 15h (Thu 06:00)\nFable 8% · 4d 15h (Thu 06:00)\n" + text)
@@ -63,7 +63,7 @@ import ClawBarShared
     @Test func reachingTheModelStopsTheProbeWithTurnsAndCost() {
         let v = issue(.modelReached(turns: 1, costUSD: 0.0123, tokens: 1285))
         let text = "/usage called the model (turns: 1, $0.0123)\nChecks paused until Claude Code updates"
-        #expect(v.resetText == text && v.resetColor == Palette.crit && v.resetTooltip == text)
+        #expect(v.resetText == text && v.resetColor == Palette.crit && v.tooltip(.reset) == text)
         #expect(v.trayTooltip.hasSuffix("\n" + text))
         #expect(issue(.modelReached(turns: 0, costUSD: 0, tokens: 12)).resetText.contains("(turns: 0, $0.0000)"))
         #expect(issue(.modelReached(turns: 2, costUSD: 1.5, tokens: 9)).resetText.contains("(turns: 2, $1.5000)"))

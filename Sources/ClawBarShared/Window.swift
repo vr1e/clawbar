@@ -46,10 +46,10 @@ public enum WidgetHit: Sendable, Hashable {
 }
 
 /// Sorts a mouse-down; all rects in one coordinate space. `isSecondary` is a right click or a ctrl-click.
-public func classifyHit(_ point: CGPoint, isSecondary: Bool, controls: [CGRect], sprite: CGRect?, sky: CGRect?) -> WidgetHit {
+public func classifyHit(_ point: CGPoint, isSecondary: Bool, controls: [CGRect], sprite: CGRect?, sky: [CGRect]) -> WidgetHit {
     let onSprite = sprite?.contains(point) ?? false
     if isSecondary {
-        return onSprite || (sky?.contains(point) ?? false) ? .menu : .control
+        return onSprite || sky.contains(where: { $0.contains(point) }) ? .menu : .control
     }
     if onSprite { return .clawd }
     if controls.contains(where: { $0.contains(point) }) { return .control }

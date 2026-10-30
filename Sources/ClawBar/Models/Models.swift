@@ -43,11 +43,11 @@ final class AnimationModel {
     }
 }
 
-/// Everything SwiftUI measures that AppKit needs: hit and tooltip rects, the number's width, the card's size.
-enum HitID: Hashable, Sendable {
-    case details, hide, exit, hearts, percentRow, number, reset, play, sessions, status, version, appVersion, account, history
-    /// The top projects' label, and each project's row by its index.
-    case projectsLabel, project(Int)
+/// The rects SwiftUI publishes for the card's regions: each part's, and the ones the hearts, the sky, Clawd and the
+/// chart's readout are measured from.
+enum CardRectID: Hashable, Sendable {
+    case part(CardPart.ID)
+    case hearts, percentRow, number, history
 }
 
 /// The named coordinate space the card publishes its rects in: points, origin at the card's top-left.
@@ -60,12 +60,12 @@ final class LayoutModel {
     /// The number with its `%`, in base units: the play area is `PlayArea.width(numberWidth:)` of this.
     var numberWidth: Double = 0
     /// Not observed by any view; AppKit reads them on demand.
-    @ObservationIgnored private(set) var rects: [HitID: CGRect] = [:]
+    @ObservationIgnored private(set) var rects: [CardRectID: CGRect] = [:]
     @ObservationIgnored private(set) var cardSize: CGSize = .zero
     @ObservationIgnored var onRectsChange: (() -> Void)?
     @ObservationIgnored var onCardSize: ((CGSize) -> Void)?
 
-    func set(_ id: HitID, _ rect: CGRect?) {
+    func set(_ id: CardRectID, _ rect: CGRect?) {
         guard rects[id] != rect else { return }
         rects[id] = rect
         onRectsChange?()

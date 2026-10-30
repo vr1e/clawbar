@@ -93,12 +93,11 @@ final class StubPanelDelegate: WidgetPanelDelegate {
     /// The pointer as the panel reported it, nil once it left.
     var pointer: CGPoint?
     init(_ card: LaidOutCard) { self.card = card }
-    func hitMap() -> WidgetHitMap { card.map }
+    func regions() -> CardRegions { card.regions }
     func clawdClicked() {}
-    func controlClicked(_ id: HitID) {}
+    func clicked(_ click: CardClick) {}
     func developerMenu() -> NSMenu? { nil }
-    func wantsHandCursor(at p: CGPoint) -> Bool { false }
-    func pointerMoved(to p: CGPoint) { pointer = p }
+    func pointerMoved(to p: CGPoint, over regions: CardRegions) { pointer = p }
     func pointerLeft() { pointer = nil }
 }
 
@@ -135,10 +134,10 @@ final class StubPanelDelegate: WidgetPanelDelegate {
         let (panel, card, delegate) = setUp()
         _ = delegate
         #expect(panel.route(event(.leftMouseDown, at: try card.center(.number), in: panel)) == .drag)
-        let sprite = try #require(card.map.sprite)
+        let sprite = try #require(card.regions.rects(.sprite).first)
         #expect(panel.route(event(.leftMouseDown, at: CGPoint(x: sprite.midX, y: sprite.midY), in: panel)) == .clawd)
         #expect(panel.route(event(.leftMouseDown, at: try card.center(.hide), in: panel)) == .control(.hide))
-        #expect(panel.route(event(.leftMouseDown, at: try card.center(.status), in: panel)) == .control(.status))
+        #expect(panel.route(event(.leftMouseDown, at: try card.center(.status), in: panel)) == .control(.open(AppInfo.statusPage)))
     }
 
     @Test func rightAndControlClicksOpenTheMenuOnlyOverClawdAndTheSky() throws {

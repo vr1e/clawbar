@@ -43,7 +43,7 @@ enum Recorder {
                 view: view, mascotVisible: run.mascotVisible, skyVisible: run.skyVisible, animation: animation
             )
             guard let image = CardRenderer.render(card, scale: 1, layout: layout) else { break }
-            if run.crop, cropHeight == nil, let reset = layout.rects[.reset] {
+            if run.crop, cropHeight == nil, let reset = layout.rects[.part(.reset)] {
                 cropHeight = Int(((reset.maxY + 9) * 2).rounded(.up))
             }
             cards.append(image)

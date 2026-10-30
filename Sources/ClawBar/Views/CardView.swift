@@ -23,11 +23,11 @@ struct CardView: View {
             // An empty TextBlock keeps its line box in WPF, so the card keeps its height without a reset time.
             WText(v.resetText.isEmpty ? " " : v.resetText, 11, color: v.resetColor, wraps: true)
                 .frame(width: Self.content * k, alignment: .leading)
-                .publish(.reset, to: layout)
-                .padding(.bottom, (v.limitReached ? 6 : 9) * k)
-            if v.limitReached {
+                .publish(.part(.reset), to: layout)
+                .padding(.bottom, (v.shows(.play) ? 6 : 9) * k)
+            if v.shows(.play) {
                 PlayButton(text: v.playText)
-                    .publish(.play, to: layout)
+                    .publish(.part(.play), to: layout)
                     .padding(.bottom, 10 * k)
             }
             BarLabelRow(row: v.week, palette: v.palette)
@@ -40,11 +40,11 @@ struct CardView: View {
                 Bar(fraction: row.fraction, color: row.color, height: 4, radius: 2)
                     .padding(.bottom, i == v.modelWeeks.count - 1 ? 0 : 7 * k)
             }
-            if v.sessionsVisible {
+            if v.shows(.sessions) {
                 SessionsRow(v: v, layout: layout)
                     .padding(.top, 10 * k)
             }
-            if v.statusVisible {
+            if v.shows(.status) {
                 StatusRow(v: v, layout: layout)
                     .padding(.top, 10 * k)
             }
@@ -87,13 +87,13 @@ private struct HeaderRow: View {
                 HeartsView(animation: animation, layout: layout, heartOff: v.palette.heartOff)
                     .frame(height: WPFLineBox.height * 13 * k)
                 WText(v.detailsGlyph, 11, color: v.palette.muted)
-                    .publish(.details, to: layout)
+                    .publish(.part(.details), to: layout)
                     .padding(.trailing, 9 * k)
                 WText("–", 13, color: v.palette.muted)
-                    .publish(.hide, to: layout)
+                    .publish(.part(.hide), to: layout)
                     .padding(.trailing, 9 * k)
                 WText("✕", 11, color: v.palette.muted)
-                    .publish(.exit, to: layout)
+                    .publish(.part(.exit), to: layout)
             }
         }
         .frame(width: CardView.content * k)
@@ -239,7 +239,7 @@ private struct SessionsRow: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .frame(width: CardView.content * k)
-        .publish(.sessions, to: layout)
+        .publish(.part(.sessions), to: layout)
     }
 }
 
@@ -264,7 +264,7 @@ private struct StatusRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(width: CardView.content * k)
-        .publish(.status, to: layout)
+        .publish(.part(.status), to: layout)
     }
 }
 
@@ -290,16 +290,16 @@ private struct DetailsBlock: View {
             }
             Divider(k: k).padding(.bottom, 7 * k)
             HStack(alignment: .top, spacing: 0) {
-                if v.versionText.isEmpty {
-                    Spacer(minLength: 0)
-                } else {
+                if v.shows(.version) {
                     // A Stretch column with a transparent background: the whole column is the link.
                     WText(v.versionText, 10, color: v.versionColor, wraps: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .publish(.version, to: layout)
+                        .publish(.part(.version), to: layout)
+                } else {
+                    Spacer(minLength: 0)
                 }
                 WText(v.appVersionText, 10, color: v.palette.label)
-                    .publish(.appVersion, to: layout)
+                    .publish(.part(.appVersion), to: layout)
                     .padding(.leading, 8 * k)
             }
             .frame(width: CardView.content * k)
@@ -412,7 +412,7 @@ private struct ProjectsBlock: View {
             // The StackPanel stretches LblProj, so its tooltip spans the column.
             WText(p.label, 9, weight: .semibold, color: palette.label)
                 .frame(width: CardView.content * k, alignment: .leading)
-                .publish(.projectsLabel, to: layout)
+                .publish(.part(.projectsLabel), to: layout)
                 .padding(.bottom, 4 * k)
             if p.rows.isEmpty {
                 WText(p.caption, 10, color: palette.label)
@@ -420,7 +420,7 @@ private struct ProjectsBlock: View {
                 // Published before the padding, so a row's tooltip leaves out the 2 below it, as the Grid's margin does.
                 ForEach(Array(p.rows.enumerated()), id: \.offset) { i, row in
                     ProjectRowView(row: row, palette: palette)
-                        .publish(.project(i), to: layout)
+                        .publish(.part(.project(i)), to: layout)
                         .padding(.bottom, 2 * k)
                 }
             }
@@ -503,13 +503,13 @@ private struct FooterRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            if v.accountText.isEmpty {
-                Spacer(minLength: 0)
-            } else {
+            if v.shows(.account) {
                 WText(v.accountText, 9, color: v.accountColor, truncates: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .publish(.account, to: layout)
+                    .publish(.part(.account), to: layout)
                     .padding(.trailing, 8 * k)
+            } else {
+                Spacer(minLength: 0)
             }
             if !v.stampText.isEmpty {
                 WText(v.stampText, 9, color: v.stampColor)
