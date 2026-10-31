@@ -28,6 +28,7 @@ import ClawBarShared
         #expect(parse("--command", "toggle") == .success(.command(.toggle)))
         #expect(parse("--command", "show") == .success(.command(.show)))
         #expect(parse("--command", "larger") == .success(.command(.larger)))
+        #expect(parse("--command", "settings") == .success(.command(.settings)))
         #expect(parse("--command", "smaller") == .success(.command(.smaller)))
         #expect(parse("--command", "refresh") == .success(.command(.refresh)))
         #expect(parse("--command", "quit") == .success(.command(.quit)))
@@ -59,7 +60,7 @@ import ClawBarShared
     }
 
     @Test func remoteCommandsRoundTripThroughTheirWireForm() {
-        let all: [RemoteCommand] = [.toggle, .show, .larger, .smaller, .refresh, .quit, .lang(.en), .lang(.de)]
+        let all: [RemoteCommand] = [.toggle, .show, .larger, .smaller, .refresh, .settings, .quit, .lang(.en), .lang(.de)]
         for c in all {
             #expect(RemoteCommand(wire: c.wire) == c)
         }

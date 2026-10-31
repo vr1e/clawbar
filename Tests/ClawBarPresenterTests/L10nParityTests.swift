@@ -4,7 +4,7 @@ import ClawBarShared
 
 @Suite struct L10nParityTests {
     /// Keys whose German is, correctly, the English: pure formats, a unit symbol and a proper name.
-    static let sameInBothLanguages: Set<L10nKey> = [.period, .spanD, .statMcp, .histSession, .setShowMascot, .gameTitle]
+    static let sameInBothLanguages: Set<L10nKey> = [.period, .spanD, .statMcp, .histSession, .setShowMascot, .gameTitle, .setTabWindow, .setSystem]
 
     @Test(arguments: L10nKey.allCases)
     func placeholdersMatch(key: L10nKey) {

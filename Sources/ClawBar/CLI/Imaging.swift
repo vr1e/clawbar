@@ -90,6 +90,24 @@ enum Imaging {
         return ctx.makeImage()
     }
 
+    /// An AppKit view at its fitting size, drawn offscreen at `pixelScale`; a window gives its controls their appearance.
+    static func image(of view: NSView, pixelScale: Double = 2) -> CGImage? {
+        let size = view.fittingSize
+        let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: false)
+        window.appearance = view.appearance
+        window.contentView = view
+        view.frame = CGRect(origin: .zero, size: size)
+        view.layoutSubtreeIfNeeded()
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: Int(size.width * pixelScale), pixelsHigh: Int(size.height * pixelScale),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+            bytesPerRow: 0, bitsPerPixel: 0
+        ) else { return nil }
+        rep.size = size
+        view.cacheDisplay(in: view.bounds, to: rep)
+        return rep.cgImage
+    }
+
     static func writePNG(_ image: CGImage, to url: URL) throws {
         guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
             throw CLIError(message: "cannot write \(url.path)")

@@ -26,6 +26,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private let loginItem: LoginItemController
     private let ipc = IPCListener()
     private let game = GameWindowController()
+    private let settings = SettingsWindowController()
 
     private var dataTimer: Timer?
     private var sessionTimer: Timer?
@@ -77,6 +78,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
         statusItem.onToggle = { [unowned self] in toggleWidget() }
         statusItem.menuProvider = { [unowned self] in statusMenu() }
+        settings.perform = { [unowned self] in perform($0) }
 
         // The card publishes its size during layout; with sizingOptions = [] the hosting view reports none itself.
         host.hosting.layoutSubtreeIfNeeded()
@@ -107,6 +109,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     func stop() {
         for t in [dataTimer, sessionTimer, animationTimer, saveTimer] { t?.invalidate() }
         game.close()
+        settings.close()
         observers.forEach { NotificationCenter.default.removeObserver($0) }
         ipc.stop()
         savePosition()
@@ -238,6 +241,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         app.scale = c.scale
         panel.alphaValue = c.opacity
         panel.apply(topmost: c.topmost)
+        settings.update(config: c)
         guard !initial else { return }
         if c.refreshSeconds != old.refreshSeconds { scheduleDataTimer() }
         if c.launchAtLogin != old.launchAtLogin { loginItem.reconcile(desired: c.launchAtLogin) }
@@ -370,16 +374,24 @@ final class AppController: NSObject, WidgetPanelDelegate {
         switch action {
         case .toggleWidget: toggleWidget()
         case .refresh: data.refreshNow()
-        case .larger: change { $0.scale = ScaleStep.larger($0.scale) }
-        case .smaller: change { $0.scale = ScaleStep.smaller($0.scale) }
+        case .settings: settings.show(beside: panel.frame, on: (panel.screen ?? NSScreen.main)?.visibleFrame)
+        case .play: game.show()
+        case .quit: NSApp.terminate(nil)
+        }
+    }
+
+    private func perform(_ action: SettingsAction) {
+        switch action {
+        case .larger: change { $0.scale = ConfigStep.larger($0.scale) ?? $0.scale }
+        case .smaller: change { $0.scale = ConfigStep.smaller($0.scale) ?? $0.scale }
+        case .moreOpaque: change { $0.opacity = ConfigStep.moreOpaque($0.opacity) ?? $0.opacity }
+        case .lessOpaque: change { $0.opacity = ConfigStep.lessOpaque($0.opacity) ?? $0.opacity }
         case .toggleTopmost: change { $0.topmost.toggle() }
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
-        case .openConfig: openConfig()
-        case .play: game.show()
         case .language(let l): change { $0.language = l.rawValue }
         case .toggleBlock(let b): change { $0[keyPath: b.flag].toggle() }
-        case .quit: NSApp.terminate(nil)
+        case .openConfig: openConfig()
         }
     }
 
@@ -388,11 +400,12 @@ final class AppController: NSObject, WidgetPanelDelegate {
         switch command {
         case .toggle: toggleWidget()
         case .show: showWidget()
-        case .larger: perform(StatusMenuAction.larger)
-        case .smaller: perform(StatusMenuAction.smaller)
+        case .larger: perform(SettingsAction.larger)
+        case .smaller: perform(SettingsAction.smaller)
         case .refresh: perform(StatusMenuAction.refresh)
+        case .settings: perform(StatusMenuAction.settings)
         case .quit: perform(StatusMenuAction.quit)
-        case .lang(let l): perform(StatusMenuAction.language(l))
+        case .lang(let l): perform(SettingsAction.language(l))
         }
     }
 

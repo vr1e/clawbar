@@ -148,14 +148,24 @@ extension L10nKey {
         case .menuShow: .text(en: "Show widget", de: "Widget einblenden")
         case .menuHide: .text(en: "Hide widget", de: "Widget ausblenden")
         case .menuRefresh: .text(en: "Refresh now", de: "Jetzt aktualisieren")
-        case .menuBigger: .text(en: "Larger", de: "Größer")
-        case .menuSmaller: .text(en: "Smaller", de: "Kleiner")
-        case .menuTopmost: .text(en: "Always on top", de: "Immer im Vordergrund")
-        case .menuLogin: .text(en: "Launch at login", de: "Beim Anmelden öffnen")
-        case .menuClawd: .text(en: "Clawd in menu bar", de: "Clawd in der Menüleiste")
-        case .menuConfig: .text(en: "Open config.json", de: "config.json öffnen")
-        case .menuLanguage: .text(en: "Language", de: "Sprache")
-        case .menuShown: .text(en: "Show in widget", de: "Im Widget zeigen")
+        case .menuSettings: .text(en: "Settings…", de: "Einstellungen …")
+
+        case .setTabLook: .text(en: "Look", de: "Darstellung")
+        case .setTabWindow: .text(en: "Widget", de: "Widget")
+        case .setLanguage: .text(en: "Language", de: "Sprache")
+        case .setSize: .text(en: "Size", de: "Größe")
+        case .setOpacity: .text(en: "Opacity", de: "Deckkraft")
+        case .setTopmost: .text(en: "Always on top", de: "Immer im Vordergrund")
+        case .setShown: .text(en: "In the widget", de: "Im Widget")
+        case .setSystem: .text(en: "System", de: "System")
+        case .setLogin: .text(en: "Launch at login", de: "Beim Anmelden öffnen")
+        case .setMenuBarMascot: .text(en: "Clawd in menu bar", de: "Clawd in der Menüleiste")
+        // The original's footer, less its models, which ClawBar does not set.
+        case .setMore: .text(
+            en: "The rest (intervals, thresholds, weather location) is in config.json.",
+            de: "Der Rest (Intervalle, Schwellen, Wetterort) steht in config.json."
+        )
+        case .setConfig: .text(en: "Open config.json", de: "config.json öffnen")
         case .setShowMascot: .text(en: "Clawd", de: "Clawd")
         case .setShowSky: .text(en: "Sky and weather behind him", de: "Himmel und Wetter hinter ihm")
         case .setShowStatus: .text(en: "Anthropic status", de: "Anthropic-Status")

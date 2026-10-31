@@ -1,6 +1,7 @@
 import AppKit
 import CoreGraphics
 import Foundation
+import SwiftUI
 import ClawBarAnimation
 import ClawBarClawd
 import ClawBarGame
@@ -183,6 +184,7 @@ enum SnapshotMode {
         }
         out += try writeStatusItems(to: dir)
         out += try writeGame(to: dir)
+        out += try writeSettings(to: dir)
         for lang in Lang.allCases {
             let url = dir.appendingPathComponent("menus-\(lang.rawValue).txt")
             try menuDump(lang: lang).write(to: url, atomically: true, encoding: .utf8)
@@ -259,6 +261,26 @@ enum SnapshotMode {
         return out
     }
 
+    /// Each Settings tab in each language, light and dark, at 2 pixels per point.
+    static func writeSettings(to dir: URL) throws -> [URL] {
+        var out: [URL] = []
+        for lang in Lang.allCases {
+            let model = SettingsModel()
+            model.config = Config(language: lang.rawValue)
+            for tab in SettingsTab.allCases {
+                for (name, appearance) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
+                    let view = NSHostingView(rootView: SettingsPageView(tab: tab, model: model) { _ in })
+                    view.appearance = NSAppearance(named: appearance)
+                    guard let image = Imaging.image(of: view) else { throw CLIError(message: "rendering settings-\(tab) failed") }
+                    let url = dir.appendingPathComponent("settings-\(tab)-\(lang.rawValue)-\(name).png")
+                    try Imaging.writePNG(image, to: url)
+                    out.append(url)
+                }
+            }
+        }
+        return out
+    }
+
     /// Clawd Run's showcase at 2 pixels per point, captioned as the presenter does at the limit and after the reset.
     static func writeGame(to dir: URL) throws -> [URL] {
         var limit = SnapshotCase(name: "limit")
@@ -297,17 +319,20 @@ enum SnapshotMode {
                 MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: true))
             ),
             (
-                "Status menu, widget hidden, always on top, no Clawd in the menu bar or the widget, no stats",
-                MenuEntry.dump(StatusMenu.entries(
-                    config: Config(
-                        language: lang.rawValue, topmost: true, showStats: false, showMascot: false, launchAtLogin: false, menuBarMascot: false
-                    ),
-                    widgetVisible: false
-                ))
+                "Status menu, widget hidden",
+                MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: false))
             ),
             (
                 "Status menu, session limit used up",
                 MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: true, limitReached: true))
+            ),
+            ("Settings window", SettingsPage.dump(config: Config(language: lang.rawValue))),
+            (
+                "Settings window, smallest and most transparent, always on top, no Clawd in the menu bar or the widget, no stats",
+                SettingsPage.dump(config: Config(
+                    language: lang.rawValue, scale: 0.6, opacity: 0.3, topmost: true, showStats: false, showMascot: false,
+                    launchAtLogin: false, menuBarMascot: false
+                ))
             ),
             ("Developer menu, live data", DevMenuBuilder.dump(DevMenu.build(dev: ClawdDevState(), sky: SkyDevState(), skyVisible: true, lang: lang))),
             (

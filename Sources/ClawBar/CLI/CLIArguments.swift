@@ -16,7 +16,7 @@ enum CLIMode: Equatable {
 
 /// What `--command` asks the running instance to do.
 enum RemoteCommand: Equatable, Sendable {
-    case toggle, show, larger, smaller, refresh, quit
+    case toggle, show, larger, smaller, refresh, settings, quit
     case lang(Lang)
 
     /// The string sent in the distributed notification.
@@ -27,6 +27,7 @@ enum RemoteCommand: Equatable, Sendable {
         case .larger: "larger"
         case .smaller: "smaller"
         case .refresh: "refresh"
+        case .settings: "settings"
         case .quit: "quit"
         case .lang(let l): "lang:\(l.rawValue)"
         }
@@ -39,6 +40,7 @@ enum RemoteCommand: Equatable, Sendable {
         case "larger": self = .larger
         case "smaller": self = .smaller
         case "refresh": self = .refresh
+        case "settings": self = .settings
         case "quit": self = .quit
         default:
             guard wire.hasPrefix("lang:"), let l = Lang(rawValue: String(wire.dropFirst(5))) else { return nil }
@@ -60,7 +62,7 @@ enum CLI {
           --snapshot <dir>              render the widget, the menu bar item and the menus into <dir>
           --record <scenario> <gif>     record a scenario: \(RecordScenario.allCases.map(\.rawValue).joined(separator: ", "))
           --dump-state                  print the running instance's state
-          --command <cmd>               toggle | show | larger | smaller | refresh | quit | lang <en|de>
+          --command <cmd>               toggle | show | larger | smaller | refresh | settings | quit | lang <en|de>
           --make-icon <dir>             write AppIcon.iconset into <dir>
         """
 
