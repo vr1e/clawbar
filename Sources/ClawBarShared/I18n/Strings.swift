@@ -2,7 +2,7 @@
 // the words a German macOS app uses, with English's placeholders and the Mac's unit symbols (4d 15h, 2h 05min).
 extension L10nKey {
     /// An exhaustive switch whose arms need both languages: a key missing either does not compile.
-    public var strings: L10nStrings {
+    var strings: L10nStrings {
         switch self {
         // Shown in place of the reset line, two lines at most; the break keeps the command whole.
         case .errNoClaude: .text(

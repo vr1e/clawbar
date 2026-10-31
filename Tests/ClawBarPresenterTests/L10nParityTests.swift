@@ -8,16 +8,16 @@ import ClawBarShared
 
     @Test(arguments: L10nKey.allCases)
     func placeholdersMatch(key: L10nKey) {
-        #expect(placeholders(key.strings.en) == placeholders(key.strings.de), "\(key.rawValue)")
+        #expect(placeholders(L10n.value(key, .en)) == placeholders(L10n.value(key, .de)), "\(key.rawValue)")
     }
 
     @Test(arguments: L10nKey.allCases)
     func germanIsNotEnglish(key: L10nKey) {
-        let s = key.strings
+        let en = L10n.value(key, .en), de = L10n.value(key, .de)
         if Self.sameInBothLanguages.contains(key) {
-            #expect(s.en == s.de, "\(key.rawValue) is allowlisted but differs; drop it from the list")
+            #expect(en == de, "\(key.rawValue) is allowlisted but differs; drop it from the list")
         } else {
-            #expect(s.en != s.de, "\(key.rawValue) is still English in German")
+            #expect(en != de, "\(key.rawValue) is still English in German")
         }
     }
 

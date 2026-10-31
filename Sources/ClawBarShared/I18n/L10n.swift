@@ -1,9 +1,9 @@
 import Foundation
 
 /// One key's English and German; built only through `text` and `plural`, so a key is plural in both or in neither.
-public struct L10nStrings: Sendable, Equatable {
-    public let en: L10nValue
-    public let de: L10nValue
+struct L10nStrings: Sendable {
+    let en: L10nValue
+    let de: L10nValue
 
     private init(en: L10nValue, de: L10nValue) {
         self.en = en
@@ -62,14 +62,11 @@ public enum L10n {
 
     /// `"<n> <form>"`, e.g. "1 session", "3 sessions".
     public static func count(_ n: Int, _ k: L10nKey, _ lang: Lang) -> String {
-        "\(n) \(form(n, k, lang))"
-    }
-
-    public static func form(_ n: Int, _ k: L10nKey, _ lang: Lang) -> String {
-        switch value(k, lang) {
+        let word = switch value(k, lang) {
         case .forms(let one, let other): n == 1 ? one : other
         case .text(let s): s
         }
+        return "\(n) \(word)"
     }
 
     public static func mood(_ m: Mood, _ lang: Lang) -> String {
