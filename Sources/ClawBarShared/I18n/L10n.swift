@@ -1,9 +1,25 @@
 import Foundation
 
+/// One key's English and German; built only through `text` and `plural`, so a key is plural in both or in neither.
+struct L10nStrings: Sendable {
+    let en: L10nValue
+    let de: L10nValue
+
+    private init(en: L10nValue, de: L10nValue) {
+        self.en = en
+        self.de = de
+    }
+
+    static func text(en: String, de: String) -> L10nStrings { L10nStrings(en: .text(en), de: .text(de)) }
+
+    static func plural(en: (one: String, other: String), de: (one: String, other: String)) -> L10nStrings {
+        L10nStrings(en: .forms(one: en.one, other: en.other), de: .forms(one: de.one, other: de.other))
+    }
+}
+
 public enum L10nValue: Sendable, Equatable {
     case text(String)
-    /// Plural forms: one, other.
-    case forms([String])
+    case forms(one: String, other: String)
 }
 
 /// What a `{n}` placeholder can show; an optional is no argument, so it never renders as "Optional(…)".
@@ -29,67 +45,103 @@ extension String: L10nArg {
 
 /// Runtime-switchable strings: the language comes with every call, never from the system locale.
 public enum L10n {
-    public static func table(_ lang: Lang) -> [L10nKey: L10nValue] {
+    public static func value(_ k: L10nKey, _ lang: Lang) -> L10nValue {
         switch lang {
-        case .en: StringsEN.table
-        case .de: StringsDE.table
+        case .en: k.strings.en
+        case .de: k.strings.de
         }
     }
 
-    /// The value in `lang`, else English.
-    public static func value(_ k: L10nKey, _ lang: Lang) -> L10nValue? {
-        table(lang)[k] ?? StringsEN.table[k]
-    }
-
-    /// The translated text with `{n}` / `{n:00}` placeholders filled; the raw key when no table has it.
+    /// The translated text with `{n}` / `{n:00}` placeholders filled.
     public static func t(_ k: L10nKey, _ lang: Lang, _ args: any L10nArg...) -> String {
         switch value(k, lang) {
         case .text(let s): format(s, args)
-        case .forms(let f): format(f.last ?? k.rawValue, args)
-        case nil: k.rawValue
+        case .forms(_, let other): format(other, args)
         }
     }
 
     /// `"<n> <form>"`, e.g. "1 session", "3 sessions".
     public static func count(_ n: Int, _ k: L10nKey, _ lang: Lang) -> String {
-        "\(n) \(form(n, k, lang))"
-    }
-
-    public static func form(_ n: Int, _ k: L10nKey, _ lang: Lang) -> String {
-        switch value(k, lang) {
-        case .forms(let f): pluralForm(n, f)
+        let word = switch value(k, lang) {
+        case .forms(let one, let other): n == 1 ? one : other
         case .text(let s): s
-        case nil: k.rawValue
         }
+        return "\(n) \(word)"
     }
 
-    public static func pluralForm(_ n: Int, _ forms: [String]) -> String {
-        forms.count == 2 ? (n == 1 ? forms[0] : forms[1]) : forms.last ?? ""
+    public static func mood(_ m: Mood, _ lang: Lang) -> String {
+        let k: L10nKey = switch m {
+        case .sleep: .moodSleep
+        case .doze: .moodDoze
+        case .idle: .moodIdle
+        case .work: .moodWork
+        case .wait: .moodWait
+        case .dead: .moodDead
+        }
+        return t(k, lang)
     }
 
-    public static func mood(_ m: Mood, _ lang: Lang) -> String { named("mood.\(m.rawValue)", lang) }
-    public static func act(_ a: ClawdAct, _ lang: Lang) -> String { named("act.\(a.rawValue)", lang) }
-    public static func phase(_ p: SkyPhase, _ lang: Lang) -> String { named("phase.\(p.rawValue)", lang) }
+    public static func act(_ a: ClawdAct, _ lang: Lang) -> String {
+        let k: L10nKey = switch a {
+        case .jump: .actJump
+        case .look: .actLook
+        case .celebrate: .actCelebrate
+        case .skip: .actSkip
+        case .spin: .actSpin
+        case .peekaboo: .actPeekaboo
+        case .drop: .actDrop
+        case .waddle: .actWaddle
+        case .peek: .actPeek
+        case .wink: .actWink
+        case .boop: .actBoop
+        case .tap: .actTap
+        case .sneeze: .actSneeze
+        case .turn: .actTurn
+        case .coinHop: .actCoinHop
+        case .wave: .actWave
+        case .stretch: .actStretch
+        case .yawn: .actYawn
+        case .stumble: .actStumble
+        case .soul: .actSoul
+        case .burrow: .actBurrow
+        case .unburrow: .actUnburrow
+        case .stir: .actStir
+        }
+        return t(k, lang)
+    }
+
+    public static func phase(_ p: SkyPhase, _ lang: Lang) -> String {
+        let k: L10nKey = switch p {
+        case .dawn: .phaseDawn
+        case .day: .phaseDay
+        case .dusk: .phaseDusk
+        case .night: .phaseNight
+        }
+        return t(k, lang)
+    }
 
     /// The moon's name for 0...7, from the new moon round to the waning crescent.
-    public static func moonName(_ n: Int, _ lang: Lang) -> String { named("sky.moonNames.\(n)", lang) }
+    public static func moonName(_ n: Int, _ lang: Lang) -> String { t(nearest(moonNames, n), lang) }
 
     /// The short weekday name for 0...6, from Sunday.
-    public static func weekday(_ n: Int, _ lang: Lang) -> String { named("wd.\(n)", lang) }
+    public static func weekday(_ n: Int, _ lang: Lang) -> String { t(nearest(weekdays, n), lang) }
 
     /// The health tier name for 0...6 halves; values outside are clamped.
-    public static func health(_ halves: Int, _ lang: Lang) -> String {
-        named("health.\(min(6, max(0, halves)))", lang)
-    }
+    public static func health(_ halves: Int, _ lang: Lang) -> String { t(nearest(healthTiers, halves), lang) }
+
+    private static let moonNames: [L10nKey] = [
+        .skyMoonName0, .skyMoonName1, .skyMoonName2, .skyMoonName3,
+        .skyMoonName4, .skyMoonName5, .skyMoonName6, .skyMoonName7,
+    ]
+    private static let weekdays: [L10nKey] = [.wd0, .wd1, .wd2, .wd3, .wd4, .wd5, .wd6]
+    private static let healthTiers: [L10nKey] = [.health0, .health1, .health2, .health3, .health4, .health5, .health6]
+
+    /// An index past either end takes the nearest name rather than trapping.
+    private static func nearest(_ keys: [L10nKey], _ i: Int) -> L10nKey { keys[min(keys.count - 1, max(0, i))] }
 
     /// A Statuspage component state; unknown states show raw, as in the original.
     public static func component(_ state: String, _ lang: Lang) -> String {
         guard let k = L10nKey(rawValue: "comp.\(state)") else { return state }
-        return t(k, lang)
-    }
-
-    private static func named(_ raw: String, _ lang: Lang) -> String {
-        guard let k = L10nKey(rawValue: raw) else { return raw }
         return t(k, lang)
     }
 

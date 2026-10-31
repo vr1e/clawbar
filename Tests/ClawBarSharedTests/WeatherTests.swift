@@ -21,7 +21,7 @@ import ClawBarShared
 
     @Test func flagsAndCover() {
         let fog = WeatherKinds.kind(code: 48)
-        #expect(fog.id == "fog" && fog.fog && fog.cover == 0.7)
+        #expect(fog.nameKey == .wxFog && fog.fog && fog.cover == 0.7)
         let storm = WeatherKinds.kind(code: 95)
         #expect(storm.storm && storm.cover == 1.0)
         #expect(WeatherKinds.kind(code: 0).cover == 0.0)
