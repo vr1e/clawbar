@@ -265,14 +265,14 @@ enum SnapshotMode {
     static func writeSettings(to dir: URL) throws -> [URL] {
         var out: [URL] = []
         for lang in Lang.allCases {
-            let model = SettingsModel()
-            model.config = Config(language: lang.rawValue)
+            let shown = ShownConfig()
+            shown.config = Config(language: lang.rawValue)
             for tab in SettingsTab.allCases {
                 for (name, appearance) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
-                    let view = NSHostingView(rootView: SettingsPageView(tab: tab, model: model) { _ in })
+                    let view = NSHostingView(rootView: SettingsPageView(tab: tab, shown: shown) { _ in })
                     view.appearance = NSAppearance(named: appearance)
-                    guard let image = Imaging.image(of: view) else { throw CLIError(message: "rendering settings-\(tab) failed") }
-                    let url = dir.appendingPathComponent("settings-\(tab)-\(lang.rawValue)-\(name).png")
+                    guard let image = Imaging.image(of: view) else { throw CLIError(message: "rendering settings-\(tab.rawValue) failed") }
+                    let url = dir.appendingPathComponent("settings-\(tab.rawValue)-\(lang.rawValue)-\(name).png")
                     try Imaging.writePNG(image, to: url)
                     out.append(url)
                 }

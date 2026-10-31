@@ -177,7 +177,4 @@ public enum ConfigLimits {
         .weatherLat: -90 ... 90,
         .weatherLon: -180 ... 180,
     ]
-
-    /// Larger / Smaller in the menu.
-    public static let scaleStep = 0.1
 }

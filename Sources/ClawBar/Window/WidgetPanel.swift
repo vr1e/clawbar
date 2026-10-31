@@ -91,11 +91,12 @@ final class WidgetPanel: NSPanel {
         setFrame(WindowPlacement.frame(topLeft: topLeft, size: frame.size, primaryMaxY: screens().primaryMaxY), display: true)
     }
 
-    /// Sizes the window to the card, keeping its top-left where it is; the shadow follows the new shape.
+    /// Sizes the window to the card, keeping its top-left unless growing would push it off screen; the shadow follows.
     func fit(contentSize size: CGSize) {
         guard size.width > 0, size.height > 0, size != frame.size else { return }
-        let tl = topLeft
-        setFrame(WindowPlacement.frame(topLeft: tl, size: size, primaryMaxY: screens().primaryMaxY), display: true)
+        var next = WindowPlacement.frame(topLeft: topLeft, size: size, primaryMaxY: screens().primaryMaxY)
+        if let visible = screen?.visibleFrame { next = WindowPlacement.keptOnScreen(next, was: frame, visible: visible) }
+        setFrame(next, display: true)
         invalidateShadow()
     }
 

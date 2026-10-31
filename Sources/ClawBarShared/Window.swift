@@ -26,6 +26,18 @@ public enum WindowPlacement {
         return nil
     }
 
+    /// A window that grew from `old` to `new` (AppKit frames), moved up and left only as far as its growth pushed it
+    /// past the bottom and right of `visible`, and never past the top or left; a deliberate overhang stays as it was.
+    public static func keptOnScreen(_ new: CGRect, was old: CGRect, visible: CGRect) -> CGRect {
+        func overhang(_ edge: CGFloat, _ limit: CGFloat) -> CGFloat { max(0, limit - edge) }
+        let up = max(0, overhang(new.minY, visible.minY) - overhang(old.minY, visible.minY))
+        let left = max(0, overhang(visible.maxX, new.maxX) - overhang(visible.maxX, old.maxX))
+        return new.offsetBy(
+            dx: -min(left, max(0, new.minX - visible.minX)),
+            dy: min(up, max(0, visible.maxY - new.maxY))
+        )
+    }
+
     /// 20 pt in from the top-right of a screen's visible area, measured with the real scaled size.
     public static func defaultTopLeft(size: CGSize, visibleFrame: CGRect, primaryMaxY: CGFloat) -> CGPoint {
         let margin: CGFloat = 20

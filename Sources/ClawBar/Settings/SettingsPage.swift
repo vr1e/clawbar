@@ -10,7 +10,7 @@ enum SettingsAction: Hashable {
 }
 
 /// The window's tabs: the original's Look and Window; its Clawd and Claude Code tabs belong to skipped features.
-enum SettingsTab: CaseIterable, Hashable {
+enum SettingsTab: String, CaseIterable, Hashable {
     case look, widget
 
     var title: L10nKey {
@@ -56,8 +56,6 @@ enum WidgetBlock: CaseIterable, Hashable {
         case .history: \.showHistory
         }
     }
-
-    static func shown(in config: Config) -> Set<WidgetBlock> { Set(allCases.filter { config[keyPath: $0.flag] }) }
 }
 
 /// A switch, or one choice of a picker.
@@ -99,10 +97,9 @@ enum SettingsPage {
             let languages = Lang.allCases.map { SettingsOption(title: $0.nativeName, on: $0 == lang, action: .language($0)) }
             return [SettingsSection(rows: [.picker(title: t(.setLanguage), options: languages)]), more]
         case .widget:
-            let shown = WidgetBlock.shown(in: config)
             // The sky sits in Clawd's play area, so it cannot show without him.
             let blocks = WidgetBlock.allCases.map { b in
-                toggle(b.title, shown.contains(b), .toggleBlock(b), enabled: b != .sky || shown.contains(.mascot))
+                toggle(b.title, config[keyPath: b.flag], .toggleBlock(b), enabled: b != .sky || config.showMascot)
             }
             return [
                 SettingsSection(rows: [
@@ -128,8 +125,8 @@ enum SettingsPage {
         }
     }
 
-    /// '{0:N0}%' of the original's stepper.
-    static func percent(_ v: Double) -> String { "\(Int((v * 100).rounded(.toNearestOrEven)))%" }
+    /// '{0:N0}%' of the original's stepper; N0, unlike [math]::Round, rounds half away from zero.
+    static func percent(_ v: Double) -> String { "\(Int((v * 100).rounded()))%" }
 
     /// Every tab as text: `[x]`/`[ ]` switches, `(•)`/`( )` choices, `(disabled)`, `−`/`+` where a stepper can move.
     static func dump(config: Config) -> String {
@@ -137,8 +134,10 @@ enum SettingsPage {
         return SettingsTab.allCases.map { tab in
             var lines = ["  \(L10n.t(tab.title, lang)):"]
             for s in sections(tab, config: config) {
+                // Only rows under a header sit deeper, so a headerless section after one stands apart.
                 if let h = s.header { lines.append("    \(h.uppercased())") }
-                for r in s.rows { lines.append("      " + line(r)) }
+                let indent = s.header == nil ? "    " : "      "
+                for r in s.rows { lines.append(indent + line(r)) }
             }
             return lines.joined(separator: "\n")
         }.joined(separator: "\n")
@@ -159,13 +158,15 @@ enum SettingsPage {
 }
 
 /// The steppers' moves, rounded to two decimals like [math]::Round; nil where the value cannot move that way.
-/// Size keeps the config's range; opacity the original window's 0.3–1.0 in 0.05 steps.
+/// Size steps 0.1 within the config's range; opacity 0.05 within the original window's 0.3–1.0.
 enum ConfigStep {
-    static let opacityRange = 0.3 ... 1.0
+    static let scaleStep = 0.1
+    static let scaleRange = ConfigLimits.ranges[.scale]!
     static let opacityStep = 0.05
+    static let opacityRange = 0.3 ... 1.0
 
-    static func larger(_ scale: Double) -> Double? { step(scale, ConfigLimits.scaleStep, ConfigLimits.ranges[.scale]!) }
-    static func smaller(_ scale: Double) -> Double? { step(scale, -ConfigLimits.scaleStep, ConfigLimits.ranges[.scale]!) }
+    static func larger(_ scale: Double) -> Double? { step(scale, scaleStep, scaleRange) }
+    static func smaller(_ scale: Double) -> Double? { step(scale, -scaleStep, scaleRange) }
     static func moreOpaque(_ opacity: Double) -> Double? { step(opacity, opacityStep, opacityRange) }
     static func lessOpaque(_ opacity: Double) -> Double? { step(opacity, -opacityStep, opacityRange) }
 

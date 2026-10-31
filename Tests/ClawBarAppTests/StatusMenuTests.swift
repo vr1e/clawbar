@@ -43,7 +43,7 @@ import ClawBarShared
     @Test func onlyTheHeaderIsDisabledAndEveryItemHasItsAction() {
         let e = entries()
         #expect(!e[0].enabled && e[0].action == nil)
-        #expect(e.dropFirst().filter { !$0.isSeparator }.allSatisfy { $0.enabled && !$0.checkable && $0.children.isEmpty })
+        #expect(e.dropFirst().filter { !$0.isSeparator }.allSatisfy { $0.enabled && $0.children.isEmpty })
         #expect(e.compactMap(\.action) == [.toggleWidget, .refresh, .settings, .quit])
     }
 

@@ -11,8 +11,6 @@ enum StatusMenuAction: Hashable {
 struct MenuEntry<Action: Hashable>: Hashable {
     var title: String
     var checked = false
-    /// Shows a check box in the text dump even while unchecked.
-    var checkable = false
     var enabled = true
     var isSeparator = false
     var action: Action?
@@ -20,7 +18,7 @@ struct MenuEntry<Action: Hashable>: Hashable {
 
     static var separator: MenuEntry { MenuEntry(title: "", enabled: false, isSeparator: true) }
 
-    /// One line per item: `[x]` / `[ ]` for checkable items, `▸` for submenus, `(disabled)`.
+    /// One line per item: `[x]` for checked items, `▸` for submenus, `(disabled)`.
     static func dump(_ entries: [MenuEntry], indent: String = "  ") -> String {
         var lines: [String] = []
         for e in entries {
@@ -29,7 +27,7 @@ struct MenuEntry<Action: Hashable>: Hashable {
                 continue
             }
             var line = indent
-            if e.checked || e.checkable { line += e.checked ? "[x] " : "[ ] " }
+            if e.checked { line += "[x] " }
             line += e.title
             if !e.children.isEmpty { line += " ▸" }
             if !e.enabled { line += "  (disabled)" }

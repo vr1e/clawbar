@@ -21,6 +21,39 @@ import ClawBarShared
         #expect(WindowPlacement.topLeft(of: frame, primaryMaxY: primary.maxY) == CGPoint(x: 40, y: 50))
     }
 
+    @Test func aWindowGrowingPastTheBottomMovesUpJustEnough() {
+        let old = CGRect(x: 100, y: 100, width: 314, height: 300)
+        let grown = CGRect(x: 100, y: -150, width: 314, height: 550)
+        #expect(WindowPlacement.keptOnScreen(grown, was: old, visible: primaryVisible) == CGRect(x: 100, y: 0, width: 314, height: 550))
+    }
+
+    @Test func aWindowGrowingPastTheRightMovesLeftJustEnough() {
+        let old = CGRect(x: 1100, y: 100, width: 314, height: 300)
+        let grown = CGRect(x: 1100, y: 100, width: 500, height: 300)
+        #expect(WindowPlacement.keptOnScreen(grown, was: old, visible: primaryVisible).minX == 1012)
+    }
+
+    @Test func aWindowThatStillFitsOrShrinksStays() {
+        let old = CGRect(x: 100, y: 100, width: 314, height: 300)
+        let taller = CGRect(x: 100, y: 50, width: 314, height: 350)
+        let shorter = CGRect(x: 100, y: 200, width: 314, height: 200)
+        #expect(WindowPlacement.keptOnScreen(taller, was: old, visible: primaryVisible) == taller)
+        #expect(WindowPlacement.keptOnScreen(shorter, was: old, visible: primaryVisible) == shorter)
+    }
+
+    @Test func aDeliberateOverhangOnlyKeepsItsDepth() {
+        // Parked 50 pt below the bottom edge; growing 100 pt more moves it up by those 100 alone.
+        let old = CGRect(x: 100, y: -50, width: 314, height: 300)
+        let grown = CGRect(x: 100, y: -150, width: 314, height: 400)
+        #expect(WindowPlacement.keptOnScreen(grown, was: old, visible: primaryVisible).minY == -50)
+    }
+
+    @Test func aWindowTallerThanTheScreenKeepsItsTopOnIt() {
+        let old = CGRect(x: 100, y: 100, width: 314, height: 300)
+        let grown = CGRect(x: 100, y: -700, width: 314, height: 1100)
+        #expect(WindowPlacement.keptOnScreen(grown, was: old, visible: primaryVisible).maxY == primaryVisible.maxY)
+    }
+
     @Test func aPositionOnAnyScreenIsKept() {
         let onRight = CGPoint(x: 2000, y: 100)
         #expect(WindowPlacement.validated(

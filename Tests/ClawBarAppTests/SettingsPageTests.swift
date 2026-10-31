@@ -45,12 +45,13 @@ import ClawBarShared
     }
 
     @Test func eachBlockTogglesItsOwnConfigKey() {
+        func shown(_ c: Config) -> Set<WidgetBlock> { Set(WidgetBlock.allCases.filter { c[keyPath: $0.flag] }) }
         // Every block shows by default but the chart, as in the original.
-        #expect(WidgetBlock.shown(in: Config()) == Set(WidgetBlock.allCases).subtracting([.history]))
+        #expect(shown(Config()) == Set(WidgetBlock.allCases).subtracting([.history]))
         for b in WidgetBlock.allCases {
             var config = Config()
             config[keyPath: b.flag].toggle()
-            #expect(WidgetBlock.shown(in: config).symmetricDifference(WidgetBlock.shown(in: Config())) == [b])
+            #expect(shown(config).symmetricDifference(shown(Config())) == [b])
         }
     }
 
@@ -77,12 +78,14 @@ import ClawBarShared
 
     @Test func theTextDumpShowsEveryControl() {
         let dump = SettingsPage.dump(config: Config(opacity: 0.3, topmost: true, showMascot: false))
-        #expect(dump.contains("  Look:\n      Language: (•) English  ( ) Deutsch"))
-        #expect(dump.contains("      Size: − 120% +"))
-        #expect(dump.contains("      Opacity:   30% +"))
-        #expect(dump.contains("      [x] Always on top"))
+        #expect(dump.contains("  Look:\n    Language: (•) English  ( ) Deutsch"))
+        #expect(dump.contains("    Size: − 120% +"))
+        #expect(dump.contains("    Opacity:   30% +"))
+        #expect(dump.contains("    [x] Always on top"))
         #expect(dump.contains("    IN THE WIDGET\n      [ ] Clawd\n      [x] Sky and weather behind him  (disabled)"))
-        #expect(dump.contains("      [Open config.json]"))
+        // The footer stands apart from the System section above it.
+        #expect(dump.contains("      [x] Clawd in menu bar\n    The rest"))
+        #expect(dump.contains("    [Open config.json]"))
     }
 }
 

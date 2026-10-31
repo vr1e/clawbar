@@ -93,7 +93,7 @@ enum Imaging {
     /// An AppKit view at its fitting size, drawn offscreen at `pixelScale`; a window gives its controls their appearance.
     static func image(of view: NSView, pixelScale: Double = 2) -> CGImage? {
         let size = view.fittingSize
-        let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: false)
+        let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: true)
         window.appearance = view.appearance
         window.contentView = view
         view.frame = CGRect(origin: .zero, size: size)
@@ -105,7 +105,15 @@ enum Imaging {
         ) else { return nil }
         rep.size = size
         view.cacheDisplay(in: view.bounds, to: rep)
-        return rep.cgImage
+        guard let drawn = rep.cgImage, let ctx = context(width: drawn.width, height: drawn.height) else { return nil }
+        // A real window paints the margins a view leaves clear; offscreen they would stay transparent.
+        var background = CGColor.white
+        view.effectiveAppearance.performAsCurrentDrawingAppearance { background = NSColor.windowBackgroundColor.cgColor }
+        let bounds = CGRect(x: 0, y: 0, width: drawn.width, height: drawn.height)
+        ctx.setFillColor(background)
+        ctx.fill(bounds)
+        ctx.draw(drawn, in: bounds)
+        return ctx.makeImage()
     }
 
     static func writePNG(_ image: CGImage, to url: URL) throws {

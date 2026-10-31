@@ -162,8 +162,8 @@ extension L10nKey {
         case .setMenuBarMascot: .text(en: "Clawd in menu bar", de: "Clawd in der Menüleiste")
         // The original's footer, less its models, which ClawBar does not set.
         case .setMore: .text(
-            en: "The rest (intervals, thresholds, weather location) is in config.json.",
-            de: "Der Rest (Intervalle, Schwellen, Wetterort) steht in config.json."
+            en: "The rest (intervals, thresholds) is in config.json",
+            de: "Der Rest (Intervalle, Schwellen) steht in config.json"
         )
         case .setConfig: .text(en: "Open config.json", de: "config.json öffnen")
         case .setShowMascot: .text(en: "Clawd", de: "Clawd")

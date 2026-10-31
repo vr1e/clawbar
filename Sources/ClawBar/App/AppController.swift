@@ -382,10 +382,10 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     private func perform(_ action: SettingsAction) {
         switch action {
-        case .larger: change { $0.scale = ConfigStep.larger($0.scale) ?? $0.scale }
-        case .smaller: change { $0.scale = ConfigStep.smaller($0.scale) ?? $0.scale }
-        case .moreOpaque: change { $0.opacity = ConfigStep.moreOpaque($0.opacity) ?? $0.opacity }
-        case .lessOpaque: change { $0.opacity = ConfigStep.lessOpaque($0.opacity) ?? $0.opacity }
+        case .larger: step(\.scale, ConfigStep.larger)
+        case .smaller: step(\.scale, ConfigStep.smaller)
+        case .moreOpaque: step(\.opacity, ConfigStep.moreOpaque)
+        case .lessOpaque: step(\.opacity, ConfigStep.lessOpaque)
         case .toggleTopmost: change { $0.topmost.toggle() }
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
@@ -393,6 +393,10 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .toggleBlock(let b): change { $0[keyPath: b.flag].toggle() }
         case .openConfig: openConfig()
         }
+    }
+
+    private func step(_ key: WritableKeyPath<Config, Double>, _ move: (Double) -> Double?) {
+        change { $0[keyPath: key] = move($0[keyPath: key]) ?? $0[keyPath: key] }
     }
 
     /// `--command` from another process.

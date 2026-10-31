@@ -5,7 +5,7 @@ import ClawBarShared
 
 /// The config the open pages show; set on every applied change, so a hand edit of config.json shows too.
 @Observable
-final class SettingsModel {
+final class ShownConfig {
     var config = Config()
 }
 
@@ -14,12 +14,12 @@ struct SettingsPageView: View {
     static let width: CGFloat = 440
 
     let tab: SettingsTab
-    let model: SettingsModel
+    let shown: ShownConfig
     let perform: (SettingsAction) -> Void
 
     var body: some View {
         Form {
-            ForEach(Array(SettingsPage.sections(tab, config: model.config).enumerated()), id: \.offset) { _, section in
+            ForEach(Array(SettingsPage.sections(tab, config: shown.config).enumerated()), id: \.offset) { _, section in
                 Section {
                     ForEach(Array(section.rows.enumerated()), id: \.offset) { _, row in self.row(row) }
                 } header: {
@@ -63,12 +63,28 @@ struct SettingsPageView: View {
     }
 }
 
-/// Closes on Esc and ⌘W, which an accessory app without a main menu does not get for free.
+/// Closes on Esc and ⌘W, which an accessory app without a main menu does not get for free, and stays on screen
+/// when a taller tab grows it.
 final class SettingsWindow: NSWindow {
     override func cancelOperation(_ sender: Any?) { close() }
 
+    // The tab controller resizes the window itself, animated or not; only a size change is kept on screen, never a move.
+    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        super.setFrame(onScreen(frameRect), display: flag)
+    }
+
+    override func setFrame(_ frameRect: NSRect, display displayFlag: Bool, animate animateFlag: Bool) {
+        super.setFrame(onScreen(frameRect), display: displayFlag, animate: animateFlag)
+    }
+
+    private func onScreen(_ rect: NSRect) -> NSRect {
+        guard rect.size != frame.size, isVisible, let visible = screen?.visibleFrame else { return rect }
+        return WindowPlacement.keptOnScreen(rect, was: frame, visible: visible)
+    }
+
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command, event.charactersIgnoringModifiers == "w" {
+        // The same test as Clawd Run's window, which Caps Lock does not defeat.
+        if event.modifierFlags.contains(.command), event.charactersIgnoringModifiers == "w" {
             close()
             return true
         }
@@ -79,19 +95,16 @@ final class SettingsWindow: NSWindow {
 /// The Settings window: opened from the menu, beside the widget like the original's; a change is saved and shown at once.
 final class SettingsWindowController {
     var perform: (SettingsAction) -> Void = { _ in }
-    private let model = SettingsModel()
+    private let shown = ShownConfig()
     private var window: NSWindow?
     private var tabs: NSTabViewController?
 
-    var isVisible: Bool { window?.isVisible == true }
-
     func update(config: Config) {
-        guard config != model.config else { return }
-        let relabel = config.lang != model.config.lang
-        model.config = config
+        guard config != shown.config else { return }
+        let relabel = config.lang != shown.config.lang
+        shown.config = config
         if relabel { label() }
-        // As the original: on top of other windows when the widget is.
-        window?.level = config.topmost ? .floating : .normal
+        applyLevel()
     }
 
     /// Placed anew beside the widget each time it opens; brought forward where it is when already open.
@@ -116,7 +129,7 @@ final class SettingsWindowController {
         let tabs = NSTabViewController()
         tabs.tabStyle = .toolbar
         for tab in SettingsTab.allCases {
-            let page = SettingsPageView(tab: tab, model: model) { [weak self] in self?.perform($0) }
+            let page = SettingsPageView(tab: tab, shown: shown) { [weak self] in self?.perform($0) }
             let host = NSHostingController(rootView: page)
             host.sizingOptions = [.preferredContentSize]
             let item = NSTabViewItem(viewController: host)
@@ -128,18 +141,23 @@ final class SettingsWindowController {
         w.toolbarStyle = .preference
         w.isReleasedWhenClosed = false
         w.collectionBehavior = [.moveToActiveSpace]
-        w.level = model.config.topmost ? .floating : .normal
         self.tabs = tabs
         window = w
         label()
+        applyLevel()
         return w
+    }
+
+    /// As the original: on top of other windows when the widget is.
+    private func applyLevel() {
+        window?.level = shown.config.topmost ? .floating : .normal
     }
 
     /// The tabs' names in the current language; the window's title is the selected tab's, as in System Settings.
     private func label() {
         guard let tabs else { return }
         for (item, tab) in zip(tabs.tabViewItems, SettingsTab.allCases) {
-            let title = L10n.t(tab.title, model.config.lang)
+            let title = L10n.t(tab.title, shown.config.lang)
             item.label = title
             item.viewController?.title = title
         }
@@ -150,8 +168,7 @@ final class SettingsWindowController {
 enum SettingsPlacement {
     static let gap: CGFloat = 8
 
-    /// Left of the widget with the tops aligned, or right of it when the left side lacks room, then kept on screen.
-    /// AppKit coordinates.
+    /// Left of the widget, tops aligned, or right when the left lacks room, then kept on screen (AppKit coordinates).
     static func origin(size: CGSize, widget: CGRect, visible: CGRect) -> CGPoint {
         var x = widget.minX - gap - size.width
         if x < visible.minX, widget.maxX + gap + size.width <= visible.maxX { x = widget.maxX + gap }
