@@ -54,7 +54,7 @@ files beside them in `~/.claude/sessions/` are secrets and stay unopened.
 
 - `swift build && swift test`; no CI runs them.
 - Anything visible: `.build/debug/ClawBar --snapshot <dir>` renders every widget state in both languages at three
-  sizes, the menu bar item, and the menus as text; open the PNGs to look.
+  sizes, the menu bar item, each Settings tab, and the menus and Settings pages as text; open the PNGs to look.
 - Probes: `.build/debug/ClawBar --diagnose` runs the engine once against the real `claude` and network, through the
   app's recipes; its `log:` lines are what error.log would get.
 - The running app: start `CLAWBAR_HOME=<any dir> .build/debug/ClawBar` in the background; with no mode the binary

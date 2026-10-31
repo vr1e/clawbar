@@ -83,8 +83,7 @@ final class SettingsWindow: NSWindow {
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        // The same test as Clawd Run's window, which Caps Lock does not defeat.
-        if event.modifierFlags.contains(.command), event.charactersIgnoringModifiers == "w" {
+        if event.isCloseWindowShortcut {
             close()
             return true
         }
@@ -92,12 +91,18 @@ final class SettingsWindow: NSWindow {
     }
 }
 
+extension NSEvent {
+    /// ⌘W for the Settings and Clawd Run windows; a plain modifier test, so Caps Lock does not defeat it.
+    var isCloseWindowShortcut: Bool { modifierFlags.contains(.command) && charactersIgnoringModifiers == "w" }
+}
+
 /// The Settings window: opened from the menu, beside the widget like the original's; a change is saved and shown at once.
 final class SettingsWindowController {
     var perform: (SettingsAction) -> Void = { _ in }
     private let shown = ShownConfig()
     private var window: NSWindow?
-    private var tabs: NSTabViewController?
+    private var tabs: NSTabViewController? { window?.contentViewController as? NSTabViewController }
+    private var selectedTab: NSTabViewItem? { tabs.map { $0.tabViewItems[$0.selectedTabViewItemIndex] } }
 
     func update(config: Config) {
         guard config != shown.config else { return }
@@ -112,7 +117,7 @@ final class SettingsWindowController {
         let w = window ?? makeWindow()
         if !w.isVisible, let screen {
             // The page's own size, which the tab controller would otherwise apply only after the window is placed.
-            if let tabs, let page = tabs.tabViewItems[tabs.selectedTabViewItemIndex].viewController?.view {
+            if let page = selectedTab?.viewController?.view {
                 w.setContentSize(page.fittingSize)
             }
             w.setFrameOrigin(SettingsPlacement.origin(size: w.frame.size, widget: widget, visible: screen))
@@ -141,7 +146,6 @@ final class SettingsWindowController {
         w.toolbarStyle = .preference
         w.isReleasedWhenClosed = false
         w.collectionBehavior = [.moveToActiveSpace]
-        self.tabs = tabs
         window = w
         label()
         applyLevel()
@@ -161,7 +165,7 @@ final class SettingsWindowController {
             item.label = title
             item.viewController?.title = title
         }
-        window?.title = tabs.tabViewItems[tabs.selectedTabViewItemIndex].label
+        window?.title = selectedTab?.label ?? ""
     }
 }
 

@@ -56,11 +56,11 @@ import ClawBarShared
     }
 
     @Test func steppersShowPercentAndStopAtTheirEnds() {
-        #expect(widget()[0].rows[0] == .stepper(title: "Size", value: "120%", decrease: .smaller, increase: .larger))
-        #expect(widget()[0].rows[1] == .stepper(title: "Opacity", value: "100%", decrease: .lessOpaque, increase: nil))
+        #expect(widget()[0].rows[0] == .stepper(title: "Size", value: "120%", decrease: .step(.size, up: false), increase: .step(.size, up: true)))
+        #expect(widget()[0].rows[1] == .stepper(title: "Opacity", value: "100%", decrease: .step(.opacity, up: false), increase: nil))
         let ends = widget(Config(scale: 4.0, opacity: 0.3))[0].rows
-        #expect(ends[0] == .stepper(title: "Size", value: "400%", decrease: .smaller, increase: nil))
-        #expect(ends[1] == .stepper(title: "Opacity", value: "30%", decrease: nil, increase: .moreOpaque))
+        #expect(ends[0] == .stepper(title: "Size", value: "400%", decrease: .step(.size, up: false), increase: nil))
+        #expect(ends[1] == .stepper(title: "Opacity", value: "30%", decrease: nil, increase: .step(.opacity, up: true)))
     }
 
     @Test func everyTabEndsWithConfigJson() {
@@ -89,44 +89,44 @@ import ClawBarShared
     }
 }
 
-@Suite struct ConfigStepTests {
+@Suite struct SteppedSettingTests {
     @Test func sizeMovesByATenthRoundedToTwoDecimals() {
-        #expect(ConfigStep.larger(1.2) == 1.3)
-        #expect(ConfigStep.smaller(1.2) == 1.1)
-        #expect(ConfigStep.larger(1.25) == 1.35)
-        #expect(ConfigStep.smaller(1.3) == 1.2)
+        #expect(SteppedSetting.size.next(from: 1.2, up: true) == 1.3)
+        #expect(SteppedSetting.size.next(from: 1.2, up: false) == 1.1)
+        #expect(SteppedSetting.size.next(from: 1.25, up: true) == 1.35)
+        #expect(SteppedSetting.size.next(from: 1.3, up: false) == 1.2)
     }
 
     @Test func sizeStopsAtTheConfigsRange() {
-        #expect(ConfigStep.larger(3.95) == 4.0)
-        #expect(ConfigStep.larger(4.0) == nil)
-        #expect(ConfigStep.smaller(0.65) == 0.6)
-        #expect(ConfigStep.smaller(0.6) == nil)
+        #expect(SteppedSetting.size.next(from: 3.95, up: true) == 4.0)
+        #expect(SteppedSetting.size.next(from: 4.0, up: true) == nil)
+        #expect(SteppedSetting.size.next(from: 0.65, up: false) == 0.6)
+        #expect(SteppedSetting.size.next(from: 0.6, up: false) == nil)
     }
 
     @Test func opacityMovesByATwentiethWithinTheOriginalWindowsRange() {
-        #expect(ConfigStep.lessOpaque(1.0) == 0.95)
-        #expect(ConfigStep.moreOpaque(0.95) == 1.0)
-        #expect(ConfigStep.moreOpaque(1.0) == nil)
-        #expect(ConfigStep.lessOpaque(0.32) == 0.3)
-        #expect(ConfigStep.lessOpaque(0.3) == nil)
+        #expect(SteppedSetting.opacity.next(from: 1.0, up: false) == 0.95)
+        #expect(SteppedSetting.opacity.next(from: 0.95, up: true) == 1.0)
+        #expect(SteppedSetting.opacity.next(from: 1.0, up: true) == nil)
+        #expect(SteppedSetting.opacity.next(from: 0.32, up: false) == 0.3)
+        #expect(SteppedSetting.opacity.next(from: 0.3, up: false) == nil)
     }
 
     @Test func aHandSetOpacityBelowTheRangeOnlyMovesBackIntoIt() {
-        #expect(ConfigStep.lessOpaque(0.2) == nil)
-        #expect(ConfigStep.moreOpaque(0.2) == 0.3)
+        #expect(SteppedSetting.opacity.next(from: 0.2, up: false) == nil)
+        #expect(SteppedSetting.opacity.next(from: 0.2, up: true) == 0.3)
     }
 
     @Test func tenStepsUpAndDownLeaveNoDrift() {
         var s = 1.2, o = 1.0
         for _ in 0 ..< 10 {
-            s = ConfigStep.larger(s)!
-            o = ConfigStep.lessOpaque(o)!
+            s = SteppedSetting.size.next(from: s, up: true)!
+            o = SteppedSetting.opacity.next(from: o, up: false)!
         }
         #expect(s == 2.2 && o == 0.5)
         for _ in 0 ..< 10 {
-            s = ConfigStep.smaller(s)!
-            o = ConfigStep.moreOpaque(o)!
+            s = SteppedSetting.size.next(from: s, up: false)!
+            o = SteppedSetting.opacity.next(from: o, up: true)!
         }
         #expect(s == 1.2 && o == 1.0)
     }

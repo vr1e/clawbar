@@ -2,7 +2,7 @@ import ClawBarShared
 
 /// A change asked for in the Settings window.
 enum SettingsAction: Hashable {
-    case larger, smaller, moreOpaque, lessOpaque
+    case step(SteppedSetting, up: Bool)
     case toggleTopmost, toggleLaunchAtLogin, toggleMenuBarMascot
     case language(Lang)
     case toggleBlock(WidgetBlock)
@@ -16,7 +16,7 @@ enum SettingsTab: String, CaseIterable, Hashable {
     var title: L10nKey {
         switch self {
         case .look: .setTabLook
-        case .widget: .setTabWindow
+        case .widget: .setTabWidget
         }
     }
 
@@ -102,19 +102,14 @@ enum SettingsPage {
                 toggle(b.title, config[keyPath: b.flag], .toggleBlock(b), enabled: b != .sky || config.showMascot)
             }
             return [
-                SettingsSection(rows: [
-                    .stepper(
-                        title: t(.setSize), value: percent(config.scale),
-                        decrease: ConfigStep.smaller(config.scale).map { _ in .smaller },
-                        increase: ConfigStep.larger(config.scale).map { _ in .larger }
-                    ),
-                    .stepper(
-                        title: t(.setOpacity), value: percent(config.opacity),
-                        decrease: ConfigStep.lessOpaque(config.opacity).map { _ in .lessOpaque },
-                        increase: ConfigStep.moreOpaque(config.opacity).map { _ in .moreOpaque }
-                    ),
-                    toggle(.setTopmost, config.topmost, .toggleTopmost),
-                ]),
+                SettingsSection(rows: SteppedSetting.allCases.map { s in
+                    let v = config[keyPath: s.key]
+                    return .stepper(
+                        title: t(s.title), value: percent(v),
+                        decrease: s.next(from: v, up: false).map { _ in .step(s, up: false) },
+                        increase: s.next(from: v, up: true).map { _ in .step(s, up: true) }
+                    )
+                } + [toggle(.setTopmost, config.topmost, .toggleTopmost)]),
                 SettingsSection(header: t(.setShown), rows: blocks),
                 SettingsSection(header: t(.setSystem), rows: [
                     toggle(.setLogin, config.launchAtLogin, .toggleLaunchAtLogin),
@@ -157,22 +152,32 @@ enum SettingsPage {
     }
 }
 
-/// The steppers' moves, rounded to two decimals like [math]::Round; nil where the value cannot move that way.
-/// Size steps 0.1 within the config's range; opacity 0.05 within the original window's 0.3–1.0.
-enum ConfigStep {
-    static let scaleStep = 0.1
-    static let scaleRange = ConfigLimits.ranges[.scale]!
-    static let opacityStep = 0.05
-    static let opacityRange = 0.3 ... 1.0
+/// The settings a stepper moves: size by 0.1 within the config's range, opacity by 0.05 within the original
+/// window's 0.3–1.0.
+enum SteppedSetting: CaseIterable, Hashable {
+    case size, opacity
 
-    static func larger(_ scale: Double) -> Double? { step(scale, scaleStep, scaleRange) }
-    static func smaller(_ scale: Double) -> Double? { step(scale, -scaleStep, scaleRange) }
-    static func moreOpaque(_ opacity: Double) -> Double? { step(opacity, opacityStep, opacityRange) }
-    static func lessOpaque(_ opacity: Double) -> Double? { step(opacity, -opacityStep, opacityRange) }
+    var title: L10nKey {
+        switch self {
+        case .size: .setSize
+        case .opacity: .setOpacity
+        }
+    }
 
+    var key: WritableKeyPath<Config, Double> {
+        switch self {
+        case .size: \.scale
+        case .opacity: \.opacity
+        }
+    }
+
+    private var step: Double { self == .size ? 0.1 : 0.05 }
+    private var range: ClosedRange<Double> { self == .size ? ConfigLimits.ranges[.scale]! : 0.3 ... 1.0 }
+
+    /// One step, rounded to two decimals like [math]::Round; nil where the value cannot move that way.
     /// A hand-set value outside the range only moves back into it, never further out.
-    private static func step(_ value: Double, _ delta: Double, _ range: ClosedRange<Double>) -> Double? {
-        let v = min(range.upperBound, max(range.lowerBound, ((value + delta) * 100).rounded(.toNearestOrEven) / 100))
-        return delta > 0 ? (v > value ? v : nil) : (v < value ? v : nil)
+    func next(from value: Double, up: Bool) -> Double? {
+        let v = min(range.upperBound, max(range.lowerBound, ((value + (up ? step : -step)) * 100).rounded(.toNearestOrEven) / 100))
+        return up ? (v > value ? v : nil) : (v < value ? v : nil)
     }
 }

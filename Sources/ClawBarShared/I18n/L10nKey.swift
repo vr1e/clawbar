@@ -127,8 +127,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
 
     // Settings window
     case setTabLook = "set.tabLook"
-    /// The original's Window tab, named for the widget it sets.
-    case setTabWindow = "set.tabWindow"
+    case setTabWidget = "set.tabWidget"
     case setLanguage = "set.language"
     case setSize = "set.size"
     case setOpacity = "set.opacity"

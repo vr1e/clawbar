@@ -61,8 +61,12 @@ enum Imaging {
 
     /// The image on a solid backdrop with `pad` pixels around it, like compose-gif.py's GitHub-dark canvas.
     static func onBackdrop(_ image: CGImage, pad: Int, color: RGBA) -> CGImage? {
+        onBackdrop(image, pad: pad, color: cgColor(color))
+    }
+
+    static func onBackdrop(_ image: CGImage, pad: Int, color: CGColor) -> CGImage? {
         guard let ctx = context(width: image.width + 2 * pad, height: image.height + 2 * pad) else { return nil }
-        ctx.setFillColor(cgColor(color))
+        ctx.setFillColor(color)
         ctx.fill(CGRect(x: 0, y: 0, width: ctx.width, height: ctx.height))
         ctx.draw(image, in: CGRect(x: pad, y: pad, width: image.width, height: image.height))
         return ctx.makeImage()
@@ -105,15 +109,11 @@ enum Imaging {
         ) else { return nil }
         rep.size = size
         view.cacheDisplay(in: view.bounds, to: rep)
-        guard let drawn = rep.cgImage, let ctx = context(width: drawn.width, height: drawn.height) else { return nil }
+        guard let drawn = rep.cgImage else { return nil }
         // A real window paints the margins a view leaves clear; offscreen they would stay transparent.
         var background = CGColor.white
         view.effectiveAppearance.performAsCurrentDrawingAppearance { background = NSColor.windowBackgroundColor.cgColor }
-        let bounds = CGRect(x: 0, y: 0, width: drawn.width, height: drawn.height)
-        ctx.setFillColor(background)
-        ctx.fill(bounds)
-        ctx.draw(drawn, in: bounds)
-        return ctx.makeImage()
+        return onBackdrop(drawn, pad: 0, color: background)
     }
 
     static func writePNG(_ image: CGImage, to url: URL) throws {

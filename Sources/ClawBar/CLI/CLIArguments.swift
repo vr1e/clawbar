@@ -59,7 +59,7 @@ enum CLI {
           (no mode)                     run the menu bar app
           --version                     print the version
           --diagnose                    run every probe once and print what it found
-          --snapshot <dir>              render the widget, the menu bar item and the menus into <dir>
+          --snapshot <dir>              render the widget, the menu bar item, the menus and Settings into <dir>
           --record <scenario> <gif>     record a scenario: \(RecordScenario.allCases.map(\.rawValue).joined(separator: ", "))
           --dump-state                  print the running instance's state
           --command <cmd>               toggle | show | larger | smaller | refresh | settings | quit | lang <en|de>

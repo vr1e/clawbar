@@ -151,7 +151,7 @@ extension L10nKey {
         case .menuSettings: .text(en: "Settings…", de: "Einstellungen …")
 
         case .setTabLook: .text(en: "Look", de: "Darstellung")
-        case .setTabWindow: .text(en: "Widget", de: "Widget")
+        case .setTabWidget: .text(en: "Widget", de: "Widget")
         case .setLanguage: .text(en: "Language", de: "Sprache")
         case .setSize: .text(en: "Size", de: "Größe")
         case .setOpacity: .text(en: "Opacity", de: "Deckkraft")

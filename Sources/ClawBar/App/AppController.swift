@@ -382,10 +382,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     private func perform(_ action: SettingsAction) {
         switch action {
-        case .larger: step(\.scale, ConfigStep.larger)
-        case .smaller: step(\.scale, ConfigStep.smaller)
-        case .moreOpaque: step(\.opacity, ConfigStep.moreOpaque)
-        case .lessOpaque: step(\.opacity, ConfigStep.lessOpaque)
+        case .step(let s, let up): change { $0[keyPath: s.key] = s.next(from: $0[keyPath: s.key], up: up) ?? $0[keyPath: s.key] }
         case .toggleTopmost: change { $0.topmost.toggle() }
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
@@ -395,17 +392,13 @@ final class AppController: NSObject, WidgetPanelDelegate {
         }
     }
 
-    private func step(_ key: WritableKeyPath<Config, Double>, _ move: (Double) -> Double?) {
-        change { $0[keyPath: key] = move($0[keyPath: key]) ?? $0[keyPath: key] }
-    }
-
     /// `--command` from another process.
     private func run(_ command: RemoteCommand) {
         switch command {
         case .toggle: toggleWidget()
         case .show: showWidget()
-        case .larger: perform(SettingsAction.larger)
-        case .smaller: perform(SettingsAction.smaller)
+        case .larger: perform(SettingsAction.step(.size, up: true))
+        case .smaller: perform(SettingsAction.step(.size, up: false))
         case .refresh: perform(StatusMenuAction.refresh)
         case .settings: perform(StatusMenuAction.settings)
         case .quit: perform(StatusMenuAction.quit)
