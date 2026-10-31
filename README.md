@@ -39,7 +39,7 @@ open /Applications/ClawBar.app
 ```
 
 The script builds a release binary, wraps it in an ad-hoc-signed `ClawBar.app` and copies it to `/Applications`,
-quitting a running copy first. ClawBar registers itself to open at login; untick **Launch at login** in its menu if
+quitting a running copy first. ClawBar registers itself to open at login; untick **Launch at login** in its Settings if
 you would rather it waited to be asked.
 
 To update, pull and run the last two commands again. `config.json` and ClawBar's other files stay where they are.
@@ -47,8 +47,10 @@ To update, pull and run the last two commands again. `config.json` and ClawBar's
 ## Use
 
 - **Left-click** the menu bar item to show or hide the widget; **right-click** (or ctrl-click) it for the menu:
-  Refresh now, Larger, Smaller, Always on top, Launch at login, Clawd in menu bar, Open config.json, Show in widget
-  (which blocks the widget shows), Language, Quit. Untick Clawd in both places for the numbers alone.
+  Refresh now, Settings…, Quit.
+- **Settings…** opens beside the widget, and every change shows at once. Look picks the language; Widget sets the
+  size, opacity and always on top, which blocks the widget shows, launch at login and Clawd in menu bar (untick
+  Clawd there and in the widget for the numbers alone). The rest is in `config.json`, which its button opens.
 - **Drag** the widget by anything but Clawd and the buttons. ▾ opens the details, – hides the widget, ✕ quits.
 - **Click** the status line to open status.claude.com, the version line to run `claude update` when one is out
   (otherwise it opens the changelog), and the ClawBar line to visit the original project.
@@ -62,8 +64,8 @@ To update, pull and run the last two commands again. `config.json` and ClawBar's
 
 ## Configuration
 
-`~/Library/Application Support/ClawBar/config.json` appears on the first change, or with every key when you pick
-**Open config.json**. Edits take effect on the next refresh (10 s by default). ClawBar writes only the keys it
+`~/Library/Application Support/ClawBar/config.json` appears on the first change, or with every key when you click
+**Open config.json** in Settings. Edits take effect on the next refresh (10 s by default). ClawBar writes only the keys it
 changes, so your edits and unknown keys survive, and a value it cannot read falls back to that key's default. While
 the file is not valid JSON, ClawBar runs on the defaults and the widget's last-update stamp says *error*.
 
@@ -75,8 +77,8 @@ the file is not valid JSON, ClawBar runs on the defaults and the widget's last-u
 | `topmost` | `false` | keep the widget above other windows |
 | `warnPercent`, `critPercent` | `60`, `85` | level colour thresholds, 1–100 |
 | `expanded` | `false` | details open |
-| `showStats`, `showStatus`, `showSessions`, `showAccount`, `showMascot`, `showSky` | `true` | blocks to show, also under **Show in widget** |
-| `showHistory` | `false` | the 7-day chart of the session and week limits and the week's top projects in the details, also under **Show in widget** |
+| `showStats`, `showStatus`, `showSessions`, `showAccount`, `showMascot`, `showSky` | `true` | blocks to show, also in **Settings › Widget** |
+| `showHistory` | `false` | the 7-day chart of the session and week limits and the week's top projects in the details, also in **Settings › Widget** |
 | `weatherLat`, `weatherLon` | unset | weather for these coordinates instead of your IP's location |
 | `refreshSeconds` | `10` | UI refresh, 2–300 |
 | `usageIntervalSeconds` | `60` | `/usage` probe, 30–3600 |
@@ -118,10 +120,10 @@ Everything ClawBar touches, so you know there is nothing else:
 | Mode | Does |
 |---|---|
 | `--diagnose` | runs every probe once and prints what it found |
-| `--snapshot <dir>` | renders every widget state in both languages at three sizes, plus the menu bar item; writes the menu bar text, its tooltip and the menus as text |
+| `--snapshot <dir>` | renders every widget state in both languages at three sizes, plus the menu bar item and each Settings tab; writes the menu bar text, its tooltip, the menus and the Settings pages as text |
 | `--record <scenario> <gif>` | records an animated scenario: `tour`, `sleep`, `limit`, `reset`, `hearts`, `weather`, `clicks` |
 | `--dump-state` | prints the running app's state |
-| `--command <cmd>` | sends `toggle`, `show`, `larger`, `smaller`, `refresh`, `quit` or `lang <en\|de>` to the running app |
+| `--command <cmd>` | sends `toggle`, `show`, `larger`, `smaller`, `refresh`, `settings`, `quit` or `lang <en\|de>` to the running app |
 | `--make-icon <dir>` | writes the app icon set |
 | `--version` | prints the version |
 
@@ -153,20 +155,24 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Account and plan | ✅ Ported | |
 | Claude Code version and update | ✅ Ported differently | The update runs in the background and explains a failure. |
 | Widget window | ✅ Ported differently | On every Space, and opens at login by itself. |
-| Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit with its reset. Not yet: A shorter menu with Settings. |
+| Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit with its reset. |
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French; Brazilian Portuguese; Spanish. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
 | 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval; the top projects keep folders of the same name apart and weigh each reply at its model's list price; the hover's busiest project is the local hour's, not the UTC hour's. |
 | Themes and skins | ⏳ Not yet | |
-| Settings window | ⏳ Not yet | Not ported: A tab for Claude Code's own settings. |
+| Settings window | ✅ Ported differently | A native window with Look and Widget tabs, opened from the menu; Look has only the language until themes and skins. Not ported: A tab for Claude Code's own settings. |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
 | PC tips | ➖ Not ported | They look over a Windows PC. |
 | Clawd's Remote Control session | ➖ Not ported | It belongs with the chat. |
 | Run as administrator | ➖ Not ported | Windows-only. |
 <!-- parity-table: end -->
 
-- A menu bar item replaces the tray icon; the default size is 1.2, which suits Retina points. Its menu adds always
-  on top and launch at login, and a Show in widget submenu stands in for the original's Settings window.
+- A menu bar item replaces the tray icon; the default size is 1.2, which suits Retina points.
+- The Settings window is a native one with the original's Look and Window tabs, the second named Widget; Look has
+  only the language until themes and skins arrive. Widget adds launch at login and Clawd in menu bar, and drops the
+  original's reset-clock and administrator switches. There is no gear in the widget's header: Settings… is in the menu.
+- When the widget grows (details, size, more sessions) or Settings switches to a taller tab, the window moves up or
+  left just enough to stay on screen, where the original's widget grows past the screen's edge.
 - The menu bar item's tooltip gives every limit a line of its own, each model's week included, with the time left
   and the clock time of its reset: `34% of session · 2h 05m (16:10)`. The original's tray stops at 63 characters and
   shows clock times (since 1.5.3) only in place of the countdowns, behind a setting. Stale numbers turn the item grey,

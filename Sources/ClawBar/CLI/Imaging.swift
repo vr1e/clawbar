@@ -61,8 +61,12 @@ enum Imaging {
 
     /// The image on a solid backdrop with `pad` pixels around it, like compose-gif.py's GitHub-dark canvas.
     static func onBackdrop(_ image: CGImage, pad: Int, color: RGBA) -> CGImage? {
+        onBackdrop(image, pad: pad, color: cgColor(color))
+    }
+
+    static func onBackdrop(_ image: CGImage, pad: Int, color: CGColor) -> CGImage? {
         guard let ctx = context(width: image.width + 2 * pad, height: image.height + 2 * pad) else { return nil }
-        ctx.setFillColor(cgColor(color))
+        ctx.setFillColor(color)
         ctx.fill(CGRect(x: 0, y: 0, width: ctx.width, height: ctx.height))
         ctx.draw(image, in: CGRect(x: pad, y: pad, width: image.width, height: image.height))
         return ctx.makeImage()
@@ -88,6 +92,28 @@ enum Imaging {
         ns.draw(in: CGRect(x: pad * pixelScale, y: pad * pixelScale, width: ns.size.width * pixelScale, height: ns.size.height * pixelScale))
         NSGraphicsContext.restoreGraphicsState()
         return ctx.makeImage()
+    }
+
+    /// An AppKit view at its fitting size, drawn offscreen at `pixelScale`; a window gives its controls their appearance.
+    static func image(of view: NSView, pixelScale: Double = 2) -> CGImage? {
+        let size = view.fittingSize
+        let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: true)
+        window.appearance = view.appearance
+        window.contentView = view
+        view.frame = CGRect(origin: .zero, size: size)
+        view.layoutSubtreeIfNeeded()
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: Int(size.width * pixelScale), pixelsHigh: Int(size.height * pixelScale),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+            bytesPerRow: 0, bitsPerPixel: 0
+        ) else { return nil }
+        rep.size = size
+        view.cacheDisplay(in: view.bounds, to: rep)
+        guard let drawn = rep.cgImage else { return nil }
+        // A real window paints the margins a view leaves clear; offscreen they would stay transparent.
+        var background = CGColor.white
+        view.effectiveAppearance.performAsCurrentDrawingAppearance { background = NSColor.windowBackgroundColor.cgColor }
+        return onBackdrop(drawn, pad: 0, color: background)
     }
 
     static func writePNG(_ image: CGImage, to url: URL) throws {

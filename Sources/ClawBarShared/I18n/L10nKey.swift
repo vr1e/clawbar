@@ -123,16 +123,23 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case menuShow = "menu.show"
     case menuHide = "menu.hide"
     case menuRefresh = "menu.refresh"
-    case menuBigger = "menu.bigger"
-    case menuSmaller = "menu.smaller"
-    case menuTopmost = "menu.topmost"
-    case menuLogin = "menu.login"
+    case menuSettings = "menu.settings"
+
+    // Settings window
+    case setTabLook = "set.tabLook"
+    case setTabWidget = "set.tabWidget"
+    case setLanguage = "set.language"
+    case setSize = "set.size"
+    case setOpacity = "set.opacity"
+    case setTopmost = "set.topmost"
+    case setShown = "set.shown"
+    case setSystem = "set.system"
+    case setLogin = "set.login"
     /// Clawd beside the % in the menu bar.
-    case menuClawd = "menu.clawd"
-    case menuConfig = "menu.config"
-    case menuLanguage = "menu.language"
-    /// The Show in widget submenu; its items are the original's Settings switches.
-    case menuShown = "menu.shown"
+    case setMenuBarMascot = "set.menuBarMascot"
+    /// The footer: what is left to config.json, and the button that opens it.
+    case setMore = "set.more"
+    case setConfig = "set.config"
     case setShowMascot = "set.showMascot"
     case setShowSky = "set.showSky"
     case setShowStatus = "set.showStatus"

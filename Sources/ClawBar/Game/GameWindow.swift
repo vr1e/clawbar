@@ -118,7 +118,7 @@ final class GameWindowController: NSObject, NSWindowDelegate {
 
     private func key(_ event: NSEvent, down: Bool) {
         let code = event.keyCode
-        if down, code == Self.escape || (event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "w") {
+        if down, code == Self.escape || event.isCloseWindowShortcut {
             close()
             return
         }
