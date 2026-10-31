@@ -31,6 +31,7 @@ import ClawBarShared
         #expect(L10n.count(1, .pluralSession, .en) == "1 session")
         #expect(L10n.count(2, .pluralSession, .en) == "2 sessions")
         #expect(L10n.count(0, .pluralRequest, .en) == "0 requests")
+        #expect(L10n.count(1, .pluralReply, .en) == "1 reply")
     }
 
     @Test func namesComeFromTheirKeys() {
@@ -47,8 +48,9 @@ import ClawBarShared
 
     // The names come from key lists, where a key listed twice would hide another.
     @Test(arguments: Lang.allCases)
-    func everyMoonPhaseAndHealthTierHasItsOwnName(lang: Lang) {
+    func everyMoonPhaseWeekdayAndHealthTierHasItsOwnName(lang: Lang) {
         #expect(Set((0 ... 7).map { L10n.moonName($0, lang) }).count == 8)
+        #expect(Set((0 ... 6).map { L10n.weekday($0, lang) }).count == 7)
         #expect(Set((0 ... 6).map { L10n.health($0, lang) }).count == 7)
     }
 

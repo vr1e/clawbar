@@ -1,6 +1,6 @@
 import Foundation
 
-/// One key's English and German; built only through `text` and `plural`, so neither language can be left out.
+/// One key's English and German; built only through `text` and `plural`, so a key is plural in both or in neither.
 public struct L10nStrings: Sendable, Equatable {
     public let en: L10nValue
     public let de: L10nValue
@@ -12,9 +12,8 @@ public struct L10nStrings: Sendable, Equatable {
 
     static func text(en: String, de: String) -> L10nStrings { L10nStrings(en: .text(en), de: .text(de)) }
 
-    /// Each language's (one, other) forms.
-    static func plural(en: (String, String), de: (String, String)) -> L10nStrings {
-        L10nStrings(en: .forms(one: en.0, other: en.1), de: .forms(one: de.0, other: de.1))
+    static func plural(en: (one: String, other: String), de: (one: String, other: String)) -> L10nStrings {
+        L10nStrings(en: .forms(one: en.one, other: en.other), de: .forms(one: de.one, other: de.other))
     }
 }
 

@@ -26,7 +26,7 @@ import ClawBarShared
         for key in L10nKey.allCases {
             switch L10n.value(key, lang) {
             case .text(let s): #expect(!s.trimmingCharacters(in: .whitespaces).isEmpty, "\(lang) \(key.rawValue)")
-            case let .forms(one, other): #expect(!one.isEmpty && !other.isEmpty, "\(lang) \(key.rawValue)")
+            case .forms(let one, let other): #expect(!one.isEmpty && !other.isEmpty, "\(lang) \(key.rawValue)")
             }
         }
     }
@@ -44,12 +44,13 @@ import ClawBarShared
         #expect(L10n.count(2, .pluralSession, .de) == "2 Sitzungen")
         #expect(L10n.count(1, .pluralRequest, .de) == "1 Anfrage")
         #expect(L10n.count(0, .pluralRequest, .de) == "0 Anfragen")
+        #expect(L10n.count(1, .pluralReply, .de) == "1 Antwort")
     }
 
     private func placeholders(_ v: L10nValue) -> [String] {
         switch v {
         case .text(let s): placeholders(s)
-        case let .forms(one, other): (placeholders(one) + placeholders(other)).sorted()
+        case .forms(let one, let other): (placeholders(one) + placeholders(other)).sorted()
         }
     }
 

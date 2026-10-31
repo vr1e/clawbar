@@ -50,11 +50,4 @@ import ClawBarShared
         #expect(clock(Samples.now.plus(hours: 2, minutes: 5), zone: newYork) == "10:10")
         #expect(clock(DataSnapshot.sample.usage!.weekReset!, zone: newYork) == "Thu 00:00")
     }
-
-    @Test(arguments: Lang.allCases)
-    func everyWeekdayHasAName(lang: Lang) {
-        let names = (0 ... 6).map { L10n.weekday($0, lang) }
-        #expect(Set(names).count == 7)
-        #expect(names.allSatisfy { !$0.hasPrefix("wd.") })
-    }
 }
