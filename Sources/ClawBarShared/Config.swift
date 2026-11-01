@@ -49,8 +49,8 @@ public struct Config: Sendable, Hashable {
     public var language: String
     /// The colours: classic by default, where upstream's is by season.
     public var theme: ThemeChoice
-    /// A hand-set `#RRGGBB` or `#AARRGGBB` over the theme's accent; `clamped()` drops one that does not parse.
-    public var accent: String?
+    /// A hand-set colour over the theme's accent.
+    public var accent: RGBA?
     public var scale: Double
     public var opacity: Double
     public var topmost: Bool
@@ -88,7 +88,7 @@ public struct Config: Sendable, Hashable {
     public init(
         language: String = "en",
         theme: ThemeChoice = .fixed(.classic),
-        accent: String? = nil,
+        accent: RGBA? = nil,
         scale: Double = 1.2,
         opacity: Double = 1.0,
         topmost: Bool = false,
@@ -151,8 +151,6 @@ public struct Config: Sendable, Hashable {
 
     public var lang: Lang { Lang(configValue: language) }
 
-    public var accentColor: RGBA? { RGBA.parse(accent) }
-
     /// Every number pulled into its range (`ConfigLimits.ranges`), non-finite values back to the default,
     /// out-of-range coordinates unset, and warn never above crit.
     public func clamped() -> Config {
@@ -187,9 +185,6 @@ public struct Config: Sendable, Hashable {
         c.top = top.flatMap { $0.isFinite ? $0 : nil }
         let path = claudePath?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         c.claudePath = path.isEmpty ? nil : path
-        // Upstream keeps the previous theme's accent on a bad value; here the theme's own shows.
-        let hand = accent?.trimmingCharacters(in: .whitespacesAndNewlines)
-        c.accent = RGBA.parse(hand) == nil ? nil : hand
         return c
     }
 }

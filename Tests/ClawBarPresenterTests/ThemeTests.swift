@@ -36,11 +36,10 @@ import ClawBarShared
         #expect(render(config: Config(theme: .bySeason), now: june).palette == .classic)
     }
 
-    @Test func aHandSetAccentReplacesTheThemesAndABadOneLeavesIt() {
-        let pink = render(config: Config(theme: .fixed(.forest), accent: "#F472B6"))
+    @Test func aHandSetAccentReplacesTheThemes() {
+        let pink = render(config: Config(theme: .fixed(.forest), accent: RGBA("#F472B6")))
         #expect(pink.palette.accent == RGBA("#FFF472B6") && pink.otherLimit.color == RGBA("#FFF472B6"))
         #expect(pink.palette.background == Theme.forest.palette.background)
-        #expect(render(config: Config(theme: .fixed(.forest), accent: "pink")).palette == Theme.forest.palette)
     }
 
     @Test func classicIsTodaysPalette() {
@@ -59,27 +58,26 @@ import ClawBarShared
     @Test func aNewLabelColourLeavesTheDeadGreyAlone() {
         // One value in classic: recolouring by value would grey the labels and recolour the dead number together.
         #expect(ThemePalette.classic.label == Palette.dead)
-        var p = ThemePalette.classic
-        p.label = RGBA("#FFFF00FF")
-        let empty = render(.empty, palette: p)
-        #expect(empty.palette.label == p.label)
+        let midnight = Config(theme: .fixed(.midnight)), label = Theme.midnight.palette.label
+        #expect(label != Palette.dead)
+        let empty = render(.empty, config: midnight)
+        #expect(empty.palette.label == label)
         #expect(empty.pctColor == Palette.dead && empty.mainBarColor == Palette.dead)
         #expect(empty.trayColor == Palette.dead && empty.statusDotColor == Palette.dead)
         // The sample's usage is 25 s old and stale past 210 s.
-        let stale = render(now: Samples.now.plus(seconds: 211 - 25), palette: p)
-        #expect(stale.palette.label == p.label && stale.trayText == "34" && stale.trayColor == Palette.dead)
+        let stale = render(config: midnight, now: Samples.now.plus(seconds: 211 - 25))
+        #expect(stale.palette.label == label && stale.trayText == "34" && stale.trayColor == Palette.dead)
     }
 
     @Test func theWeekBarTakesTheAccentAndTheViewStateCarriesIt() throws {
-        var p = ThemePalette.classic
-        p.accent = RGBA("#FF00FFFF")
+        let cyan = RGBA("#FF00FFFF")
         let data = sample(data: { $0.history = Samples.history })
-        let v = render(data, config: Config(expanded: true, showHistory: true), palette: p)
-        #expect(v.otherLimit.color == p.accent)
+        let v = render(data, config: Config(accent: cyan, expanded: true, showHistory: true))
+        #expect(v.otherLimit.color == cyan)
         // CardView draws the chart's week line and its legend in this role.
         #expect(try #require(v.history).weekRuns.isEmpty == false)
-        #expect(v.palette.accent == p.accent)
+        #expect(v.palette.accent == cyan)
         #expect(v.modelWeeks.map(\.color) == [Palette.modelWeekBar])
-        #expect(render(.empty, palette: p).otherLimit.color == p.accent)
+        #expect(render(.empty, config: Config(accent: cyan)).otherLimit.color == cyan)
     }
 }

@@ -123,7 +123,7 @@ import ClawBarShared
         #expect(ThemeChoice(configValue: "OCEAN") == .fixed(.ocean))
         #expect(ThemeChoice(configValue: "cyberpunk") == .fixed(.classic))
         #expect(ThemeChoice(configValue: nil) == .fixed(.classic))
-        #expect(ThemeChoice.all.map(\.configValue) == [
+        #expect(ThemeChoice.all.map(\.rawValue) == [
             "auto", "classic", "oled", "midnight", "mocha", "forest", "halloween", "space", "ocean",
         ])
     }
@@ -142,12 +142,11 @@ import ClawBarShared
         #expect(ThemeChoice.fixed(.mocha).theme(at: edge, in: berlin) == .mocha)
     }
 
-    @Test func anAccentThatDoesNotParseIsDropped() {
-        #expect(Config(accent: " #F472B6 ").clamped().accent == "#F472B6")
-        #expect(Config(accent: "#F472B6").accentColor == RGBA("#FFF472B6"))
-        #expect(Config(accent: "#80F472B6").accentColor == RGBA("#80F472B6"))
+    @Test func anAccentParsesOnlyAsHashAndSixOrEightHexDigits() {
+        #expect(RGBA.parse("#F472B6") == RGBA("#FFF472B6"))
+        #expect(RGBA.parse("#80F472B6") == RGBA("#80F472B6"))
         for bad in ["F472B6", "#F472B", "#GG72B6", "#+472B6", "pink", ""] {
-            #expect(Config(accent: bad).clamped().accent == nil, "\(bad)")
+            #expect(RGBA.parse(bad) == nil, "\(bad)")
         }
     }
 

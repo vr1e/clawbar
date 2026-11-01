@@ -16,22 +16,18 @@ public struct RGBA: Sendable, Hashable, CustomStringConvertible {
 
     /// Parses `#AARRGGBB` or `#RRGGBB` (the `#` is optional). Anything else is transparent black.
     public init(_ hex: String) {
-        var s = Substring(hex)
-        if s.hasPrefix("#") { s = s.dropFirst() }
-        guard s.count == 6 || s.count == 8, let v = UInt32(s, radix: 16) else {
-            self.init(a: 0, r: 0, g: 0, b: 0)
-            return
-        }
-        let a: UInt32 = s.count == 8 ? (v >> 24) & 0xFF : 0xFF
-        self.init(a: UInt8(a), r: UInt8((v >> 16) & 0xFF), g: UInt8((v >> 8) & 0xFF), b: UInt8(v & 0xFF))
+        self = Self.digits(hex.hasPrefix("#") ? hex.dropFirst() : Substring(hex)) ?? RGBA(a: 0, r: 0, g: 0, b: 0)
     }
 
     /// A hand-written `#RRGGBB` or `#AARRGGBB`, as WPF's ColorConverter takes it; nil for anything else.
-    public static func parse(_ text: String?) -> RGBA? {
-        let s = text ?? ""
-        let digits = s.dropFirst()
-        guard s.hasPrefix("#"), digits.count == 6 || digits.count == 8, digits.allSatisfy(\.isHexDigit) else { return nil }
-        return RGBA(s)
+    public static func parse(_ text: String) -> RGBA? {
+        text.hasPrefix("#") ? digits(text.dropFirst()) : nil
+    }
+
+    private static func digits(_ s: Substring) -> RGBA? {
+        guard [6, 8].contains(s.count), s.allSatisfy(\.isHexDigit), let v = UInt32(s, radix: 16) else { return nil }
+        let a: UInt32 = s.count == 8 ? (v >> 24) & 0xFF : 0xFF
+        return RGBA(a: UInt8(a), r: UInt8((v >> 16) & 0xFF), g: UInt8((v >> 8) & 0xFF), b: UInt8(v & 0xFF))
     }
 
     public var hex: String { String(format: "#%02X%02X%02X%02X", a, r, g, b) }

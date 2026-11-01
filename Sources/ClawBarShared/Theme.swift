@@ -76,7 +76,7 @@ public enum Theme: String, Sendable, CaseIterable {
 }
 
 /// config.json's `theme`: one theme, or `auto`, which follows the season as upstream's default does.
-public enum ThemeChoice: Sendable, Hashable {
+public enum ThemeChoice: RawRepresentable, Sendable, Hashable {
     case bySeason
     case fixed(Theme)
 
@@ -85,11 +85,19 @@ public enum ThemeChoice: Sendable, Hashable {
 
     /// Case-insensitive; anything unknown is classic, as theme.ps1's `Get-ThemeId`.
     public init(configValue: String?) {
-        let s = (configValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        self = s == "auto" ? .bySeason : .fixed(Theme(rawValue: s) ?? .classic)
+        self = .parse(configValue) ?? .fixed(.classic)
     }
 
-    public var configValue: String {
+    public init?(rawValue: String) {
+        guard rawValue != "auto" else {
+            self = .bySeason
+            return
+        }
+        guard let t = Theme(rawValue: rawValue) else { return nil }
+        self = .fixed(t)
+    }
+
+    public var rawValue: String {
         switch self {
         case .bySeason: "auto"
         case .fixed(let t): t.rawValue
@@ -98,11 +106,12 @@ public enum ThemeChoice: Sendable, Hashable {
 
     /// Halloween from September to November in the given zone, classic otherwise (`Get-SeasonThemeId`).
     public func theme(at now: Date, in zone: TimeZone) -> Theme {
-        guard case .fixed(let t) = self else {
+        switch self {
+        case .fixed(let t): return t
+        case .bySeason:
             var calendar = Calendar(identifier: .gregorian)
             calendar.timeZone = zone
             return (9 ... 11).contains(calendar.component(.month, from: now)) ? .halloween : .classic
         }
-        return t
     }
 }

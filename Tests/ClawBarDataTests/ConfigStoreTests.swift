@@ -32,7 +32,7 @@ import ClawBarShared
         {"showSky": "false", "topmost": "true", "showStats": 0, "refreshSeconds": "20", "scale": "1.4",
          "warnPercent": 70.5, "critPercent": "90", "weatherLat": "48.2", "weatherLon": 16.4, "left": 100, "top": "200",
          "language": "DE", "claudePath": " /opt/tools/claude ", "launchAtLogin": false, "menuBarMascot": "false",
-         "showHistory": "true", "mainLimit": " Week ", "theme": "Space", "accent": "#F472B6"}
+         "showHistory": "true", "mainLimit": " Week ", "theme": "Space", "accent": " #F472B6 "}
         """)
         let c = ConfigStore(paths: paths).load()
         #expect(c.showSky == false)
@@ -51,7 +51,7 @@ import ClawBarShared
         #expect(c.menuBarMascot == false)
         #expect(c.showHistory == true)
         #expect(c.mainLimit == .week)
-        #expect(c.theme == .fixed(.space) && c.accentColor == RGBA("#FFF472B6"))
+        #expect(c.theme == .fixed(.space) && c.accent == RGBA("#FFF472B6"))
     }
 
     @Test func aThemeIsWrittenByItsNameAndABadAccentStaysForTheUserToFix() throws {

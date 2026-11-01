@@ -6,18 +6,6 @@ public enum WidgetPresenter {
     public static func make(_ input: PresenterInput) -> WidgetViewState {
         Render(input).state()
     }
-
-    /// `make` with the themed colours given, so tests can set a role to a colour no theme has.
-    static func make(_ input: PresenterInput, palette: ThemePalette) -> WidgetViewState {
-        Render(input, palette: palette).state()
-    }
-
-    /// The configured theme, by season in the given zone, with a hand-set accent over its own (`Set-Theme`).
-    static func palette(_ cfg: Config, at now: Date, in zone: TimeZone) -> ThemePalette {
-        var p = cfg.theme.theme(at: now, in: zone).palette
-        if let accent = cfg.accentColor { p.accent = accent }
-        return p
-    }
 }
 
 /// One render: the input, its clamped config, its language and its themed colours, read once.
@@ -29,10 +17,13 @@ private struct Render {
     let data: DataSnapshot
     let now: Date
 
-    init(_ input: PresenterInput, palette: ThemePalette? = nil) {
+    init(_ input: PresenterInput) {
         self.input = input
         cfg = input.config.clamped()
-        self.palette = palette ?? WidgetPresenter.palette(cfg, at: input.now, in: input.timeZone)
+        // The configured theme, by season in the input's zone, with a hand-set accent over its own (`Set-Theme`).
+        var palette = cfg.theme.theme(at: input.now, in: input.timeZone).palette
+        if let accent = cfg.accent { palette.accent = accent }
+        self.palette = palette
         lang = cfg.lang
         data = input.data
         now = input.now
