@@ -1,3 +1,4 @@
+import Foundation
 import ClawBarShared
 
 /// A change asked for in the Settings window.
@@ -5,6 +6,7 @@ enum SettingsAction: Hashable {
     case step(SteppedSetting, up: Bool)
     case toggleTopmost, toggleMainWeek, toggleLaunchAtLogin, toggleMenuBarMascot
     case language(Lang)
+    case theme(ThemeChoice)
     case toggleBlock(WidgetBlock)
     case openConfig
 }
@@ -66,6 +68,8 @@ struct SettingsOption: Hashable {
     var action: SettingsAction
     /// A line under the title saying what the switch changes.
     var detail: String?
+    /// A theme's colours, drawn as upstream's chip: its background with its accent in the middle.
+    var swatch: ThemePalette?
 }
 
 /// One control of a page.
@@ -86,7 +90,10 @@ struct SettingsSection: Hashable {
 
 /// The tabs' pages as data, so they can be tested and dumped as text; rebuilt from the config on every change.
 enum SettingsPage {
-    static func sections(_ tab: SettingsTab, config: Config) -> [SettingsSection] {
+    /// `now` picks the season whose colours the By season swatch shows.
+    static func sections(
+        _ tab: SettingsTab, config: Config, now: Date = Date(), timeZone: TimeZone = .current
+    ) -> [SettingsSection] {
         let lang = config.lang
         func t(_ key: L10nKey) -> String { L10n.t(key, lang) }
         func toggle(
@@ -99,7 +106,18 @@ enum SettingsPage {
         switch tab {
         case .look:
             let languages = Lang.allCases.map { SettingsOption(title: $0.nativeName, on: $0 == lang, action: .language($0)) }
-            return [SettingsSection(rows: [.picker(title: t(.setLanguage), options: languages)]), more]
+            let themes = ThemeChoice.all.map { c in
+                SettingsOption(
+                    title: t(c.title), on: c == config.theme, action: .theme(c),
+                    swatch: c.theme(at: now, in: timeZone).palette
+                )
+            }
+            return [
+                SettingsSection(rows: [
+                    .picker(title: t(.setLanguage), options: languages), .picker(title: t(.setTheme), options: themes),
+                ]),
+                more,
+            ]
         case .widget:
             // The sky sits in Clawd's play area, so it cannot show without him.
             let blocks = WidgetBlock.allCases.map { b in
@@ -155,6 +173,22 @@ enum SettingsPage {
             return "\(title): \(down == nil ? " " : "−") \(value) \(up == nil ? "" : "+")"
         case .note(let s): return s
         case .button(let title, _): return "[\(title)]"
+        }
+    }
+}
+
+extension ThemeChoice {
+    var title: L10nKey {
+        switch self {
+        case .bySeason: .themeAuto
+        case .fixed(.classic): .themeClassic
+        case .fixed(.oled): .themeOled
+        case .fixed(.midnight): .themeMidnight
+        case .fixed(.mocha): .themeMocha
+        case .fixed(.forest): .themeForest
+        case .fixed(.halloween): .themeHalloween
+        case .fixed(.space): .themeSpace
+        case .fixed(.ocean): .themeOcean
         }
     }
 }

@@ -36,7 +36,7 @@ extension RawRepresentable where RawValue == String {
 
 /// The JSON key of every setting in config.json.
 public enum ConfigKey: String, CaseIterable, Sendable {
-    case language, scale, opacity, topmost, mainLimit, warnPercent, critPercent, expanded
+    case language, theme, accent, scale, opacity, topmost, mainLimit, warnPercent, critPercent, expanded
     case showStats, showStatus, showSessions, showAccount, showMascot, showSky, showHistory
     case weatherLat, weatherLon
     case refreshSeconds, usageIntervalSeconds, versionIntervalSeconds, statusIntervalSeconds
@@ -47,6 +47,10 @@ public enum ConfigKey: String, CaseIterable, Sendable {
 /// config.json in memory. Values may be out of range until `clamped()`.
 public struct Config: Sendable, Hashable {
     public var language: String
+    /// The colours: classic by default, where upstream's is by season.
+    public var theme: ThemeChoice
+    /// A hand-set `#RRGGBB` over the theme's accent; `clamped()` drops one that does not parse.
+    public var accent: String?
     public var scale: Double
     public var opacity: Double
     public var topmost: Bool
@@ -83,6 +87,8 @@ public struct Config: Sendable, Hashable {
 
     public init(
         language: String = "en",
+        theme: ThemeChoice = .fixed(.classic),
+        accent: String? = nil,
         scale: Double = 1.2,
         opacity: Double = 1.0,
         topmost: Bool = false,
@@ -112,6 +118,8 @@ public struct Config: Sendable, Hashable {
         menuBarMascot: Bool = true
     ) {
         self.language = language
+        self.theme = theme
+        self.accent = accent
         self.scale = scale
         self.opacity = opacity
         self.topmost = topmost
@@ -142,6 +150,8 @@ public struct Config: Sendable, Hashable {
     }
 
     public var lang: Lang { Lang(configValue: language) }
+
+    public var accentColor: RGBA? { RGBA.parse(accent) }
 
     /// Every number pulled into its range (`ConfigLimits.ranges`), non-finite values back to the default,
     /// out-of-range coordinates unset, and warn never above crit.
@@ -177,6 +187,8 @@ public struct Config: Sendable, Hashable {
         c.top = top.flatMap { $0.isFinite ? $0 : nil }
         let path = claudePath?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         c.claudePath = path.isEmpty ? nil : path
+        // Upstream keeps the previous theme's accent on a bad value; here the theme's own shows.
+        c.accent = accentColor == nil ? nil : accent?.trimmingCharacters(in: .whitespacesAndNewlines)
         return c
     }
 }

@@ -2,9 +2,44 @@ import Foundation
 import Testing
 import ClawBarShared
 
-/// The presenter resolves the themed roles into the view state; no config picks another palette yet, so these
-/// hand one to `render`.
+/// The presenter resolves the configured theme and accent into the view state's themed roles.
 @Suite struct ThemeTests {
+    @Test func theConfiguredThemeColoursTheCard() {
+        let v = render(config: Config(theme: .fixed(.midnight)))
+        #expect(v.palette == Theme.midnight.palette)
+        #expect(v.palette.background == RGBA("#FF0F172A") && v.palette.label == RGBA("#FF64748B"))
+        #expect(v.otherLimit.color == RGBA("#FF38BDF8"))
+        // The levels are not themed.
+        #expect(v.pctColor == Palette.ok)
+    }
+
+    @Test func oledChangesOnlyTheBackground() {
+        var p = ThemePalette.classic
+        p.background = Palette.black
+        #expect(Theme.oled.palette == p)
+    }
+
+    @Test func spaceKeepsTheModelWeeksApartFromItsVioletAccent() {
+        let v = render(config: Config(theme: .fixed(.space)))
+        #expect(v.otherLimit.color == Palette.modelWeekBar)
+        #expect(v.modelWeeks.map(\.color) == [RGBA("#FFF472B6")])
+        #expect(Theme.allCases.filter { $0 != .space }.allSatisfy { $0.palette.modelWeekBar == Palette.modelWeekBar })
+    }
+
+    @Test func bySeasonFollowsTheInputsMonth() {
+        // Samples.now is in October.
+        #expect(render(config: Config(theme: .bySeason)).palette == Theme.halloween.palette)
+        let june = Samples.now.plus(seconds: -120 * 86400)
+        #expect(render(config: Config(theme: .bySeason), now: june).palette == .classic)
+    }
+
+    @Test func aHandSetAccentReplacesTheThemesAndABadOneLeavesIt() {
+        let pink = render(config: Config(theme: .fixed(.forest), accent: "#F472B6"))
+        #expect(pink.palette.accent == RGBA("#FFF472B6") && pink.otherLimit.color == RGBA("#FFF472B6"))
+        #expect(pink.palette.background == Theme.forest.palette.background)
+        #expect(render(config: Config(theme: .fixed(.forest), accent: "pink")).palette == Theme.forest.palette)
+    }
+
     @Test func classicIsTodaysPalette() {
         let c = ThemePalette.classic
         #expect(c.background == Palette.card)

@@ -117,8 +117,43 @@ import ClawBarShared
         #expect(MainLimit.week.other == .session && MainLimit.session.other == .week)
     }
 
+    @Test func theThemeIsClassicUnlessItNamesAnother() {
+        #expect(Config().theme == .fixed(.classic))
+        #expect(ThemeChoice(configValue: " Auto ") == .bySeason)
+        #expect(ThemeChoice(configValue: "OCEAN") == .fixed(.ocean))
+        #expect(ThemeChoice(configValue: "cyberpunk") == .fixed(.classic))
+        #expect(ThemeChoice(configValue: nil) == .fixed(.classic))
+        #expect(ThemeChoice.all.map(\.configValue) == [
+            "auto", "classic", "oled", "midnight", "mocha", "forest", "halloween", "space", "ocean",
+        ])
+    }
+
+    @Test func bySeasonIsHalloweenFromSeptemberToNovemberInTheGivenZone() throws {
+        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
+        let utc = try #require(TimeZone(identifier: "UTC"))
+        // 31 August, 23:30 UTC: already September in Berlin.
+        let edge = Date(timeIntervalSince1970: 1_788_219_000)
+        #expect(ThemeChoice.bySeason.theme(at: edge, in: berlin) == .halloween)
+        #expect(ThemeChoice.bySeason.theme(at: edge, in: utc) == .classic)
+        // 30 November, 23:30 UTC: already December in Berlin.
+        let end = Date(timeIntervalSince1970: 1_796_081_400)
+        #expect(ThemeChoice.bySeason.theme(at: end, in: utc) == .halloween)
+        #expect(ThemeChoice.bySeason.theme(at: end, in: berlin) == .classic)
+        #expect(ThemeChoice.fixed(.mocha).theme(at: edge, in: berlin) == .mocha)
+    }
+
+    @Test func anAccentThatDoesNotParseIsDropped() {
+        #expect(Config(accent: " #F472B6 ").clamped().accent == "#F472B6")
+        #expect(Config(accent: "#F472B6").accentColor == RGBA("#FFF472B6"))
+        #expect(Config(accent: "#80F472B6").accentColor == RGBA("#80F472B6"))
+        for bad in ["F472B6", "#F472B", "#GG72B6", "#+472B6", "pink", ""] {
+            #expect(Config(accent: bad).clamped().accent == nil, "\(bad)")
+        }
+    }
+
     @Test func everyConfigKeyHasAStableJSONName() {
-        #expect(ConfigKey.allCases.count == 28)
+        #expect(ConfigKey.allCases.count == 30)
+        #expect(ConfigKey.theme.rawValue == "theme" && ConfigKey.accent.rawValue == "accent")
         #expect(ConfigKey.mainLimit.rawValue == "mainLimit")
         #expect(ConfigKey.showHistory.rawValue == "showHistory")
         #expect(ConfigKey.usageIntervalSeconds.rawValue == "usageIntervalSeconds")

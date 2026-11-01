@@ -48,7 +48,13 @@ struct SettingsPageView: View {
                 get: { options.firstIndex(where: \.on) ?? 0 },
                 set: { perform(options[$0].action) }
             )) {
-                ForEach(options.indices, id: \.self) { Text(options[$0].title).tag($0) }
+                ForEach(options.indices, id: \.self) { i in
+                    if let swatch = options[i].swatch {
+                        Label { Text(options[i].title) } icon: { Image(nsImage: ThemeSwatch.image(swatch)) }.tag(i)
+                    } else {
+                        Text(options[i].title).tag(i)
+                    }
+                }
             }
         case .stepper(let title, let value, let down, let up):
             // A nil closure disables that half of the stepper.
@@ -63,6 +69,25 @@ struct SettingsPageView: View {
             Text(text).font(.callout).foregroundStyle(.secondary)
         case .button(let title, let action):
             Button(title) { perform(action) }
+        }
+    }
+}
+
+/// Upstream's theme chip: a disc of the theme's background with a faint rim and its accent as a dot in the middle.
+enum ThemeSwatch {
+    static func image(_ p: ThemePalette) -> NSImage {
+        func color(_ c: RGBA) -> NSColor {
+            NSColor(srgbRed: Double(c.r) / 255, green: Double(c.g) / 255, blue: Double(c.b) / 255, alpha: c.alpha)
+        }
+        return NSImage(size: NSSize(width: 12, height: 12), flipped: false) { r in
+            let disc = NSBezierPath(ovalIn: r.insetBy(dx: 0.5, dy: 0.5))
+            color(p.background).setFill()
+            disc.fill()
+            color(RGBA("#40FFFFFF")).setStroke()
+            disc.stroke()
+            color(p.accent).setFill()
+            NSBezierPath(ovalIn: r.insetBy(dx: 3.5, dy: 3.5)).fill()
+            return true
         }
     }
 }

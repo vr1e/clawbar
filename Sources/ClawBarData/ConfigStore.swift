@@ -80,6 +80,8 @@ public final class ConfigStore {
         let d = Config()
         var c = d
         c.language = j["language"] as? String ?? d.language
+        c.theme = ThemeChoice(configValue: j["theme"] as? String)
+        c.accent = j["accent"] as? String
         c.scale = Lenient.double(j["scale"]) ?? d.scale
         c.opacity = Lenient.double(j["opacity"]) ?? d.opacity
         c.topmost = Lenient.bool(j["topmost"]) ?? d.topmost
@@ -122,6 +124,8 @@ public final class ConfigStore {
     static func value(_ c: Config, _ k: ConfigKey) -> AnyHashable? {
         switch k {
         case .language: c.language
+        case .theme: c.theme.configValue
+        case .accent: c.accent.map(AnyHashable.init)
         case .scale: c.scale
         case .opacity: c.opacity
         case .topmost: c.topmost
