@@ -64,8 +64,7 @@ enum UsageParser {
             guard let month = Months.number[(m[1] ?? "").lowercased()], let day = Int(m[2] ?? ""), (1 ... 31).contains(day),
                   let (hour, minute) = clock(m[4], m[5], m[6])
             else { return nil }
-            let zone = m[7].flatMap { TimeZone(identifier: $0.trimmingCharacters(in: .whitespaces)) } ?? timeZone
-            let cal = Calendar.gregorian(in: zone)
+            let cal = calendar(m[7], else: timeZone)
             if let year = m[3].flatMap({ Int($0) }) {
                 return date(cal, year, month, day, hour, minute)
             }
@@ -77,8 +76,7 @@ enum UsageParser {
         }
         if let m = Rx.first(timeOnlyStamp, in: stamp) {
             guard let (hour, minute) = clock(m[1], m[2], m[3]) else { return nil }
-            let zone = m[4].flatMap { TimeZone(identifier: $0.trimmingCharacters(in: .whitespaces)) } ?? timeZone
-            let cal = Calendar.gregorian(in: zone)
+            let cal = calendar(m[4], else: timeZone)
             let today = cal.dateComponents([.year, .month, .day], from: now)
             guard let y = today.year, let mo = today.month, let d = today.day,
                   let at = date(cal, y, mo, d, hour, minute)
@@ -89,6 +87,11 @@ enum UsageParser {
     }
 
     // MARK: - Pieces
+
+    /// A calendar in the stamp's named zone, or in `fallback` when it names none Foundation knows.
+    private static func calendar(_ name: String?, else fallback: TimeZone) -> Calendar {
+        Calendar.gregorian(in: name.flatMap { TimeZone(identifier: $0.trimmingCharacters(in: .whitespaces)) } ?? fallback)
+    }
 
     private static func modelName(_ s: String) -> String {
         s.lowercased().hasSuffix(" only") ? String(s.dropLast(5)).trimmingCharacters(in: .whitespaces) : s
