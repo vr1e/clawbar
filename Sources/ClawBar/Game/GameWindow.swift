@@ -46,7 +46,7 @@ final class GameHostView: HostView<GameView> {
     override func mouseUp(with event: NSEvent) { onMouse(false) }
 }
 
-/// Clawd Run's window: opened from the card's button or the menu while the session limit is used up.
+/// Clawd Run's window: opened from the card's button or the menu while the main limit is used up.
 /// Steps the engine in fixed ticks off the real clock while the window is key; behind other windows the round waits.
 final class GameWindowController: NSObject, NSWindowDelegate {
     static let jumpKeys = Set([kVK_Space, kVK_UpArrow, kVK_ANSI_W].map(UInt16.init))

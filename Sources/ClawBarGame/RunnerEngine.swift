@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 import ClawBarShared
 
-/// Clawd Run: the Chrome dinosaur's game with Clawd, for while the session limit is used up.
+/// Clawd Run: the Chrome dinosaur's game with Clawd, for while the main limit is used up.
 /// Advances one fixed tick per `step`; randomness is injected, so a seed replays a round exactly.
 public final class RunnerEngine {
     typealias T = RunnerTuning

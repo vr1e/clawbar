@@ -13,15 +13,15 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
     func theLevelColoursTheNumberTheBarAndTheMenuBar(pct: Int, color: RGBA) {
         let v = render(sample { $0.sessionPercent = pct })
         #expect(v.pctText == "\(pct)")
-        #expect(v.pctColor == color && v.sessionBarColor == color && v.trayColor == color)
+        #expect(v.pctColor == color && v.mainBarColor == color && v.trayColor == color)
         #expect(v.trayText == "\(pct)")
-        #expect(v.sessionFraction == Double(pct) / 100)
+        #expect(v.mainFraction == Double(pct) / 100)
     }
 
     @Test func pastTheLimitTheBarIsFullAndTheNumberHonest() {
         let v = render(sample { $0.sessionPercent = 130 })
         #expect(v.pctText == "130")
-        #expect(v.sessionFraction == 1)
+        #expect(v.mainFraction == 1)
     }
 
     @Test func thresholdsComeFromTheConfigClamped() {
@@ -50,7 +50,7 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         d.usageProbeCompleted = true
         let v = render(d)
         #expect(v.resetText == "no data")
-        #expect(v.pctText == "--" && v.pctColor == Palette.dead && v.sessionFraction == 0)
+        #expect(v.pctText == "--" && v.pctColor == Palette.dead && v.mainFraction == 0)
         #expect(v.trayText == "--" && v.trayColor == Palette.dead && v.trayTooltip == "ClawBar: no data")
         #expect(render(d, lang: .de).resetText == "keine Daten")
         #expect(render(DataSnapshot.empty, lang: .de).resetText == "wird geladen …")
@@ -60,8 +60,40 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         let v = render(sample { $0.sessionPercent = nil })
         #expect(v.pctText == "--")
         #expect(v.resetText == "no data")
-        #expect(v.week.value == "59%  ·  4d 15h")
+        #expect(v.otherLimit.value == "59%  ·  4d 15h")
         #expect(v.trayTooltip == "ClawBar: no data" + sessionsLine)
+    }
+}
+
+/// mainLimit = week: the week takes the number, the bar, the reset line and the pill; the session takes its row.
+@Suite struct WeekAsMainTests {
+    private let week = Config(mainLimit: .week)
+
+    @Test func theWeekTakesTheBigNumberAndTheSessionItsRow() {
+        let v = render(config: week)
+        #expect(v.pctText == "59" && v.pctColor == Palette.ok && v.mainFraction == 0.59)
+        #expect(v.resetText == "resets in 4d 15h")
+        #expect(v.trayText == "59")
+        #expect(v.otherLimit == BarRow(label: "SESSION · 5H", value: "34%  ·  2h 05m", fraction: 0.34, color: Palette.weekBar))
+        #expect(render(config: week, lang: .de).otherLimit.label == "SITZUNG · 5 STD.")
+    }
+
+    @Test func theMenuBarTooltipStartsWithTheWeek() {
+        #expect(render(config: week).trayTooltip
+            == "week 59% · 4d 15h (Thu 06:00)\n34% of session · 2h 05m (16:10)\nFable 8% · 4d 15h (Thu 06:00)" + sessionsLine)
+    }
+
+    @Test func theLevelsAndTheGameFollowTheWeek() {
+        let full = render(sample { $0.weekPercent = 100 }, config: week)
+        #expect(full.pctColor == Palette.crit && full.limitReached)
+        #expect(!render(sample { $0.sessionPercent = 100 }, config: week).limitReached)
+    }
+
+    @Test func withoutAWeekNumberTheNumberIsMissingAndTheSessionStillShows() {
+        let v = render(sample { $0.weekPercent = nil }, config: week)
+        #expect(v.pctText == "--" && v.resetText == "no data")
+        #expect(v.otherLimit.value == "34%  ·  2h 05m")
+        #expect(render(sample { $0.sessionPercent = nil }, config: week).otherLimit.value == "no data")
     }
 }
 
@@ -142,13 +174,13 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
 @Suite struct WeekRowTests {
     @Test func noWeekNumberIsNoData() {
         let v = render(sample { $0.weekPercent = nil })
-        #expect(v.week == BarRow(label: "WEEK", value: "no data", fraction: 0, color: Palette.weekBar))
+        #expect(v.otherLimit == BarRow(label: "WEEK", value: "no data", fraction: 0, color: Palette.weekBar))
     }
 
     @Test func aPastOrMissingResetShowsOnlyThePercentage() {
-        #expect(render(sample { $0.weekReset = Samples.now.plus(hours: -1) }).week.value == "59%")
-        #expect(render(sample { $0.weekReset = nil }).week.value == "59%")
-        #expect(render(sample { $0.weekPercent = 140 }).week.fraction == 1)
+        #expect(render(sample { $0.weekReset = Samples.now.plus(hours: -1) }).otherLimit.value == "59%")
+        #expect(render(sample { $0.weekReset = nil }).otherLimit.value == "59%")
+        #expect(render(sample { $0.weekPercent = 140 }).otherLimit.fraction == 1)
     }
 
     @Test func everyModelWeekGetsItsOwnRowInOrder() {

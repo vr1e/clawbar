@@ -28,7 +28,7 @@ public struct PresenterInput: Sendable, Hashable {
     }
 }
 
-/// A labelled row with a thin bar under it: WEEK, or a model's week.
+/// A labelled row with a thin bar under it: the other limit, or a model's week.
 public struct BarRow: Sendable, Hashable {
     public var label: String
     public var value: String
@@ -189,27 +189,27 @@ public struct WidgetViewState: Sendable, Hashable {
     /// ▾ closed, ▴ open.
     public var detailsGlyph: String
 
-    // Percent row and session bar
+    // Percent row and the main limit's bar
     /// The number without `%` ("42"), or "--".
     public var pctText: String
     public var pctColor: RGBA
-    public var sessionFraction: Double
-    public var sessionBarColor: RGBA
+    public var mainFraction: Double
+    public var mainBarColor: RGBA
 
     // Reset line
     public var resetText: String
     public var resetColor: RGBA
 
     // Clawd Run
-    /// The session limit is used up: the card and the menu offer the game.
+    /// The main limit is used up: the card and the menu offer the game.
     public var limitReached: Bool
     /// The button under the reset line, shown while the limit is reached.
     public var playText: String
     /// The game's corner: the time until the limit resets while it lasts, then the news that it has.
     public var gameCaption: String
 
-    // Week and model weeks
-    public var week: BarRow
+    // The other limit (the week, or the session while the week is main) and the model weeks
+    public var otherLimit: BarRow
     public var modelWeeks: [BarRow]
 
     // Sessions
@@ -263,14 +263,14 @@ public struct WidgetViewState: Sendable, Hashable {
         detailsGlyph: String = "▾",
         pctText: String = "--",
         pctColor: RGBA = Palette.dead,
-        sessionFraction: Double = 0,
-        sessionBarColor: RGBA = Palette.dead,
+        mainFraction: Double = 0,
+        mainBarColor: RGBA = Palette.dead,
         resetText: String = "",
         resetColor: RGBA = Palette.secondary,
         limitReached: Bool = false,
         playText: String = "",
         gameCaption: String = "",
-        week: BarRow = BarRow(label: "WEEK", value: "", fraction: 0, color: Palette.weekBar),
+        otherLimit: BarRow = BarRow(label: "WEEK", value: "", fraction: 0, color: Palette.weekBar),
         modelWeeks: [BarRow] = [],
         sessionsLabel: String = "SESSIONS",
         sessionsText: String = "",
@@ -307,14 +307,14 @@ public struct WidgetViewState: Sendable, Hashable {
         self.detailsGlyph = detailsGlyph
         self.pctText = pctText
         self.pctColor = pctColor
-        self.sessionFraction = sessionFraction
-        self.sessionBarColor = sessionBarColor
+        self.mainFraction = mainFraction
+        self.mainBarColor = mainBarColor
         self.resetText = resetText
         self.resetColor = resetColor
         self.limitReached = limitReached
         self.playText = playText
         self.gameCaption = gameCaption
-        self.week = week
+        self.otherLimit = otherLimit
         self.modelWeeks = modelWeeks
         self.sessionsLabel = sessionsLabel
         self.sessionsText = sessionsText

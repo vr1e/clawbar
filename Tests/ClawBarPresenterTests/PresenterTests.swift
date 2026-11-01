@@ -22,10 +22,10 @@ import ClawBarShared
                 CardPart(.status, tooltip: "status.claude.com öffnen"),
                 CardPart(.account, tooltip: "Max  ·  user@example.com"),
             ],
-            pctText: "34", pctColor: Palette.ok, sessionFraction: 0.34, sessionBarColor: Palette.ok,
+            pctText: "34", pctColor: Palette.ok, mainFraction: 0.34, mainBarColor: Palette.ok,
             resetText: "wird in 2h 05min zurückgesetzt",
             gameCaption: "Das Limit ist zurückgesetzt: zurück an die Arbeit!",
-            week: BarRow(label: "WOCHE", value: "59%  ·  4d 15h", fraction: 0.59, color: Palette.weekBar),
+            otherLimit: BarRow(label: "WOCHE", value: "59%  ·  4d 15h", fraction: 0.59, color: Palette.weekBar),
             modelWeeks: [BarRow(label: "FABLE · WOCHE", value: "8%  ·  4d 15h", fraction: 0.08, color: Palette.modelWeekBar)],
             sessionsLabel: "SITZUNGEN",
             sessionsText: "2 Sitzungen  ·  1 aktiv  ·  1 wartend",
@@ -69,7 +69,7 @@ import ClawBarShared
             config: Config(), now: then, timeZone: TimeZone(identifier: "Asia/Tokyo")!, data: d, homeDirectory: Samples.home
         ))
         #expect(v.resetText == "resets in 2h 05m")
-        #expect(v.week.value == "59%  ·  4d 15h")
+        #expect(v.otherLimit.value == "59%  ·  4d 15h")
         #expect(v.stampText == "10:46:15")
         #expect(v.statusText == "All Claude systems operational")
     }

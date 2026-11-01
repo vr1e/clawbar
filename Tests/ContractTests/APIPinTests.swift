@@ -48,7 +48,7 @@ private func pinPresenter() {
 
 private func pinClawd() {
     let engine = ClawdEngine(random: SeededRandomSource(seed: 1), now: Date())
-    engine.apply(ClawdDataInput(busy: 0, waiting: 0, sessionCount: 0, pct: nil, sessionReset: nil, critPercent: 85), now: Date())
+    engine.apply(ClawdDataInput(busy: 0, waiting: 0, sessionCount: 0, limit: .session, pct: nil, reset: nil, critPercent: 85), now: Date())
     engine.click(now: Date())
     let _: ClawdFrame = engine.step(ClawdStepEnv(areaWidth: 180, mouseOverWindow: false, mouseX: nil, now: Date(), lang: .en))
     let _: Int = engine.tickMilliseconds

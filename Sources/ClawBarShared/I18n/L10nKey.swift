@@ -7,6 +7,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case uiHide = "ui.hide"
     case uiExit = "ui.exit"
     case uiWeek = "ui.week"
+    case uiSession = "ui.session"
     /// `{0} · WEEK` with the upper-cased model name: FABLE · WEEK, SONNET · WEEK.
     case uiModelWeek = "ui.modelWeek"
     case uiSessions = "ui.sessions"
@@ -132,6 +133,8 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case setSize = "set.size"
     case setOpacity = "set.opacity"
     case setTopmost = "set.topmost"
+    case setMainWeek = "set.mainWeek"
+    case setMainWeekTip = "set.mainWeekTip"
     case setShown = "set.shown"
     case setSystem = "set.system"
     case setLogin = "set.login"
@@ -173,6 +176,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case health5 = "health.5"
     case health6 = "health.6"
     case heartsLeft = "hearts.left"
+    case heartsLeftWeek = "hearts.leftWeek"
 
     // Clawd
     case moodSleep = "mood.sleep"

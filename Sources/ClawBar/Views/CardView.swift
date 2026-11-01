@@ -18,7 +18,7 @@ struct CardView: View {
                 .padding(.bottom, 6 * k)
             PercentRow(v: v, mascot: app.mascotVisible, sky: app.skyVisible, animation: animation, layout: layout)
                 .padding(.bottom, 4 * k)
-            Bar(fraction: v.sessionFraction, color: v.sessionBarColor, height: 6, radius: 3)
+            Bar(fraction: v.mainFraction, color: v.mainBarColor, height: 6, radius: 3)
                 .padding(.bottom, 7 * k)
             // An empty TextBlock keeps its line box in WPF, so the card keeps its height without a reset time.
             WText(v.resetText.isEmpty ? " " : v.resetText, 11, color: v.resetColor, wraps: true)
@@ -30,9 +30,9 @@ struct CardView: View {
                     .publish(.part(.play), to: layout)
                     .padding(.bottom, 10 * k)
             }
-            BarLabelRow(row: v.week, palette: v.palette)
+            BarLabelRow(row: v.otherLimit, palette: v.palette)
                 .padding(.bottom, 4 * k)
-            Bar(fraction: v.week.fraction, color: v.week.color, height: 4, radius: 2)
+            Bar(fraction: v.otherLimit.fraction, color: v.otherLimit.color, height: 4, radius: 2)
                 .padding(.bottom, 7 * k)
             ForEach(Array(v.modelWeeks.enumerated()), id: \.offset) { i, row in
                 BarLabelRow(row: row, palette: v.palette)

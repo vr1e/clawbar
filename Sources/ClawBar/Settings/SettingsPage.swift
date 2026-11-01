@@ -3,7 +3,7 @@ import ClawBarShared
 /// A change asked for in the Settings window.
 enum SettingsAction: Hashable {
     case step(SteppedSetting, up: Bool)
-    case toggleTopmost, toggleLaunchAtLogin, toggleMenuBarMascot
+    case toggleTopmost, toggleMainWeek, toggleLaunchAtLogin, toggleMenuBarMascot
     case language(Lang)
     case toggleBlock(WidgetBlock)
     case openConfig
@@ -64,6 +64,8 @@ struct SettingsOption: Hashable {
     var on: Bool
     var enabled = true
     var action: SettingsAction
+    /// A line under the title saying what the switch changes.
+    var detail: String?
 }
 
 /// One control of a page.
@@ -87,8 +89,10 @@ enum SettingsPage {
     static func sections(_ tab: SettingsTab, config: Config) -> [SettingsSection] {
         let lang = config.lang
         func t(_ key: L10nKey) -> String { L10n.t(key, lang) }
-        func toggle(_ key: L10nKey, _ on: Bool, _ action: SettingsAction, enabled: Bool = true) -> SettingsRow {
-            .toggle(SettingsOption(title: t(key), on: on, enabled: enabled, action: action))
+        func toggle(
+            _ key: L10nKey, _ on: Bool, _ action: SettingsAction, enabled: Bool = true, detail: L10nKey? = nil
+        ) -> SettingsRow {
+            .toggle(SettingsOption(title: t(key), on: on, enabled: enabled, action: action, detail: detail.map(t)))
         }
         // As the original's footer, on every tab: what the window leaves to config.json.
         let more = SettingsSection(rows: [.note(t(.setMore)), .button(title: t(.setConfig), action: .openConfig)])
@@ -109,7 +113,10 @@ enum SettingsPage {
                         decrease: s.next(from: v, up: false).map { _ in .step(s, up: false) },
                         increase: s.next(from: v, up: true).map { _ in .step(s, up: true) }
                     )
-                } + [toggle(.setTopmost, config.topmost, .toggleTopmost)]),
+                } + [
+                    toggle(.setTopmost, config.topmost, .toggleTopmost),
+                    toggle(.setMainWeek, config.mainLimit == .week, .toggleMainWeek, detail: .setMainWeekTip),
+                ]),
                 SettingsSection(header: t(.setShown), rows: blocks),
                 SettingsSection(header: t(.setSystem), rows: [
                     toggle(.setLogin, config.launchAtLogin, .toggleLaunchAtLogin),
@@ -141,7 +148,7 @@ enum SettingsPage {
     private static func line(_ row: SettingsRow) -> String {
         func disabled(_ o: SettingsOption) -> String { o.enabled ? "" : "  (disabled)" }
         switch row {
-        case .toggle(let o): return (o.on ? "[x] " : "[ ] ") + o.title + disabled(o)
+        case .toggle(let o): return (o.on ? "[x] " : "[ ] ") + o.title + disabled(o) + (o.detail.map { "\n        " + $0 } ?? "")
         case .picker(let title, let options):
             return title + ": " + options.map { ($0.on ? "(•) " : "( ) ") + $0.title }.joined(separator: "  ")
         case .stepper(let title, let value, let down, let up):

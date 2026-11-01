@@ -83,6 +83,7 @@ public final class ConfigStore {
         c.scale = Lenient.double(j["scale"]) ?? d.scale
         c.opacity = Lenient.double(j["opacity"]) ?? d.opacity
         c.topmost = Lenient.bool(j["topmost"]) ?? d.topmost
+        c.mainLimit = MainLimit(configValue: j["mainLimit"] as? String)
         c.warnPercent = Lenient.int(j["warnPercent"]) ?? d.warnPercent
         c.critPercent = Lenient.int(j["critPercent"]) ?? d.critPercent
         c.expanded = Lenient.bool(j["expanded"]) ?? d.expanded
@@ -124,6 +125,7 @@ public final class ConfigStore {
         case .scale: c.scale
         case .opacity: c.opacity
         case .topmost: c.topmost
+        case .mainLimit: c.mainLimit.rawValue
         case .warnPercent: c.warnPercent
         case .critPercent: c.critPercent
         case .expanded: c.expanded

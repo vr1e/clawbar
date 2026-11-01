@@ -87,6 +87,35 @@ public struct UsageSnapshot: Sendable, Hashable {
         self.day = day
         self.week7 = week7
     }
+
+    /// One of the two limits `MainLimit` chooses between.
+    public func limit(_ kind: MainLimit) -> UsageLimit {
+        switch kind {
+        case .session: UsageLimit(kind: .session, percent: sessionPercent, reset: sessionReset)
+        case .week: UsageLimit(kind: .week, percent: weekPercent, reset: weekReset)
+        }
+    }
+}
+
+/// The session or the all-models week: its percentage and reset, nil without data.
+public struct UsageLimit: Sendable, Hashable {
+    public var kind: MainLimit
+    public var percent: Int?
+    public var reset: Date?
+
+    public init(kind: MainLimit, percent: Int? = nil, reset: Date? = nil) {
+        self.kind = kind
+        self.percent = percent
+        self.reset = reset
+    }
+}
+
+extension MainLimit {
+    /// The limit that is not main: it takes the row under the big number.
+    public var other: MainLimit { self == .session ? .week : .session }
+
+    /// Get-Limits: this limit of `usage`, empty without one.
+    public func of(_ usage: UsageSnapshot?) -> UsageLimit { usage?.limit(self) ?? UsageLimit(kind: self) }
 }
 
 /// The session and week percentages at one minute, for the 7-day history.

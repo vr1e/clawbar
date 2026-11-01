@@ -19,7 +19,7 @@ import ClawBarShared
     @Test func claudeNotFoundShowsTheInstallHintInRedAndGreyDashesInTheMenuBar() {
         let v = issue(.claudeNotFound)
         #expect(v.resetText == Self.noClaudeEN && v.resetColor == Palette.crit && v.tooltip(.reset) == Self.noClaudeEN)
-        #expect(v.pctText == "--" && v.pctColor == Palette.dead && v.sessionFraction == 0)
+        #expect(v.pctText == "--" && v.pctColor == Palette.dead && v.mainFraction == 0)
         #expect(v.trayText == "--" && v.trayColor == Palette.dead && v.trayTooltip == Self.noClaudeEN)
         let de = issue(.claudeNotFound, lang: .de)
         #expect(de.resetText == "Claude Code nicht gefunden. Installieren:\ncurl -fsSL https://claude.ai/install.sh | bash")
@@ -31,7 +31,7 @@ import ClawBarShared
         #expect(v.pctText == "--" && v.trayText == "--" && v.trayColor == Palette.dead)
         #expect(v.resetText == Self.noClaudeEN)
         // The weekly rows keep their last value; the stamp says how old it is.
-        #expect(v.week.value == "59%  ·  4d 15h")
+        #expect(v.otherLimit.value == "59%  ·  4d 15h")
     }
 
     @Test func noLimitsIsNoDataWithAnExplanation() {

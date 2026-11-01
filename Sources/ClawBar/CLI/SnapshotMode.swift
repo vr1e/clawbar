@@ -59,6 +59,7 @@ enum SnapshotCases {
         add("crit") { $0.data.usage?.sessionPercent = 91 }
         add("limit") { $0.data.usage?.sessionPercent = 100 }
         add("reset-passed") { $0.data.usage?.sessionReset = now.addingTimeInterval(-60) }
+        add("week-main") { $0.config.mainLimit = .week }
         add("claude-not-found") { noUsage(&$0, .claudeNotFound) }
         add("no-limits") { noLimits(&$0) }
         add("probe-failed") { $0.data.usageIssue = .probeFailed("exit 1") }
@@ -323,7 +324,7 @@ enum SnapshotMode {
                 MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: false))
             ),
             (
-                "Status menu, session limit used up",
+                "Status menu, main limit used up",
                 MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: true, limitReached: true))
             ),
             ("Settings window", SettingsPage.dump(config: Config(language: lang.rawValue))),

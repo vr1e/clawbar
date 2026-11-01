@@ -46,6 +46,7 @@ public final class ClawdEngine {
     /// −1 until the first data: the first refresh never counts as a finished reply.
     private var busy = -1
     private var waiting = 0
+    private var limit = MainLimit.session
     private var lastReset: Date?
     private var lastPct: Int?
     private var buried = false
@@ -84,8 +85,15 @@ public final class ClawdEngine {
         crit = input.pct.map { $0 >= input.critPercent } ?? false
         pct = input.pct
 
-        // The 5-hour window reset: the reset time moved forward and the percentage dropped.
-        if let reset = input.sessionReset {
+        // A switched main limit starts over, so the switch is neither a reset nor a lost heart.
+        if input.limit != limit {
+            limit = input.limit
+            lastReset = nil
+            lastPct = nil
+            hearts.forget()
+        }
+        // The main limit reset: the reset time moved forward and the percentage dropped.
+        if let reset = input.reset {
             if let lastReset, reset > lastReset, let lastPct, let p = input.pct, p < lastPct { startAct(.celebrate) }
             lastReset = reset
             lastPct = input.pct
@@ -393,7 +401,7 @@ public final class ClawdEngine {
 
         let heartsFrame = hearts.step(
             ClawdHealth.halves(forceHearts: forceHearts, force: force, pct: pct),
-            pct: pct, forced: forceHearts != nil, tick: tick, lang: env.lang
+            pct: pct, limit: limit, forced: forceHearts != nil, tick: tick, lang: env.lang
         )
 
         // Confetti: falls, drifts sideways and shimmers as it flips.

@@ -109,8 +109,17 @@ import ClawBarShared
         #expect(Lang.en.nativeName == "English")
     }
 
+    @Test func mainLimitIsTheWeekOnlyWhenItSaysSo() {
+        #expect(Config().mainLimit == .session)
+        #expect(MainLimit(configValue: "WEEK") == .week)
+        #expect(MainLimit(configValue: "weekly") == .session)
+        #expect(MainLimit(configValue: nil) == .session)
+        #expect(MainLimit.week.other == .session && MainLimit.session.other == .week)
+    }
+
     @Test func everyConfigKeyHasAStableJSONName() {
-        #expect(ConfigKey.allCases.count == 27)
+        #expect(ConfigKey.allCases.count == 28)
+        #expect(ConfigKey.mainLimit.rawValue == "mainLimit")
         #expect(ConfigKey.showHistory.rawValue == "showHistory")
         #expect(ConfigKey.usageIntervalSeconds.rawValue == "usageIntervalSeconds")
         #expect(ConfigKey.launchAtLogin.rawValue == "launchAtLogin")
