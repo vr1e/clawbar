@@ -182,10 +182,10 @@ enum SteppedSetting: CaseIterable, Hashable {
     private var range: ClosedRange<Double> { self == .size ? ConfigLimits.ranges[.scale]! : 0.3 ... 1.0 }
 
     /// One step, rounded to two decimals like [math]::Round; nil where the value cannot move that way.
-    /// Clamped only at the end it moves toward, as the original: a hand-set 0.2 opacity steps up to 0.25, never down.
+    /// Clamped only at the end it moves toward, so a hand-set 0.2 opacity steps up to 0.25 as in the original; '−' stays disabled.
     func next(from value: Double, up: Bool) -> Double? {
         let v = ((value + (up ? step : -step)) * 100).rounded(.toNearestOrEven) / 100
-        if up { let c = min(range.upperBound, v); return c > value ? c : nil }
-        let c = max(range.lowerBound, v); return c < value ? c : nil
+        let c = up ? min(range.upperBound, v) : max(range.lowerBound, v)
+        return (up ? c > value : c < value) ? c : nil
     }
 }

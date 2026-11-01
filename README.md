@@ -173,6 +173,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 - The Settings window is a native one with the original's Look and Window tabs, the second named Widget; Look has
   only the language until themes and skins arrive. Widget adds launch at login and Clawd in menu bar, and drops the
   original's reset-clock and administrator switches. There is no gear in the widget's header: Settings… is in the menu.
+  A stepper's button is disabled at the end of its range, so below 0.3 opacity '−' does nothing where the original's
+  raises the value to 0.3.
 - When the widget grows (details, size, more sessions) or Settings switches to a taller tab, the window moves up or
   left just enough to stay on screen, where the original's widget grows past the screen's edge.
 - The menu bar item's tooltip gives every limit a line of its own, each model's week included, with the time left
