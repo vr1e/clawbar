@@ -18,7 +18,7 @@ struct SnapshotCase {
     /// False for a state that only its menu bar tooltip shows, so it gets no PNG.
     var card = true
     /// False for a theme, which changes colours alone: one card, in English at k 1.2.
-    var everySize = true
+    var everyLanguageAndSize = true
     /// The pointer this far into the 7-day chart, in base units.
     var hoverX: Double?
 }
@@ -142,12 +142,12 @@ enum SnapshotCases {
         add("snow") { $0.skyDev = SkyDevState(phase: .day, weatherCode: 73) }
         for theme in Theme.allCases {
             add("theme-\(theme.rawValue)") {
-                $0.everySize = false
+                $0.everyLanguageAndSize = false
                 $0.config.theme = .fixed(theme)
             }
         }
         add("theme-accent") {
-            $0.everySize = false
+            $0.everyLanguageAndSize = false
             $0.config.accent = "#F472B6"
         }
         add("reset-tomorrow") {
@@ -184,8 +184,8 @@ enum SnapshotMode {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         var out: [URL] = []
         for c in SnapshotCases.all() where c.card {
-            for lang in c.everySize ? Lang.allCases : [.en] {
-                for k in c.everySize ? scales : [1.2] {
+            for lang in c.everyLanguageAndSize ? Lang.allCases : [.en] {
+                for k in c.everyLanguageAndSize ? scales : [1.2] {
                     guard let card = renderCard(c, lang: lang, scale: k), let image = Imaging.onBackdrop(card, pad: 24, color: backdrop) else {
                         throw CLIError(message: "rendering \(c.name) failed")
                     }

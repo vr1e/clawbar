@@ -75,7 +75,7 @@ the file is not valid JSON, ClawBar runs on the defaults and the widget's last-u
 |---|---|---|
 | `language` | `en` | `en` or `de` |
 | `theme` | `classic` | colours: `classic`, `oled`, `midnight`, `mocha`, `forest`, `halloween`, `space`, `ocean`, or `auto` (Halloween in September–November, Classic otherwise), also in **Settings › Look** |
-| `accent` | unset | your own `#RRGGBB` for the weekly bar and the chart's week line, over the theme's |
+| `accent` | unset | your own `#RRGGBB` or `#AARRGGBB` for the weekly bar and the chart's week line, over the theme's |
 | `scale` | `1.2` | widget size, 0.6–4.0 |
 | `opacity` | `1.0` | 0.2–1.0 |
 | `topmost` | `false` | keep the widget above other windows |
@@ -180,9 +180,10 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   A stepper's button is disabled at the end of its range, so below 0.3 opacity '−' does nothing where the original's
   raises the value to 0.3.
 - The theme is Classic by default; the original's default follows the season (By season here). In Space the
-  model weeks' bars are pink, since its violet accent is the original's model-week colour. An `accent` that is not
-  `#RRGGBB` shows the theme's own, where the original keeps the previous theme's. The Halloween, Space and Underwater
-  patterns behind the widget and the Cyberpunk theme are not ported yet.
+  model weeks' bars are pink, since its violet accent is the original's model-week colour. An `accent` is read only
+  as `#RRGGBB` or `#AARRGGBB`, where the original also takes colour names and short hex; anything else shows the
+  theme's own, where the original keeps the previous theme's. The Halloween, Space and Underwater patterns behind the
+  widget and the Cyberpunk theme are not ported yet.
 - When the widget grows (details, size, more sessions) or Settings switches to a taller tab, the window moves up or
   left just enough to stay on screen, where the original's widget grows past the screen's edge.
 - The menu bar item's tooltip gives every limit a line of its own, each model's week included, with the time left

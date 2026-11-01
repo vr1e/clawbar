@@ -41,7 +41,7 @@ public struct ThemePalette: Sendable, Hashable {
     )
 }
 
-/// The config's choice of look: theme.ps1's `$Themes`, in its order. Upstream's `cyberpunk` (1.18.0) is not ported yet.
+/// A named look whose colours are a theme palette: theme.ps1's `$Themes`, in its order. Upstream's `cyberpunk` (1.18.0) is not ported yet.
 public enum Theme: String, Sendable, CaseIterable {
     case classic, oled, midnight, mocha, forest, halloween, space, ocean
 

@@ -4,20 +4,19 @@ import ClawBarShared
 /// Every render rule of update.ps1 and format.ps1, as a pure function of its input.
 public enum WidgetPresenter {
     public static func make(_ input: PresenterInput) -> WidgetViewState {
-        make(input, palette: palette(input))
+        Render(input).state()
     }
 
-    /// The configured theme, by season in the input's zone, with a hand-set accent over its own (`Set-Theme`).
-    static func palette(_ input: PresenterInput) -> ThemePalette {
-        let cfg = input.config.clamped()
-        var p = cfg.theme.theme(at: input.now, in: input.timeZone).palette
-        if let accent = cfg.accentColor { p.accent = accent }
-        return p
-    }
-
-    /// `make` with the themed colours given, so tests can recolour a role that no config chooses yet.
+    /// `make` with the themed colours given, so tests can set a role to a colour no theme has.
     static func make(_ input: PresenterInput, palette: ThemePalette) -> WidgetViewState {
         Render(input, palette: palette).state()
+    }
+
+    /// The configured theme, by season in the given zone, with a hand-set accent over its own (`Set-Theme`).
+    static func palette(_ cfg: Config, at now: Date, in zone: TimeZone) -> ThemePalette {
+        var p = cfg.theme.theme(at: now, in: zone).palette
+        if let accent = cfg.accentColor { p.accent = accent }
+        return p
     }
 }
 
@@ -30,10 +29,10 @@ private struct Render {
     let data: DataSnapshot
     let now: Date
 
-    init(_ input: PresenterInput, palette: ThemePalette) {
+    init(_ input: PresenterInput, palette: ThemePalette? = nil) {
         self.input = input
-        self.palette = palette
         cfg = input.config.clamped()
+        self.palette = palette ?? WidgetPresenter.palette(cfg, at: input.now, in: input.timeZone)
         lang = cfg.lang
         data = input.data
         now = input.now

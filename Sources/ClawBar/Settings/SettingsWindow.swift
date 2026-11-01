@@ -76,9 +76,7 @@ struct SettingsPageView: View {
 /// Upstream's theme chip: a disc of the theme's background with a faint rim and its accent as a dot in the middle.
 enum ThemeSwatch {
     static func image(_ p: ThemePalette) -> NSImage {
-        func color(_ c: RGBA) -> NSColor {
-            NSColor(srgbRed: Double(c.r) / 255, green: Double(c.g) / 255, blue: Double(c.b) / 255, alpha: c.alpha)
-        }
+        func color(_ c: RGBA) -> NSColor { NSColor(cgColor: cgColor(c)) ?? .clear }
         return NSImage(size: NSSize(width: 12, height: 12), flipped: false) { r in
             let disc = NSBezierPath(ovalIn: r.insetBy(dx: 0.5, dy: 0.5))
             color(p.background).setFill()

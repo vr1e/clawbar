@@ -14,9 +14,12 @@ import ClawBarShared
     }
 
     @Test func oledChangesOnlyTheBackground() {
-        var p = ThemePalette.classic
-        p.background = Palette.black
-        #expect(Theme.oled.palette == p)
+        let o = Theme.oled.palette, c = ThemePalette.classic
+        #expect(o.background == RGBA("#FF000000") && c.background != o.background)
+        #expect(
+            [o.secondary, o.muted, o.label, o.footer, o.accent, o.modelWeekBar, o.heartOff]
+                == [c.secondary, c.muted, c.label, c.footer, c.accent, c.modelWeekBar, c.heartOff]
+        )
     }
 
     @Test func spaceKeepsTheModelWeeksApartFromItsVioletAccent() {

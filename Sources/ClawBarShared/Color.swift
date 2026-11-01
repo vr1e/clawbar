@@ -28,7 +28,7 @@ public struct RGBA: Sendable, Hashable, CustomStringConvertible {
 
     /// A hand-written `#RRGGBB` or `#AARRGGBB`, as WPF's ColorConverter takes it; nil for anything else.
     public static func parse(_ text: String?) -> RGBA? {
-        let s = (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let s = text ?? ""
         let digits = s.dropFirst()
         guard s.hasPrefix("#"), digits.count == 6 || digits.count == 8, digits.allSatisfy(\.isHexDigit) else { return nil }
         return RGBA(s)

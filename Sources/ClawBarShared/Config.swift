@@ -49,7 +49,7 @@ public struct Config: Sendable, Hashable {
     public var language: String
     /// The colours: classic by default, where upstream's is by season.
     public var theme: ThemeChoice
-    /// A hand-set `#RRGGBB` over the theme's accent; `clamped()` drops one that does not parse.
+    /// A hand-set `#RRGGBB` or `#AARRGGBB` over the theme's accent; `clamped()` drops one that does not parse.
     public var accent: String?
     public var scale: Double
     public var opacity: Double
@@ -188,7 +188,8 @@ public struct Config: Sendable, Hashable {
         let path = claudePath?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         c.claudePath = path.isEmpty ? nil : path
         // Upstream keeps the previous theme's accent on a bad value; here the theme's own shows.
-        c.accent = accentColor == nil ? nil : accent?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hand = accent?.trimmingCharacters(in: .whitespacesAndNewlines)
+        c.accent = RGBA.parse(hand) == nil ? nil : hand
         return c
     }
 }
