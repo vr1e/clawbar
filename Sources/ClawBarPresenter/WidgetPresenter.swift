@@ -35,8 +35,8 @@ private struct Render {
     func state() -> WidgetViewState {
         var v = WidgetViewState(palette: palette)
         header(&v)
-        session(&v)
-        weeks(&v)
+        mainLimit(&v)
+        otherLimits(&v)
         sessions(&v)
         status(&v)
         details(&v)
@@ -56,9 +56,9 @@ private struct Render {
         v.detailsExpanded = cfg.expanded
     }
 
-    /// The percent row, the session bar, the reset line and the menu bar item.
-    private func session(_ v: inout WidgetViewState) {
-        sessionNumbers(&v)
+    /// The percent row, the main limit's bar, the reset line and the menu bar item.
+    private func mainLimit(_ v: inout WidgetViewState) {
+        mainNumbers(&v)
         v.trayMascot = cfg.menuBarMascot
         explain(data.usageIssue, &v)
         // The game only opens at the limit, so once it is gone the limit has reset.
@@ -67,16 +67,17 @@ private struct Render {
         if cfg.showSessions, let counts = sessionCounts() { v.trayTooltip += "\n" + counts.joined(separator: " · ") }
     }
 
-    private func sessionNumbers(_ v: inout WidgetViewState) {
+    private func mainNumbers(_ v: inout WidgetViewState) {
         let usage = data.usageIssue?.voidsLimits == true ? nil : data.usage
+        let main = cfg.mainLimit.of(usage)
         v.resetColor = palette.secondary
         // The line keeps its box even without text, so the part always shows; an issue gives it a tooltip.
         v.show(.reset)
-        guard let usage, let pct = usage.sessionPercent else {
+        guard let usage, let pct = main.percent else {
             v.pctText = "--"
             v.pctColor = Palette.dead
-            v.sessionFraction = 0
-            v.sessionBarColor = Palette.dead
+            v.mainFraction = 0
+            v.mainBarColor = Palette.dead
             v.resetText = data.usageProbeCompleted ? t(.noData) : t(.loading)
             v.trayText = "--"
             v.trayColor = Palette.dead
@@ -84,21 +85,21 @@ private struct Render {
             return
         }
         let color = Level.of(pct, warn: cfg.warnPercent, crit: cfg.critPercent).color
-        let span = usage.sessionReset.flatMap { Span.text(until: $0, now: now, lang: lang) }
+        let span = main.reset.flatMap { Span.text(until: $0, now: now, lang: lang) }
         v.pctText = String(pct)
         v.pctColor = color
-        v.sessionFraction = fraction(pct)
-        v.sessionBarColor = color
+        v.mainFraction = fraction(pct)
+        v.mainBarColor = color
         if let span {
             v.resetText = t(.resetIn, span)
         } else {
-            v.resetText = usage.sessionReset == nil ? "" : t(.resetClosed)
+            v.resetText = main.reset == nil ? "" : t(.resetClosed)
         }
         // The widget is often hidden or covered, so the menu bar says stale too; the number tells it from "--".
         let stale = data.usageAt.flatMap(staleStamp)
         v.trayText = String(pct)
         v.trayColor = stale == nil ? color : Palette.dead
-        v.trayTooltip = trayTooltip(pct, usage) + (stale.map { "\n" + $0 } ?? "")
+        v.trayTooltip = trayTooltip(usage) + (stale.map { "\n" + $0 } ?? "")
         v.limitReached = pct >= 100
         if v.limitReached {
             v.playText = t(.uiPlay)
@@ -144,10 +145,13 @@ private struct Render {
         return lang == .de ? s.replacingOccurrences(of: ".", with: ",") : s
     }
 
-    /// The session, the week and each model week on lines of their own; no 63-character cap on macOS.
-    private func trayTooltip(_ pct: Int, _ usage: UsageSnapshot) -> String {
-        var lines = [trayLimit(t(.traySession, pct), usage.sessionReset)]
-        if let week = usage.weekPercent { lines.append(trayLimit(t(.trayWeek, week), usage.weekReset)) }
+    /// The main limit, the other one and each model week on lines of their own; no 63-character cap on macOS.
+    private func trayTooltip(_ usage: UsageSnapshot) -> String {
+        var lines: [String] = []
+        for limit in [cfg.mainLimit.of(usage), cfg.mainLimit.other.of(usage)] {
+            guard let p = limit.percent else { continue }
+            lines.append(trayLimit(t(limit.kind.trayLabel, p), limit.reset))
+        }
         lines += usage.modelWeeks.map { trayLimit("\($0.name) \($0.percent)%", $0.reset) }
         return lines.joined(separator: "\n")
     }
@@ -158,15 +162,14 @@ private struct Render {
         return "\(label) · \(span) (\(ResetClock.text(reset, now: now, timeZone: input.timeZone, lang: lang)))"
     }
 
-    private func weeks(_ v: inout WidgetViewState) {
+    /// The limit that is not main, then each model week.
+    private func otherLimits(_ v: inout WidgetViewState) {
         let usage = data.usage
-        if let week = usage?.weekPercent {
-            v.week = BarRow(
-                label: t(.uiWeek), value: limit(week, usage?.weekReset), fraction: fraction(week), color: palette.accent
-            )
-        } else {
-            v.week = BarRow(label: t(.uiWeek), value: t(.noData), fraction: 0, color: palette.accent)
-        }
+        let other = cfg.mainLimit.other.of(usage)
+        v.otherLimit = BarRow(
+            label: t(other.kind.rowLabel), value: other.percent.map { limit($0, other.reset) } ?? t(.noData),
+            fraction: other.percent.map(fraction) ?? 0, color: palette.accent
+        )
         v.modelWeeks = (usage?.modelWeeks ?? []).map {
             BarRow(
                 label: t(.uiModelWeek, $0.name.uppercased()), value: limit($0.percent, $0.reset),

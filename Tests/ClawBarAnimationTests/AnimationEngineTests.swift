@@ -19,7 +19,7 @@ import ClawBarSky
         let clawd = ClawdEngine(random: random, now: t0)
         let sky = SkyEngine(random: random)
         let busy = data(busy: 1, sessions: 1, pct: 40, place: DataSnapshot.sample.place)
-        clawd.apply(ClawdDataInput(busy, critPercent: 85), now: t0)
+        clawd.apply(ClawdDataInput(busy, mainLimit: .session, critPercent: 85), now: t0)
         clawd.perform(.auto)
         let engine = engine(seed: 5)
         engine.apply(busy, config: Config(), now: t0)
@@ -133,7 +133,7 @@ import ClawBarSky
         var last = SkyFrame.empty
         for shown in [true, false, true] {
             engine.apply(oneSession, config: Config(showSky: shown), now: t0)
-            clawd.apply(ClawdDataInput(oneSession, critPercent: 85), now: t0)
+            clawd.apply(ClawdDataInput(oneSession, mainLimit: .session, critPercent: 85), now: t0)
             let c = clawd.step(env)
             if shown { last = sky.step(size: PlayArea.skySize, inputs: rain) }
             #expect(engine.step(inputs()) == AnimationFrame(clawd: c, sky: last))

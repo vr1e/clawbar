@@ -12,11 +12,12 @@ later releases.
   from 60%, red from 85%.
 - **Widget:** the session % and the time until the window resets, the week and each model's week (Fable, Sonnet),
   the Claude Code sessions running right now with a hover list, Anthropic's service status, your last 24 hours and
-  7 days in detail, the Claude Code version with a one-click update, and your plan and account.
+  7 days in detail, the Claude Code version with a one-click update, and your plan and account. **Week as the main
+  limit** in Settings swaps the session and the week, for when the week is the one you run into.
 - **Clawd** lives by your numbers. He works while a session is busy, hops up with a "?" when one waits for you,
   wanders and dozes when things are quiet, and burrows in to sleep when nothing runs. Near the limit he sweats; at
-  100% he lies belly-up. Three hearts show how much of the session is left, and a click gets you a trick.
-- **Clawd Run:** once the session limit is used up, the widget and the menu offer a game to pass the wait, after the
+  100% he lies belly-up. Three hearts show how much of the main limit is left, and a click gets you a trick.
+- **Clawd Run:** once the main limit is used up, the widget and the menu offer a game to pass the wait, after the
   Chrome dinosaur's: Clawd jumps cacti and ducks under bugs while the corner counts down to the reset.
 - **The sky** behind him keeps your real time of day and your real weather: the sun and the moon on their true
   course, the moon in its true phase, stars, clouds, fog, rain, snow and the odd thunderstorm. Hover it for the
@@ -75,6 +76,7 @@ the file is not valid JSON, ClawBar runs on the defaults and the widget's last-u
 | `scale` | `1.2` | widget size, 0.6–4.0 |
 | `opacity` | `1.0` | 0.2–1.0 |
 | `topmost` | `false` | keep the widget above other windows |
+| `mainLimit` | `session` | the limit the big number, the menu bar and Clawd follow: `session` (5 hours) or `week`; the other takes the row below, also in **Settings › Widget** |
 | `warnPercent`, `critPercent` | `60`, `85` | level colour thresholds, 1–100 |
 | `expanded` | `false` | details open |
 | `showStats`, `showStatus`, `showSessions`, `showAccount`, `showMascot`, `showSky` | `true` | blocks to show, also in **Settings › Widget** |
@@ -147,7 +149,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 
 | Feature | In ClawBar | Notes |
 |---|---|---|
-| Usage limits | ✅ Ported differently | A stricter token-free check, more reset-time formats and a row for every model's week. Not yet: Week as the main limit. |
+| Usage limits | ✅ Ported differently | A stricter token-free check, more reset-time formats and a row for every model's week. |
 | Sessions | ✅ Ported differently | Refreshed every 2 s, and stricter about what counts as a session. Not yet: Sessions from other machines. |
 | Clawd and his hearts | ✅ Ported | |
 | Sky and weather | ✅ Ported differently | The sky keeps the weather location's time zone, and its moon is closer to the real one. |

@@ -46,6 +46,7 @@ public final class ClawdEngine {
     /// −1 until the first data: the first refresh never counts as a finished reply.
     private var busy = -1
     private var waiting = 0
+    private var limit = MainLimit.session
     private var lastReset: Date?
     private var lastPct: Int?
     private var buried = false
@@ -63,7 +64,7 @@ public final class ClawdEngine {
     /// New data: mood, crit, the finished-reply jump and the reset celebration. Repeating the same input changes nothing.
     public func apply(_ input: ClawdDataInput, now: Date) {
         let newMood: Mood
-        if let p = input.pct, p >= 100 {
+        if let p = input.main.percent, p >= 100 {
             newMood = .dead
         } else if input.waiting > 0 {
             newMood = .wait
@@ -81,14 +82,21 @@ public final class ClawdEngine {
         if busy > 0, input.busy < busy, input.waiting <= waiting, act == nil { startAct(.jump) }
         busy = input.busy
         waiting = input.waiting
-        crit = input.pct.map { $0 >= input.critPercent } ?? false
-        pct = input.pct
+        crit = input.main.percent.map { $0 >= input.critPercent } ?? false
+        pct = input.main.percent
 
-        // The 5-hour window reset: the reset time moved forward and the percentage dropped.
-        if let reset = input.sessionReset {
-            if let lastReset, reset > lastReset, let lastPct, let p = input.pct, p < lastPct { startAct(.celebrate) }
+        // A switched main limit starts over, so the switch is neither a reset nor a lost heart.
+        if input.main.kind != limit {
+            limit = input.main.kind
+            lastReset = nil
+            lastPct = nil
+            hearts.forget()
+        }
+        // The main limit reset: the reset time moved forward and the percentage dropped.
+        if let reset = input.main.reset {
+            if let lastReset, reset > lastReset, let lastPct, let p = input.main.percent, p < lastPct { startAct(.celebrate) }
             lastReset = reset
-            lastPct = input.pct
+            lastPct = input.main.percent
         }
     }
 
@@ -393,7 +401,7 @@ public final class ClawdEngine {
 
         let heartsFrame = hearts.step(
             ClawdHealth.halves(forceHearts: forceHearts, force: force, pct: pct),
-            pct: pct, forced: forceHearts != nil, tick: tick, lang: env.lang
+            pct: pct, limit: limit, forced: forceHearts != nil, tick: tick, lang: env.lang
         )
 
         // Confetti: falls, drifts sideways and shimmers as it flips.

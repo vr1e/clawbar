@@ -63,11 +63,11 @@ import ClawBarShared
                 $0.modelWeeks = [ModelWeek(name: "Sonnet", percent: 100, reset: Samples.now.addingTimeInterval(span))]
             }
             let v = render(d, lang: lang)
-            Self.expectFits([Self.label(v.week.label), Self.value(v.week.value)], gap: 8, "week row")
+            Self.expectFits([Self.label(v.otherLimit.label), Self.value(v.otherLimit.value)], gap: 8, "week row")
             Self.expectFits([Self.label(v.modelWeeks[0].label), Self.value(v.modelWeeks[0].value)], gap: 8, "model week row")
         }
         let none = render(sample { $0.weekPercent = nil }, lang: lang)
-        Self.expectFits([Self.label(none.week.label), Self.value(none.week.value)], gap: 8, "week row without data")
+        Self.expectFits([Self.label(none.otherLimit.label), Self.value(none.otherLimit.value)], gap: 8, "week row without data")
     }
 
     /// Up to 19 sessions with single-digit working and waiting counts: the envelope the original's own English fits.

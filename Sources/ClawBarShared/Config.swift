@@ -5,8 +5,7 @@ public enum Lang: String, Sendable, CaseIterable {
 
     /// Case-insensitive; anything unknown (an old `ru`, a typo) is English.
     public init(configValue: String?) {
-        let v = (configValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        self = Lang(rawValue: v) ?? .en
+        self = .parse(configValue) ?? .en
     }
 
     /// The name in its own language, for the Language menu.
@@ -18,9 +17,26 @@ public enum Lang: String, Sendable, CaseIterable {
     }
 }
 
+/// The limit the big number, its bar, the menu bar item and Clawd follow; the other one takes the row under it.
+public enum MainLimit: String, Sendable, CaseIterable {
+    case session, week
+
+    /// Case-insensitive, like the original's `-eq 'week'`; anything else is the session.
+    public init(configValue: String?) {
+        self = .parse(configValue) ?? .session
+    }
+}
+
+extension RawRepresentable where RawValue == String {
+    /// A config.json choice, trimmed and case-insensitive; nil when unknown.
+    static func parse(_ configValue: String?) -> Self? {
+        Self(rawValue: (configValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+    }
+}
+
 /// The JSON key of every setting in config.json.
 public enum ConfigKey: String, CaseIterable, Sendable {
-    case language, scale, opacity, topmost, warnPercent, critPercent, expanded
+    case language, scale, opacity, topmost, mainLimit, warnPercent, critPercent, expanded
     case showStats, showStatus, showSessions, showAccount, showMascot, showSky, showHistory
     case weatherLat, weatherLon
     case refreshSeconds, usageIntervalSeconds, versionIntervalSeconds, statusIntervalSeconds
@@ -34,6 +50,7 @@ public struct Config: Sendable, Hashable {
     public var scale: Double
     public var opacity: Double
     public var topmost: Bool
+    public var mainLimit: MainLimit
     public var warnPercent: Int
     public var critPercent: Int
     public var expanded: Bool
@@ -69,6 +86,7 @@ public struct Config: Sendable, Hashable {
         scale: Double = 1.2,
         opacity: Double = 1.0,
         topmost: Bool = false,
+        mainLimit: MainLimit = .session,
         warnPercent: Int = 60,
         critPercent: Int = 85,
         expanded: Bool = false,
@@ -97,6 +115,7 @@ public struct Config: Sendable, Hashable {
         self.scale = scale
         self.opacity = opacity
         self.topmost = topmost
+        self.mainLimit = mainLimit
         self.warnPercent = warnPercent
         self.critPercent = critPercent
         self.expanded = expanded

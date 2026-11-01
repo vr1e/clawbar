@@ -189,11 +189,14 @@ import ClawBarShared
         #expect(DataSnapshot.sample.count(of: .idle) == 0)
     }
 
-    @Test func clawdReadsTheSessionsAndTheSessionLimitFromASnapshot() {
-        let input = ClawdDataInput(DataSnapshot.sample, critPercent: 85)
+    @Test func clawdReadsTheSessionsAndTheMainLimitFromADataSnapshot() {
+        let input = ClawdDataInput(DataSnapshot.sample, mainLimit: .session, critPercent: 85)
         #expect(input == ClawdDataInput(
-            busy: 1, waiting: 1, sessionCount: 2, pct: 34, sessionReset: Samples.now.addingTimeInterval(7500), critPercent: 85
+            busy: 1, waiting: 1, sessionCount: 2,
+            main: UsageLimit(kind: .session, percent: 34, reset: Samples.now.addingTimeInterval(7500)), critPercent: 85
         ))
-        #expect(ClawdDataInput(.empty, critPercent: 70).pct == nil)
+        let week = ClawdDataInput(DataSnapshot.sample, mainLimit: .week, critPercent: 85)
+        #expect(week.main == UsageLimit(kind: .week, percent: 59, reset: DataSnapshot.sample.usage?.weekReset))
+        #expect(ClawdDataInput(.empty, mainLimit: .week, critPercent: 70).main.percent == nil)
     }
 }

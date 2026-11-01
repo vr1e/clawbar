@@ -384,6 +384,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         switch action {
         case .step(let s, let up): change { $0[keyPath: s.key] = s.next(from: $0[keyPath: s.key], up: up) ?? $0[keyPath: s.key] }
         case .toggleTopmost: change { $0.topmost.toggle() }
+        case .toggleMainWeek: change { $0.mainLimit = $0.mainLimit.other }
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
         case .language(let l): change { $0.language = l.rawValue }

@@ -3,7 +3,7 @@ import ClawBarShared
 
 enum StatusMenuAction: Hashable {
     case toggleWidget, refresh, settings, quit
-    /// Opens Clawd Run; offered only while the session limit is used up.
+    /// Opens Clawd Run; offered only while the main limit is used up.
     case play
 }
 
@@ -42,7 +42,7 @@ enum StatusMenu {
     typealias Entry = MenuEntry<StatusMenuAction>
 
     /// The original's menu since 1.10.0: everything else is in the Settings window. Rebuilt on every open, so titles
-    /// follow the language; a used-up session limit adds Clawd Run after the widget toggle.
+    /// follow the language; a used-up main limit adds Clawd Run after the widget toggle.
     static func entries(config: Config, widgetVisible: Bool, limitReached: Bool = false) -> [Entry] {
         func item(_ key: L10nKey, _ action: StatusMenuAction) -> Entry {
             Entry(title: L10n.t(key, config.lang), action: action)

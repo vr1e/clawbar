@@ -2,7 +2,7 @@ import AppKit
 import CoreText
 import ClawBarShared
 
-/// The menu bar picture: a mini Clawd next to a pill with the session %, or the pill alone. Rects are in points, y down.
+/// The menu bar picture: a mini Clawd next to a pill with the main limit's %, or the pill alone. Rects are in points, y down.
 enum StatusItemImage {
     static let font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .bold)
     static let height: CGFloat = 18

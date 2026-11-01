@@ -16,6 +16,10 @@ _Avoid_: state, model, snapshot (alone)
 The decisions of the data side: which probe runs when, and what each answer does to the data snapshot. It takes an event and the time, and returns the work it wants done.
 _Avoid_: scheduler, policy, controller
 
+**Main limit**:
+The limit the big number, its bar, the reset line, the menu bar item and Clawd follow: the session by default, or the all-models week (`mainLimit`). The other one takes the row under it.
+_Avoid_: primary limit, big limit
+
 **Latch**:
 The usage probe stopped for good under one Claude Code version, because a run reached the model or had a flag rejected. A new version lifts it.
 _Avoid_: lock, block

@@ -134,6 +134,16 @@ import ClawBarShared
         #expect(celebrates([input(sessions: 1, pct: 50, reset: t0 + 60), input(sessions: 1), input(sessions: 1, pct: 10, reset: t0 + 999)]))
     }
 
+    @Test func switchingTheMainLimitIsNoReset() {
+        let engine = ClawdEngine.settled()
+        engine.apply(input(sessions: 1, pct: 96, reset: t0 + 180), now: t0)
+        engine.apply(input(sessions: 1, limit: .week, pct: 40, reset: t0 + 86_400), now: t0)
+        #expect(FrameView(engine.step(env())).bubble == nil)
+        // The week's own reset still celebrates.
+        engine.apply(input(sessions: 1, limit: .week, pct: 0, reset: t0 + 7 * 86_400), now: t0)
+        #expect(FrameView(engine.step(env())).bubble == "!")
+    }
+
     @Test func celebrateReplacesARunningAct() {
         let engine = Self.observed()
         engine.apply(input(sessions: 1, pct: 50, reset: t0 + 60), now: t0)

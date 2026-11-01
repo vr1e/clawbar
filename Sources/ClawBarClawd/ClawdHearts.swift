@@ -1,9 +1,9 @@
 import Foundation
 import ClawBarShared
 
-/// hearts.ps1: halves of the session limit left, and the health tiers they select.
+/// hearts.ps1: halves of the main limit left, and the health tiers they select.
 enum ClawdHealth {
-    /// Get-Halves: forced hearts, else 0 for a forced 'dead', else from the session %; nil hides the hearts.
+    /// Get-Halves: forced hearts, else 0 for a forced 'dead', else from the main limit's %; nil hides the hearts.
     static func halves(forceHearts: Int?, force: Mood?, pct: Int?) -> Int? {
         let h: Int
         if let forceHearts {
@@ -33,13 +33,13 @@ struct HeartsTracker {
     /// The play area was hidden: the next value is new, not a loss.
     mutating func forget() { halves = nil }
 
-    mutating func step(_ now: Int?, pct: Int?, forced: Bool, tick: Int, lang: Lang) -> HeartsFrame {
+    mutating func step(_ now: Int?, pct: Int?, limit: MainLimit, forced: Bool, tick: Int, lang: Lang) -> HeartsFrame {
         guard let now else {
             halves = nil
             return .hidden
         }
         var tip = L10n.health(now, lang)
-        if let pct, !forced { tip = L10n.t(.heartsLeft, lang, tip, 100 - pct) }
+        if let pct, !forced { tip = L10n.t(limit.heartsLeft, lang, tip, 100 - pct) }
 
         // A lost heart blinks for 16 ticks: the old value on the first two of every four.
         if let before = halves, now < before {

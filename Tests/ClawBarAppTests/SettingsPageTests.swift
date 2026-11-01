@@ -25,11 +25,11 @@ import ClawBarShared
     @Test func theWidgetTabKeepsTheOriginalsOrderAndAddsClawBarsSystemSwitches() {
         let s = widget()
         #expect(s.map(\.header) == [nil, "In the widget", "System", nil])
-        #expect(toggles(s).map(\.action) == [.toggleTopmost] + WidgetBlock.allCases.map { .toggleBlock($0) } + [
+        #expect(toggles(s).map(\.action) == [.toggleTopmost, .toggleMainWeek] + WidgetBlock.allCases.map { .toggleBlock($0) } + [
             .toggleLaunchAtLogin, .toggleMenuBarMascot,
         ])
         #expect(toggles(s).map(\.title) == [
-            "Always on top", "Clawd", "Sky and weather behind him", "Anthropic status", "Running sessions", "Plan and account",
+            "Always on top", "Week as the main limit", "Clawd", "Sky and weather behind him", "Anthropic status", "Running sessions", "Plan and account",
             "Last 24 hours and 7 days (details)", "7-day chart and top projects (details)", "Launch at login", "Clawd in menu bar",
         ])
     }
@@ -37,11 +37,18 @@ import ClawBarShared
     @Test func switchesFollowTheConfigAndTheSkyNeedsClawd() {
         var config = Config(topmost: true, launchAtLogin: false)
         config.showStats = false
-        #expect(toggles(widget(config)).map(\.on) == [true, true, true, true, true, true, false, false, false, true])
+        #expect(toggles(widget(config)).map(\.on) == [true, false, true, true, true, true, true, false, false, false, true])
         #expect(toggles(widget(config)).allSatisfy { $0.enabled })
         config.showMascot = false
-        let sky = toggles(widget(config))[2]
+        let sky = toggles(widget(config))[3]
         #expect(sky.action == .toggleBlock(.sky) && sky.on && !sky.enabled)
+    }
+
+    @Test func theMainWeekSwitchSaysWhatItChanges() {
+        let week = toggles(widget(Config(mainLimit: .week)))[1]
+        #expect(week.on && week.action == .toggleMainWeek)
+        #expect(week.detail == L10n.t(.setMainWeekTip, .en))
+        #expect(toggles(widget()).filter { $0.detail != nil }.count == 1)
     }
 
     @Test func eachBlockTogglesItsOwnConfigKey() {
@@ -81,7 +88,7 @@ import ClawBarShared
         #expect(dump.contains("  Look:\n    Language: (•) English  ( ) Deutsch"))
         #expect(dump.contains("    Size: − 120% +"))
         #expect(dump.contains("    Opacity:   30% +"))
-        #expect(dump.contains("    [x] Always on top"))
+        #expect(dump.contains("    [x] Always on top\n    [ ] Week as the main limit\n        The big number"))
         #expect(dump.contains("    IN THE WIDGET\n      [ ] Clawd\n      [x] Sky and weather behind him  (disabled)"))
         // The footer stands apart from the System section above it.
         #expect(dump.contains("      [x] Clawd in menu bar\n    The rest"))

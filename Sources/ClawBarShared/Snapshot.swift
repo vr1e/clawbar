@@ -89,6 +89,56 @@ public struct UsageSnapshot: Sendable, Hashable {
     }
 }
 
+/// The session or the all-models week: its percentage and reset, nil without data.
+public struct UsageLimit: Sendable, Hashable {
+    public var kind: MainLimit
+    public var percent: Int?
+    public var reset: Date?
+
+    public init(kind: MainLimit, percent: Int? = nil, reset: Date? = nil) {
+        self.kind = kind
+        self.percent = percent
+        self.reset = reset
+    }
+}
+
+extension MainLimit {
+    /// The limit that is not main: it takes the row under the big number.
+    public var other: MainLimit { self == .session ? .week : .session }
+
+    /// Get-Limits: this limit of `usage`, empty without one.
+    public func of(_ usage: UsageSnapshot?) -> UsageLimit {
+        switch self {
+        case .session: UsageLimit(kind: self, percent: usage?.sessionPercent, reset: usage?.sessionReset)
+        case .week: UsageLimit(kind: self, percent: usage?.weekPercent, reset: usage?.weekReset)
+        }
+    }
+
+    /// The card's row label: 'WEEK' or 'SESSION · 5H'.
+    public var rowLabel: L10nKey {
+        switch self {
+        case .session: .uiSession
+        case .week: .uiWeek
+        }
+    }
+
+    /// The menu bar tooltip's line, taking the percentage.
+    public var trayLabel: L10nKey {
+        switch self {
+        case .session: .traySession
+        case .week: .trayWeek
+        }
+    }
+
+    /// The hearts' tooltip, taking the percentage left.
+    public var heartsLeft: L10nKey {
+        switch self {
+        case .session: .heartsLeft
+        case .week: .heartsLeftWeek
+        }
+    }
+}
+
 /// The session and week percentages at one minute, for the 7-day history.
 public struct UsageSample: Sendable, Hashable {
     /// Minutes since 1970 in UTC, so a DST change never reorders samples.

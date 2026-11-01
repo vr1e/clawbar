@@ -25,7 +25,7 @@ import ClawBarShared
         p.label = RGBA("#FFFF00FF")
         let empty = render(.empty, palette: p)
         #expect(empty.palette.label == p.label)
-        #expect(empty.pctColor == Palette.dead && empty.sessionBarColor == Palette.dead)
+        #expect(empty.pctColor == Palette.dead && empty.mainBarColor == Palette.dead)
         #expect(empty.trayColor == Palette.dead && empty.statusDotColor == Palette.dead)
         // The sample's usage is 25 s old and stale past 210 s.
         let stale = render(now: Samples.now.plus(seconds: 211 - 25), palette: p)
@@ -37,11 +37,11 @@ import ClawBarShared
         p.accent = RGBA("#FF00FFFF")
         let data = sample(data: { $0.history = Samples.history })
         let v = render(data, config: Config(expanded: true, showHistory: true), palette: p)
-        #expect(v.week.color == p.accent)
+        #expect(v.otherLimit.color == p.accent)
         // CardView draws the chart's week line and its legend in this role.
         #expect(try #require(v.history).weekRuns.isEmpty == false)
         #expect(v.palette.accent == p.accent)
         #expect(v.modelWeeks.map(\.color) == [Palette.modelWeekBar])
-        #expect(render(.empty, palette: p).week.color == p.accent)
+        #expect(render(.empty, palette: p).otherLimit.color == p.accent)
     }
 }

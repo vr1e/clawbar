@@ -37,8 +37,12 @@ struct SettingsPageView: View {
     private func row(_ row: SettingsRow) -> some View {
         switch row {
         case .toggle(let o):
-            Toggle(o.title, isOn: Binding(get: { o.on }, set: { _ in perform(o.action) }))
-                .disabled(!o.enabled)
+            Toggle(isOn: Binding(get: { o.on }, set: { _ in perform(o.action) })) {
+                Text(o.title)
+                // A grouped form sets a second text under the title, smaller and grey.
+                if let detail = o.detail { Text(detail) }
+            }
+            .disabled(!o.enabled)
         case .picker(let title, let options):
             Picker(title, selection: Binding(
                 get: { options.firstIndex(where: \.on) ?? 0 },

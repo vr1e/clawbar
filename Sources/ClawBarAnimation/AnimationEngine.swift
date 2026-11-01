@@ -41,7 +41,7 @@ public final class AnimationEngine {
             frame.clawd = .empty
             return
         }
-        if data.sessionsRead { clawd.apply(ClawdDataInput(data, critPercent: config.critPercent), now: now) }
+        if data.sessionsRead { clawd.apply(ClawdDataInput(data, mainLimit: config.mainLimit, critPercent: config.critPercent), now: now) }
     }
 
     /// A left click on Clawd.

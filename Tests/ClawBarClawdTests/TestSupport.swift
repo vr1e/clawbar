@@ -33,8 +33,14 @@ func env(width: Double = 180, over: Bool = false, mouseX: Double? = nil, at now:
     ClawdStepEnv(areaWidth: width, mouseOverWindow: over, mouseX: mouseX, now: now, lang: lang)
 }
 
-func input(busy: Int = 0, waiting: Int = 0, sessions: Int? = nil, pct: Int? = nil, reset: Date? = nil, crit: Int = 85) -> ClawdDataInput {
-    ClawdDataInput(busy: busy, waiting: waiting, sessionCount: sessions ?? (busy + waiting), pct: pct, sessionReset: reset, critPercent: crit)
+func input(
+    busy: Int = 0, waiting: Int = 0, sessions: Int? = nil, limit: MainLimit = .session, pct: Int? = nil, reset: Date? = nil,
+    crit: Int = 85
+) -> ClawdDataInput {
+    ClawdDataInput(
+        busy: busy, waiting: waiting, sessionCount: sessions ?? (busy + waiting),
+        main: UsageLimit(kind: limit, percent: pct, reset: reset), critPercent: crit
+    )
 }
 
 extension ClawdEngine {

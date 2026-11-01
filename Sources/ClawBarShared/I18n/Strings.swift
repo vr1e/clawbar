@@ -14,6 +14,7 @@ extension L10nKey {
         case .uiHide: .text(en: "Hide", de: "Ausblenden")
         case .uiExit: .text(en: "Quit", de: "Beenden")
         case .uiWeek: .text(en: "WEEK", de: "WOCHE")
+        case .uiSession: .text(en: "SESSION · 5H", de: "SITZUNG · 5 STD.")
         case .uiModelWeek: .text(en: "{0} · WEEK", de: "{0} · WOCHE")
         case .uiSessions: .text(en: "SESSIONS", de: "SITZUNGEN")
         case .uiOpenStatus: .text(en: "Open status.claude.com", de: "status.claude.com öffnen")
@@ -156,6 +157,11 @@ extension L10nKey {
         case .setSize: .text(en: "Size", de: "Größe")
         case .setOpacity: .text(en: "Opacity", de: "Deckkraft")
         case .setTopmost: .text(en: "Always on top", de: "Immer im Vordergrund")
+        case .setMainWeek: .text(en: "Week as the main limit", de: "Woche als Hauptlimit")
+        case .setMainWeekTip: .text(
+            en: "The big number, the menu bar and Clawd's health follow the weekly limit; the 5-hour session moves to the row below.",
+            de: "Die große Zahl, die Menüleiste und Clawds Gesundheit folgen dem Wochenlimit; die 5-Stunden-Sitzung rückt in die Zeile darunter."
+        )
         case .setShown: .text(en: "In the widget", de: "Im Widget")
         case .setSystem: .text(en: "System", de: "System")
         case .setLogin: .text(en: "Launch at login", de: "Beim Anmelden öffnen")
@@ -212,6 +218,7 @@ extension L10nKey {
         case .health5: .text(en: "fine", de: "fit")
         case .health6: .text(en: "full of energy", de: "voller Energie")
         case .heartsLeft: .text(en: "{0} · {1}% of the session limit left", de: "{0} · {1}% des Sitzungslimits übrig")
+        case .heartsLeftWeek: .text(en: "{0} · {1}% of the weekly limit left", de: "{0} · {1}% des Wochenlimits übrig")
 
         case .moodSleep: .text(en: "sleeping", de: "schläft")
         case .moodDoze: .text(en: "dozing", de: "döst")

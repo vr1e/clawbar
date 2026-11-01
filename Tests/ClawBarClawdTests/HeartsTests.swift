@@ -67,6 +67,16 @@ import ClawBarShared
         #expect(engine.run(3).map(\.hearts.shownHalves) == [6, 6, 6])
     }
 
+    @Test func switchingTheMainLimitIsNoLostHeartAndTheTooltipNamesTheWeek() {
+        let engine = ClawdEngine.settled()
+        engine.apply(input(sessions: 1, pct: 34), now: t0)
+        engine.step(env())
+        engine.apply(input(sessions: 1, limit: .week, pct: 59), now: t0)
+        let frames = engine.run(4).map(\.hearts)
+        #expect(frames.map(\.shownHalves) == [3, 3, 3, 3])
+        #expect(frames[0].tooltip == "tired · 41% of the weekly limit left")
+    }
+
     @Test func resetHeartsForgetsTheLastValue() {
         let engine = ClawdEngine.settled()
         engine.apply(input(sessions: 1, pct: 34), now: t0)
