@@ -108,8 +108,7 @@ struct SessionRegistry: Sendable {
         else { return nil }
         let clock = parts[3].split(separator: ":").compactMap { Int($0) }
         guard clock.count == 3 else { return nil }
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC")!
+        let cal = Calendar.gregorian(in: TimeZone(identifier: "UTC")!)
         return cal.date(from: DateComponents(year: year, month: month, day: day, hour: clock[0], minute: clock[1], second: clock[2]))
     }
 

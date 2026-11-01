@@ -65,8 +65,7 @@ enum UsageParser {
                   let (hour, minute) = clock(m[4], m[5], m[6])
             else { return nil }
             let zone = m[7].flatMap { TimeZone(identifier: $0.trimmingCharacters(in: .whitespaces)) } ?? timeZone
-            var cal = Calendar(identifier: .gregorian)
-            cal.timeZone = zone
+            let cal = Calendar.gregorian(in: zone)
             if let year = m[3].flatMap({ Int($0) }) {
                 return date(cal, year, month, day, hour, minute)
             }
@@ -79,8 +78,7 @@ enum UsageParser {
         if let m = Rx.first(timeOnlyStamp, in: stamp) {
             guard let (hour, minute) = clock(m[1], m[2], m[3]) else { return nil }
             let zone = m[4].flatMap { TimeZone(identifier: $0.trimmingCharacters(in: .whitespaces)) } ?? timeZone
-            var cal = Calendar(identifier: .gregorian)
-            cal.timeZone = zone
+            let cal = Calendar.gregorian(in: zone)
             let today = cal.dateComponents([.year, .month, .day], from: now)
             guard let y = today.year, let mo = today.month, let d = today.day,
                   let at = date(cal, y, mo, d, hour, minute)

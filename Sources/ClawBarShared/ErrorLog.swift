@@ -25,8 +25,7 @@ public struct ErrorLog: Sendable {
     }
 
     public static func line(_ message: String, at date: Date, timeZone: TimeZone) -> String {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = timeZone
+        let cal = Calendar.gregorian(in: timeZone)
         let c = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
         let stamp = String(
             format: "%04d-%02d-%02dT%02d:%02d:%02d",
