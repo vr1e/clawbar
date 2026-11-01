@@ -5,8 +5,7 @@ import ClawBarShared
 public enum ResetClock {
     /// `16:10` today, `tomorrow 00:30`, `Thu 06:00` within the week, `Thu 29 06:00` from a week out.
     public static func text(_ reset: Date, now: Date, timeZone: TimeZone, lang: Lang) -> String {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
+        let calendar = Calendar.gregorian(in: timeZone)
         // Calendar days, not 24-hour steps, so a DST change or a reset just past midnight lands on the right day.
         let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: reset))
             .day ?? 0
