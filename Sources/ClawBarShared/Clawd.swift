@@ -36,7 +36,7 @@ public struct ClawdDataInput: Sendable, Hashable {
         self.critPercent = critPercent
     }
 
-    /// What a snapshot tells Clawd: the sessions by state and the main limit.
+    /// What a data snapshot tells Clawd: the sessions by state and the main limit.
     public init(_ s: DataSnapshot, mainLimit: MainLimit, critPercent: Int) {
         let main = mainLimit.of(s.usage)
         self.init(

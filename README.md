@@ -16,8 +16,8 @@ later releases.
   limit** in Settings swaps the session and the week, for when the week is the one you run into.
 - **Clawd** lives by your numbers. He works while a session is busy, hops up with a "?" when one waits for you,
   wanders and dozes when things are quiet, and burrows in to sleep when nothing runs. Near the limit he sweats; at
-  100% he lies belly-up. Three hearts show how much of the session is left, and a click gets you a trick.
-- **Clawd Run:** once the session limit is used up, the widget and the menu offer a game to pass the wait, after the
+  100% he lies belly-up. Three hearts show how much of the main limit is left, and a click gets you a trick.
+- **Clawd Run:** once the main limit is used up, the widget and the menu offer a game to pass the wait, after the
   Chrome dinosaur's: Clawd jumps cacti and ducks under bugs while the corner counts down to the reset.
 - **The sky** behind him keeps your real time of day and your real weather: the sun and the moon on their true
   course, the moon in its true phase, stars, clouds, fog, rain, snow and the odd thunderstorm. Hover it for the

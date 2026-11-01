@@ -189,7 +189,7 @@ import ClawBarShared
         #expect(DataSnapshot.sample.count(of: .idle) == 0)
     }
 
-    @Test func clawdReadsTheSessionsAndTheMainLimitFromASnapshot() {
+    @Test func clawdReadsTheSessionsAndTheMainLimitFromADataSnapshot() {
         let input = ClawdDataInput(DataSnapshot.sample, mainLimit: .session, critPercent: 85)
         #expect(input == ClawdDataInput(
             busy: 1, waiting: 1, sessionCount: 2, limit: .session, pct: 34, reset: Samples.now.addingTimeInterval(7500),
