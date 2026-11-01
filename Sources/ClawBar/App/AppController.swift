@@ -388,6 +388,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
         case .language(let l): change { $0.language = l.rawValue }
+        case .theme(let t): change { $0.theme = t }
         case .toggleBlock(let b): change { $0[keyPath: b.flag].toggle() }
         case .openConfig: openConfig()
         }
