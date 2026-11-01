@@ -16,8 +16,7 @@ enum Zones {
 
 /// A wall-clock moment in `zone`.
 func local(_ y: Int, _ mo: Int, _ d: Int, _ h: Int, _ mi: Int, _ s: Int = 0, in zone: TimeZone) -> Date {
-    var cal = Calendar(identifier: .gregorian)
-    cal.timeZone = zone
+    let cal = Calendar.gregorian(in: zone)
     return cal.date(from: DateComponents(year: y, month: mo, day: d, hour: h, minute: mi, second: s))!
 }
 

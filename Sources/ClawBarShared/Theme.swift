@@ -109,8 +109,7 @@ public enum ThemeChoice: RawRepresentable, Sendable, Hashable {
         switch self {
         case .fixed(let t): return t
         case .bySeason:
-            var calendar = Calendar(identifier: .gregorian)
-            calendar.timeZone = zone
+            let calendar = Calendar.gregorian(in: zone)
             return (9 ... 11).contains(calendar.component(.month, from: now)) ? .halloween : .classic
         }
     }

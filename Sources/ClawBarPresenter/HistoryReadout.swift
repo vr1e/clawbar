@@ -15,8 +15,7 @@ public enum HistoryReadout {
     /// gap; the project is the busiest of the local hour, where the original takes the UTC hour.
     static func caption(minute: Int, input: PresenterInput) -> String {
         let lang = input.config.lang
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = input.timeZone
+        let calendar = Calendar.gregorian(in: input.timeZone)
         let c = calendar.dateComponents([.weekday, .hour, .minute], from: UsageSample(minute: minute).date)
         var parts = [L10n.weekday((c.weekday ?? 1) - 1, lang) + String(format: " %02d:%02d", c.hour ?? 0, c.minute ?? 0)]
         let gap = HistoryChart.gapMinutes(usageInterval: input.config.usageIntervalSeconds)
