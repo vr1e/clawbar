@@ -148,9 +148,9 @@ private struct Render {
     /// The main limit, the other one and each model week on lines of their own; no 63-character cap on macOS.
     private func trayTooltip(_ usage: UsageSnapshot) -> String {
         var lines: [String] = []
-        for l in [usage.limit(cfg.mainLimit), usage.limit(cfg.mainLimit.other)] {
-            guard let p = l.percent else { continue }
-            lines.append(trayLimit(t(l.kind == .week ? .trayWeek : .traySession, p), l.reset))
+        for limit in [cfg.mainLimit.of(usage), cfg.mainLimit.other.of(usage)] {
+            guard let p = limit.percent else { continue }
+            lines.append(trayLimit(t(limit.kind.trayLabel, p), limit.reset))
         }
         lines += usage.modelWeeks.map { trayLimit("\($0.name) \($0.percent)%", $0.reset) }
         return lines.joined(separator: "\n")
@@ -166,12 +166,10 @@ private struct Render {
     private func otherLimits(_ v: inout WidgetViewState) {
         let usage = data.usage
         let other = cfg.mainLimit.other.of(usage)
-        let label = t(other.kind == .week ? .uiWeek : .uiSession)
-        if let p = other.percent {
-            v.otherLimit = BarRow(label: label, value: limit(p, other.reset), fraction: fraction(p), color: palette.accent)
-        } else {
-            v.otherLimit = BarRow(label: label, value: t(.noData), fraction: 0, color: palette.accent)
-        }
+        v.otherLimit = BarRow(
+            label: t(other.kind.rowLabel), value: other.percent.map { limit($0, other.reset) } ?? t(.noData),
+            fraction: other.percent.map(fraction) ?? 0, color: palette.accent
+        )
         v.modelWeeks = (usage?.modelWeeks ?? []).map {
             BarRow(
                 label: t(.uiModelWeek, $0.name.uppercased()), value: limit($0.percent, $0.reset),

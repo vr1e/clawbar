@@ -39,7 +39,7 @@ struct HeartsTracker {
             return .hidden
         }
         var tip = L10n.health(now, lang)
-        if let pct, !forced { tip = L10n.t(limit == .week ? .heartsLeftWeek : .heartsLeft, lang, tip, 100 - pct) }
+        if let pct, !forced { tip = L10n.t(limit.heartsLeft, lang, tip, 100 - pct) }
 
         // A lost heart blinks for 16 ticks: the old value on the first two of every four.
         if let before = halves, now < before {

@@ -17,31 +17,23 @@ public struct ClawdDataInput: Sendable, Hashable {
     public var busy: Int
     public var waiting: Int
     public var sessionCount: Int
-    /// Which limit he follows; a switch starts his reset and heart memory over.
-    public var limit: MainLimit
-    /// The main limit's percentage, nil without data.
-    public var pct: Int?
-    public var reset: Date?
+    /// The limit he follows; a switch of its kind starts his reset and heart memory over.
+    public var main: UsageLimit
     public var critPercent: Int
 
-    public init(
-        busy: Int, waiting: Int, sessionCount: Int, limit: MainLimit = .session, pct: Int?, reset: Date?, critPercent: Int
-    ) {
+    public init(busy: Int, waiting: Int, sessionCount: Int, main: UsageLimit, critPercent: Int) {
         self.busy = busy
         self.waiting = waiting
         self.sessionCount = sessionCount
-        self.limit = limit
-        self.pct = pct
-        self.reset = reset
+        self.main = main
         self.critPercent = critPercent
     }
 
     /// What a data snapshot tells Clawd: the sessions by state and the main limit.
     public init(_ s: DataSnapshot, mainLimit: MainLimit, critPercent: Int) {
-        let main = mainLimit.of(s.usage)
         self.init(
             busy: s.count(of: .busy), waiting: s.count(of: .waiting), sessionCount: s.sessions.count,
-            limit: mainLimit, pct: main.percent, reset: main.reset, critPercent: critPercent
+            main: mainLimit.of(s.usage), critPercent: critPercent
         )
     }
 }

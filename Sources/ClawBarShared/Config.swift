@@ -5,8 +5,7 @@ public enum Lang: String, Sendable, CaseIterable {
 
     /// Case-insensitive; anything unknown (an old `ru`, a typo) is English.
     public init(configValue: String?) {
-        let v = (configValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        self = Lang(rawValue: v) ?? .en
+        self = .parse(configValue) ?? .en
     }
 
     /// The name in its own language, for the Language menu.
@@ -24,8 +23,14 @@ public enum MainLimit: String, Sendable, CaseIterable {
 
     /// Case-insensitive, like the original's `-eq 'week'`; anything else is the session.
     public init(configValue: String?) {
-        let v = (configValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        self = MainLimit(rawValue: v) ?? .session
+        self = .parse(configValue) ?? .session
+    }
+}
+
+extension RawRepresentable where RawValue == String {
+    /// A config.json choice, trimmed and case-insensitive; nil when unknown.
+    static func parse(_ configValue: String?) -> Self? {
+        Self(rawValue: (configValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
     }
 }
 

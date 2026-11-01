@@ -38,8 +38,8 @@ func input(
     crit: Int = 85
 ) -> ClawdDataInput {
     ClawdDataInput(
-        busy: busy, waiting: waiting, sessionCount: sessions ?? (busy + waiting), limit: limit, pct: pct, reset: reset,
-        critPercent: crit
+        busy: busy, waiting: waiting, sessionCount: sessions ?? (busy + waiting),
+        main: UsageLimit(kind: limit, percent: pct, reset: reset), critPercent: crit
     )
 }
 

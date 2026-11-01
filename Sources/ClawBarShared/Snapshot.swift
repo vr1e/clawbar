@@ -87,14 +87,6 @@ public struct UsageSnapshot: Sendable, Hashable {
         self.day = day
         self.week7 = week7
     }
-
-    /// One of the two limits `MainLimit` chooses between.
-    public func limit(_ kind: MainLimit) -> UsageLimit {
-        switch kind {
-        case .session: UsageLimit(kind: .session, percent: sessionPercent, reset: sessionReset)
-        case .week: UsageLimit(kind: .week, percent: weekPercent, reset: weekReset)
-        }
-    }
 }
 
 /// The session or the all-models week: its percentage and reset, nil without data.
@@ -115,7 +107,36 @@ extension MainLimit {
     public var other: MainLimit { self == .session ? .week : .session }
 
     /// Get-Limits: this limit of `usage`, empty without one.
-    public func of(_ usage: UsageSnapshot?) -> UsageLimit { usage?.limit(self) ?? UsageLimit(kind: self) }
+    public func of(_ usage: UsageSnapshot?) -> UsageLimit {
+        switch self {
+        case .session: UsageLimit(kind: self, percent: usage?.sessionPercent, reset: usage?.sessionReset)
+        case .week: UsageLimit(kind: self, percent: usage?.weekPercent, reset: usage?.weekReset)
+        }
+    }
+
+    /// The card's row label: 'WEEK' or 'SESSION · 5H'.
+    public var rowLabel: L10nKey {
+        switch self {
+        case .session: .uiSession
+        case .week: .uiWeek
+        }
+    }
+
+    /// The menu bar tooltip's line, taking the percentage.
+    public var trayLabel: L10nKey {
+        switch self {
+        case .session: .traySession
+        case .week: .trayWeek
+        }
+    }
+
+    /// The hearts' tooltip, taking the percentage left.
+    public var heartsLeft: L10nKey {
+        switch self {
+        case .session: .heartsLeft
+        case .week: .heartsLeftWeek
+        }
+    }
 }
 
 /// The session and week percentages at one minute, for the 7-day history.
