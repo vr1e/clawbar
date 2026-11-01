@@ -121,7 +121,7 @@ import ClawBarShared
 
     @Test func aHandSetOpacityBelowTheRangeOnlyMovesBackIntoIt() {
         #expect(SteppedSetting.opacity.next(from: 0.2, up: false) == nil)
-        #expect(SteppedSetting.opacity.next(from: 0.2, up: true) == 0.3)
+        #expect(SteppedSetting.opacity.next(from: 0.2, up: true) == 0.25)
     }
 
     @Test func tenStepsUpAndDownLeaveNoDrift() {
