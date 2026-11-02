@@ -364,8 +364,7 @@ private struct Render {
 
     /// HH:mm:ss in the input's zone, never the system's.
     private func clockText(_ date: Date) -> String {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = input.timeZone
+        let calendar = Calendar.gregorian(in: input.timeZone)
         let c = calendar.dateComponents([.hour, .minute, .second], from: date)
         return String(format: "%02d:%02d:%02d", c.hour ?? 0, c.minute ?? 0, c.second ?? 0)
     }

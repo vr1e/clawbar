@@ -11,8 +11,7 @@ public enum Samples {
     /// A week of samples every 5 minutes up to `now`, Berlin time: a 5-hour window each morning and weekday afternoon,
     /// the week rising with them, resetting Thursday 06:00 and ending at the sample's 34% and 59%; asleep Tue–Wed night.
     public static let history: [UsageSample] = {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
+        let calendar = Calendar.gregorian(in: timeZone)
         func minute(_ unix: TimeInterval) -> Int { UsageSample.minute(of: Date(timeIntervalSince1970: unix)) }
         let end = UsageSample.minute(of: now)
         // Thursday 2026-10-15 06:00, a week before the sample's reset; Tuesday 23:40 to Wednesday 07:40.

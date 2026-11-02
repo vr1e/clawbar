@@ -72,8 +72,7 @@ enum HistoryChart {
 
     /// Each local day the box touches, between its midnights; calendar days, so DST days are 23 or 25 hours.
     static func days(_ box: Box, timeZone: TimeZone, lang: Lang) -> [ChartDay] {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
+        let calendar = Calendar.gregorian(in: timeZone)
         var days: [ChartDay] = []
         var day = calendar.dateInterval(of: .day, for: UsageSample(minute: box.start).date)!
         var from = 0.0

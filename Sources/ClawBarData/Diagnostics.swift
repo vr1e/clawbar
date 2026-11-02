@@ -165,8 +165,7 @@ public enum Diagnostics {
         }
 
         private static func stamp(_ d: Date, _ zone: TimeZone) -> String {
-            var cal = Calendar(identifier: .gregorian)
-            cal.timeZone = zone
+            let cal = Calendar.gregorian(in: zone)
             let c = cal.dateComponents([.year, .month, .day, .hour, .minute], from: d)
             return String(format: "%04d-%02d-%02d %02d:%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0, c.hour ?? 0, c.minute ?? 0)
         }

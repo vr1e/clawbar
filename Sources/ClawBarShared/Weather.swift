@@ -84,8 +84,7 @@ public enum SunCalc {
     /// The NOAA approximation of weather.ps1 Get-SunCalc, in `timeZone`'s clock on `date`.
     /// Polar day and night are clamped, so sunrise can come out after sunset; callers guard that.
     public static func noaa(lat: Double, lon: Double, date: Date, timeZone: TimeZone) -> SunTimes {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = timeZone
+        let cal = Calendar.gregorian(in: timeZone)
         let dayOfYear = Double(cal.ordinality(of: .day, in: .year, for: date) ?? 1)
         let gm = 2 * Double.pi / 365 * (dayOfYear - 0.5)
         let eq = 229.18 * (0.000075 + 0.001868 * cos(gm) - 0.032077 * sin(gm)

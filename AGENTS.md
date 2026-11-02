@@ -40,6 +40,8 @@ to `main` by PR; it leaves the version alone. Releases are cut from `main` by th
   tests) use a virtual clock and a seeded generator, with no pointer.
 - The `ClawBar` target is MainActor by default: Timer and notification blocks run inside `MainActor.assumeIsolated`.
 - Regular expressions are statics built with `Rx.make` (`Sources/ClawBarShared/Rx.swift`).
+- Calendars come from `Calendar.gregorian(in:)` (`Sources/ClawBarShared/CalendarZone.swift`), so none falls back to
+  the machine's zone.
 - The original rounds half to even (`[int]`, `[byte]`, `[math]::Round`): use `.rounded(.toNearestOrEven)`.
 - Comments say why, in one line where one suffices.
 
