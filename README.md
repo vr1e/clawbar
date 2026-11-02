@@ -49,9 +49,10 @@ To update, pull and run the last two commands again. `config.json` and ClawBar's
 
 - **Left-click** the menu bar item to show or hide the widget; **right-click** (or ctrl-click) it for the menu:
   Refresh now, Settings…, Quit.
-- **Settings…** opens beside the widget, and every change shows at once. Look picks the language; Widget sets the
-  size, opacity and always on top, which blocks the widget shows, launch at login and Clawd in menu bar (untick
-  Clawd there and in the widget for the numbers alone). The rest is in `config.json`, which its button opens.
+- **Settings…** opens beside the widget, and every change shows at once. Look picks the language and the colour
+  theme; Widget sets the size, opacity and always on top, which blocks the widget shows, launch at login and Clawd in
+  menu bar (untick Clawd there and in the widget for the numbers alone). The rest is in `config.json`, which its
+  button opens.
 - **Drag** the widget by anything but Clawd and the buttons. ▾ opens the details, – hides the widget, ✕ quits.
 - **Click** the status line to open status.claude.com, the version line to run `claude update` when one is out
   (otherwise it opens the changelog), and the ClawBar line to visit the original project.
@@ -73,6 +74,8 @@ the file is not valid JSON, ClawBar runs on the defaults and the widget's last-u
 | Key | Default | Meaning |
 |---|---|---|
 | `language` | `en` | `en` or `de` |
+| `theme` | `classic` | colours: `classic`, `oled`, `midnight`, `mocha`, `forest`, `halloween`, `space`, `ocean`, or `auto` (Halloween in September–November, Classic otherwise), also in **Settings › Look** |
+| `accent` | unset | your own `#RRGGBB` or `#AARRGGBB` for the weekly bar and the chart's week line, over the theme's |
 | `scale` | `1.2` | widget size, 0.6–4.0 |
 | `opacity` | `1.0` | 0.2–1.0 |
 | `topmost` | `false` | keep the widget above other windows |
@@ -161,8 +164,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French; Brazilian Portuguese; Spanish. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
 | 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval; the top projects keep folders of the same name apart and weigh each reply at its model's list price; the hover's busiest project is the local hour's, not the UTC hour's. |
-| Themes and skins | ⏳ Not yet | |
-| Settings window | ✅ Ported differently | A native window with Look and Widget tabs, opened from the menu; Look has only the language until themes and skins. Not ported: A tab for Claude Code's own settings. |
+| Themes and skins | ✅ Ported differently | Classic by default, picked from a menu in Settings › Look; Space's model weeks are pink. Not yet: A pattern behind the widget; The Cyberpunk theme; Skins for Clawd, and your own from a text file; Animated themes behind the widget and in the sky row. |
+| Settings window | ✅ Ported differently | A native window with Look and Widget tabs, opened from the menu; Look has the language and the theme until skins. Not ported: A tab for Claude Code's own settings. |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
 | PC tips | ➖ Not ported | They look over a Windows PC. |
 | Clawd's Remote Control session | ➖ Not ported | It belongs with the chat. |
@@ -171,10 +174,16 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 
 - A menu bar item replaces the tray icon; the default size is 1.2, which suits Retina points.
 - The Settings window is a native one with the original's Look and Window tabs, the second named Widget; Look has
-  only the language until themes and skins arrive. Widget adds launch at login and Clawd in menu bar, and drops the
-  original's reset-clock and administrator switches. There is no gear in the widget's header: Settings… is in the menu.
+  the language and the theme until skins arrive, the theme in a menu with a swatch where the original has chips.
+  Widget adds launch at login and Clawd in menu bar, and drops the original's reset-clock and administrator switches.
+  There is no gear in the widget's header: Settings… is in the menu.
   A stepper's button is disabled at the end of its range, so below 0.3 opacity '−' does nothing where the original's
   raises the value to 0.3.
+- The theme is Classic by default; the original's default follows the season (By season here). In Space the
+  model weeks' bars are pink, since its violet accent is the original's model-week colour. An `accent` is read only
+  as `#RRGGBB` or `#AARRGGBB`, where the original also takes colour names and short hex; anything else shows the
+  theme's own, where the original keeps the previous theme's. The Halloween, Space and Underwater patterns behind the
+  widget and the Cyberpunk theme are not ported yet.
 - When the widget grows (details, size, more sessions) or Settings switches to a taller tab, the window moves up or
   left just enough to stay on screen, where the original's widget grows past the screen's edge.
 - The menu bar item's tooltip gives every limit a line of its own, each model's week included, with the time left

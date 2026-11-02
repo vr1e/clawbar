@@ -44,6 +44,8 @@ struct StateDump {
         add("config.opacity", Self.num(config.opacity))
         add("config.topmost", config.topmost)
         add("config.mainLimit", config.mainLimit.rawValue)
+        add("config.theme", config.theme.rawValue)
+        add("config.accent", config.accent?.hex ?? "none")
         add("config.showMascot", config.showMascot)
         add("config.showSky", config.showSky)
         add("config.showHistory", config.showHistory)

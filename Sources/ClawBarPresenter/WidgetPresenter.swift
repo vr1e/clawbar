@@ -4,13 +4,7 @@ import ClawBarShared
 /// Every render rule of update.ps1 and format.ps1, as a pure function of its input.
 public enum WidgetPresenter {
     public static func make(_ input: PresenterInput) -> WidgetViewState {
-        // The theme, the accent and "auto" by month are chosen here once the config has them.
-        make(input, palette: .classic)
-    }
-
-    /// `make` with the themed colours given, so tests can recolour a role that no config chooses yet.
-    static func make(_ input: PresenterInput, palette: ThemePalette) -> WidgetViewState {
-        Render(input, palette: palette).state()
+        Render(input).state()
     }
 }
 
@@ -23,10 +17,13 @@ private struct Render {
     let data: DataSnapshot
     let now: Date
 
-    init(_ input: PresenterInput, palette: ThemePalette) {
+    init(_ input: PresenterInput) {
         self.input = input
-        self.palette = palette
         cfg = input.config.clamped()
+        // The configured theme, by season in the input's zone, with a hand-set accent over its own (`Set-Theme`).
+        var palette = cfg.theme.theme(at: input.now, in: input.timeZone).palette
+        if let accent = cfg.accent { palette.accent = accent }
+        self.palette = palette
         lang = cfg.lang
         data = input.data
         now = input.now
