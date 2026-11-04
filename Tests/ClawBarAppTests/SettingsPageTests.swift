@@ -23,9 +23,8 @@ import ClawBarShared
         #expect(options.map(\.action) == [.language(.en), .language(.de)])
     }
 
-    @Test func theLookTabPicksTheThemeWithASwatchOfItsColours() throws {
-        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
-        let rows = SettingsPage.sections(.look, config: Config(theme: .bySeason), now: Samples.now, timeZone: berlin)
+    @Test func theLookTabPicksTheThemeWithASwatchOfItsColours() {
+        let rows = SettingsPage.sections(.look, config: Config(theme: .bySeason), now: Samples.now, timeZone: Samples.timeZone)
             .flatMap(\.rows)
         guard case .picker(let title, let options) = rows[1] else {
             Issue.record("no theme picker")
