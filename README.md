@@ -74,7 +74,7 @@ the file is not valid JSON, ClawBar runs on the defaults and the widget's last-u
 | Key | Default | Meaning |
 |---|---|---|
 | `language` | `en` | `en` or `de` |
-| `theme` | `classic` | colours: `classic`, `oled`, `midnight`, `mocha`, `forest`, `halloween`, `space`, `ocean`, or `auto` (Halloween in September–November, Classic otherwise), also in **Settings › Look** |
+| `theme` | `classic` | colours: `classic`, `oled`, `midnight`, `mocha`, `forest`, `halloween`, `space`, `ocean`, `christmas`, or `auto` (Halloween in September–October, Christmas from November through 14 January, Classic otherwise), also in **Settings › Look** |
 | `accent` | unset | your own `#RRGGBB` or `#AARRGGBB` for the weekly bar and the chart's week line, over the theme's |
 | `scale` | `1.2` | widget size, 0.6–4.0 |
 | `opacity` | `1.0` | 0.2–1.0 |
@@ -147,7 +147,7 @@ Everything ClawBar touches, so you know there is nothing else:
 ## Differences from the original
 
 <!-- parity-table: begin; generated from a private feature map, so edits here are overwritten -->
-ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.19.0.
+ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.20.0.
 *Ported differently* has its gist in the notes and its details in the bullets below.
 
 | Feature | In ClawBar | Notes |
@@ -182,8 +182,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 - The theme is Classic by default; the original's default follows the season (By season here). In Space the
   model weeks' bars are pink, since its violet accent is the original's model-week colour. An `accent` is read only
   as `#RRGGBB` or `#AARRGGBB`, where the original also takes colour names and short hex; anything else shows the
-  theme's own, where the original keeps the previous theme's. The Halloween, Space and Underwater patterns behind the
-  widget and the Cyberpunk theme are not ported yet.
+  theme's own, where the original keeps the previous theme's. The Halloween, Space, Underwater and Christmas patterns
+  behind the widget and the Cyberpunk theme are not ported yet.
 - When the widget grows (details, size, more sessions) or Settings switches to a taller tab, the window moves up or
   left just enough to stay on screen, where the original's widget grows past the screen's edge.
 - The menu bar item's tooltip gives every limit a line of its own, each model's week included, with the time left

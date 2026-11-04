@@ -189,6 +189,7 @@ extension ThemeChoice {
         case .fixed(.halloween): .themeHalloween
         case .fixed(.space): .themeSpace
         case .fixed(.ocean): .themeOcean
+        case .fixed(.christmas): .themeChristmas
         }
     }
 }
