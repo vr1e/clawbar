@@ -1,6 +1,7 @@
 import AppKit
 import Observation
 import SwiftUI
+import ClawBarClawd
 import ClawBarShared
 
 /// The config the open pages show; set on every applied change, so a hand edit of config.json shows too.
@@ -49,8 +50,8 @@ struct SettingsPageView: View {
                 set: { perform(options[$0].action) }
             )) {
                 ForEach(options.indices, id: \.self) { i in
-                    if let swatch = options[i].swatch {
-                        Label { Text(options[i].title) } icon: { Image(nsImage: ThemeSwatch.image(swatch)) }.tag(i)
+                    if let icon = options[i].icon {
+                        Label { Text(options[i].title) } icon: { Image(nsImage: icon.image) }.tag(i)
                     } else {
                         Text(options[i].title).tag(i)
                     }
@@ -69,6 +70,36 @@ struct SettingsPageView: View {
             Text(text).font(.callout).foregroundStyle(.secondary)
         case .button(let title, let action):
             Button(title) { perform(action) }
+        }
+    }
+}
+
+extension SettingsIcon {
+    var image: NSImage {
+        switch self {
+        case .theme(let p): ThemeSwatch.image(p)
+        case .skin(let s): SkinIcon.image(s)
+        }
+    }
+}
+
+/// Clawd standing in a skin, every skin in one frame, so the menu's rows line up and the tallest hat fits.
+enum SkinIcon {
+    /// Half size: one of Clawd's pixels is a point wide, so it lands on whole device pixels.
+    static let scale: CGFloat = 0.5
+    static let frame = ClawdPreview.frame(fitting: BuiltInSkin.allCases.map(\.skin))
+
+    static func image(_ skin: Skin, scale k: CGFloat = scale) -> NSImage {
+        let ops = ClawdPreview.standing(in: skin)
+        return NSImage(size: NSSize(width: frame.width * k, height: frame.height * k), flipped: true) { _ in
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            ctx.scaleBy(x: k, y: k)
+            ctx.translateBy(x: -frame.minX, y: -frame.minY)
+            for case let .rects(rects, color, _) in ops {
+                ctx.setFillColor(cgColor(color))
+                ctx.fill(rects)
+            }
+            return true
         }
     }
 }

@@ -65,6 +65,15 @@ import ClawBarShared
         #expect(json()["theme"] as? String == "oled")
     }
 
+    @Test func theSkinIsKeptAsWrittenAndWrittenByItsId() throws {
+        write(#"{"skin": " Santa "}"#)
+        let store = ConfigStore(paths: paths)
+        #expect(store.load().skin == " Santa ")
+        #expect(ConfigStore.decode([:]).skin == "classic")
+        _ = try store.update { $0.skin = BuiltInSkin.tophat.rawValue }
+        #expect(json()["skin"] as? String == "tophat")
+    }
+
     @Test func aBadKeyFallsBackToItsOwnDefaultOnly() {
         write("""
         {"scale": "big", "opacity": 0.5, "showStats": [1], "usageIntervalSeconds": null, "weatherLat": "north",

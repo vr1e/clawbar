@@ -3,8 +3,11 @@ import Testing
 import ClawBarShared
 
 @Suite struct L10nParityTests {
-    /// Keys whose German is, correctly, the English: pure formats, a unit symbol and a proper name.
-    static let sameInBothLanguages: Set<L10nKey> = [.period, .spanD, .statMcp, .histSession, .setShowMascot, .gameTitle, .setTabWidget, .setSystem, .themeHalloween]
+    /// Keys whose German is, correctly, the English: pure formats, a unit symbol, proper names and loanwords.
+    static let sameInBothLanguages: Set<L10nKey> = [
+        .period, .spanD, .statMcp, .histSession, .setShowMascot, .gameTitle, .setTabWidget, .setSystem, .themeHalloween,
+        .skinAstronaut, .skinFrost, .skinNerd, .skinNetrunner, .skinParty, .skinRockerboy,
+    ]
 
     @Test(arguments: L10nKey.allCases)
     func placeholdersMatch(key: L10nKey) {

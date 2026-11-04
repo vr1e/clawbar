@@ -53,6 +53,21 @@ import ClawBarSky
         #expect(!asleep[29].z && asleep[30].z)
     }
 
+    @Test func clawdWearsTheConfigsSkinFromTheStartAndOnEveryChange() {
+        func colours(_ e: AnimationEngine) -> Set<RGBA> {
+            Set(e.step(inputs()).clawd.ops.compactMap { if case let .rects(_, c, _) = $0 { c } else { nil } })
+        }
+        let santa = BuiltInSkin.santa.skin.layers.map(\.color)
+        let engine = engine(config: Config(skin: "santa"))
+        engine.perform(.auto)
+        #expect(colours(engine).isSuperset(of: santa))
+        engine.apply(data(sessions: 1), config: Config(skin: "frost"), now: t0)
+        let frost = colours(engine)
+        #expect(frost.contains(BuiltInSkin.frost.skin.body) && !frost.contains(Palette.clawdBody))
+        engine.apply(data(sessions: 1), config: Config(), now: t0)
+        #expect(colours(engine).isDisjoint(with: santa + BuiltInSkin.frost.skin.layers.map(\.color)))
+    }
+
     @Test func hidingClawdForgetsTheHeartsAndStopsTheTicks() {
         let engine = settled()
         engine.apply(data(sessions: 1, pct: 50), config: Config(), now: t0)

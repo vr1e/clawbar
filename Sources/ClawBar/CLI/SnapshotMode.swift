@@ -146,6 +146,10 @@ enum SnapshotCases {
                 $0.config.theme = .fixed(theme)
             }
         }
+        add("skin-santa") {
+            $0.everyLanguageAndSize = false
+            $0.config.skin = BuiltInSkin.santa.rawValue
+        }
         add("theme-accent") {
             $0.everyLanguageAndSize = false
             $0.config.accent = RGBA("#F472B6")
@@ -199,6 +203,7 @@ enum SnapshotMode {
         out += try writeStatusItems(to: dir)
         out += try writeGame(to: dir)
         out += try writeSettings(to: dir)
+        out += try writeSkins(to: dir)
         for lang in Lang.allCases {
             let url = dir.appendingPathComponent("menus-\(lang.rawValue).txt")
             try menuDump(lang: lang).write(to: url, atomically: true, encoding: .utf8)
@@ -293,6 +298,26 @@ enum SnapshotMode {
             }
         }
         return out
+    }
+
+    /// Every built-in skin as the Settings picker draws it, larger, with its English name.
+    static func writeSkins(to dir: URL) throws -> [URL] {
+        let sheet = LazyVGrid(columns: Array(repeating: GridItem(.fixed(110)), count: 7), spacing: 12) {
+            ForEach(BuiltInSkin.allCases, id: \.self) { s in
+                VStack(spacing: 4) {
+                    Image(nsImage: SkinIcon.image(s.skin, scale: 2))
+                    Text(L10n.t(s.title, .en)).font(.system(size: 11)).foregroundStyle(.white)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(cgColor: cgColor(backdrop)))
+        let view = NSHostingView(rootView: sheet)
+        view.frame.size = view.fittingSize
+        guard let image = Imaging.image(of: view) else { throw CLIError(message: "rendering skins failed") }
+        let url = dir.appendingPathComponent("skins.png")
+        try Imaging.writePNG(image, to: url)
+        return [url]
     }
 
     /// Clawd Run's showcase at 2 pixels per point, captioned as the presenter does at the limit and after the reset.

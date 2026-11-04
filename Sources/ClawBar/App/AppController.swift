@@ -389,6 +389,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
         case .language(let l): change { $0.language = l.rawValue }
         case .theme(let t): change { $0.theme = t }
+        case .skin(let s): change { $0.skin = s.rawValue }
         case .toggleBlock(let b): change { $0[keyPath: b.flag].toggle() }
         case .openConfig: openConfig()
         }

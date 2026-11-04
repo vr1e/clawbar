@@ -21,6 +21,7 @@ public final class AnimationEngine {
         clawd = ClawdEngine(random: random, now: now)
         sky = SkyEngine(random: random)
         self.config = config
+        clawd.wear(BuiltInSkin(configValue: config.skin).skin)
     }
 
     /// showMascot: the play area, Clawd and the hearts.
@@ -41,6 +42,7 @@ public final class AnimationEngine {
             frame.clawd = .empty
             return
         }
+        clawd.wear(BuiltInSkin(configValue: config.skin).skin)
         if data.sessionsRead { clawd.apply(ClawdDataInput(data, mainLimit: config.mainLimit, critPercent: config.critPercent), now: now) }
     }
 
