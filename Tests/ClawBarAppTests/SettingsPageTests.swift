@@ -38,8 +38,38 @@ import ClawBarShared
         #expect(options.map(\.on) == ThemeChoice.all.map { $0 == .bySeason })
         #expect(options.map(\.action) == ThemeChoice.all.map { .theme($0) })
         // By season shows the season's colours: Halloween in October.
-        #expect(options[0].swatch == Theme.halloween.palette)
-        #expect(options.dropFirst().map(\.swatch) == Theme.allCases.map(\.palette))
+        #expect(options[0].icon == .theme(Theme.halloween.palette))
+        #expect(options.dropFirst().map(\.icon) == Theme.allCases.map { .theme($0.palette) })
+    }
+
+    @Test func theLookTabPicksClawdsSkinWithHimInIt() {
+        let rows = SettingsPage.sections(.look, config: Config(skin: " Santa ")).flatMap(\.rows)
+        guard case .picker(let title, let options) = rows[2] else {
+            Issue.record("no skin picker")
+            return
+        }
+        #expect(title == "Clawd's skin")
+        #expect(options.count == 28)
+        #expect(options.prefix(3).map(\.title) == ["Classic", "Astronaut", "Bow"])
+        #expect(options.filter(\.on).map(\.action) == [.skin(.santa)])
+        #expect(options.map(\.action) == BuiltInSkin.allCases.map { .skin($0) })
+        #expect(options.map(\.icon) == BuiltInSkin.allCases.map { .skin($0.skin) })
+    }
+
+    @Test func anUnknownSkinShowsClassicAsTheChoice() {
+        let rows = SettingsPage.sections(.look, config: Config(skin: "mine")).flatMap(\.rows)
+        guard case .picker(_, let options) = rows[2] else {
+            Issue.record("no skin picker")
+            return
+        }
+        #expect(options.filter(\.on).map(\.action) == [.skin(.classic)])
+    }
+
+    @Test func everySkinsEnglishNameIsItsFilesName() {
+        for s in BuiltInSkin.allCases where s != .classic {
+            #expect(L10n.t(s.title, .en) == s.skin.name, "\(s)")
+        }
+        #expect(L10n.t(BuiltInSkin.classic.title, .en) == "Classic")
     }
 
     @Test func theWidgetTabKeepsTheOriginalsOrderAndAddsClawBarsSystemSwitches() {
@@ -106,6 +136,7 @@ import ClawBarShared
     @Test func theTextDumpShowsEveryControl() {
         let dump = SettingsPage.dump(config: Config(opacity: 0.3, topmost: true, showMascot: false))
         #expect(dump.contains("  Look:\n    Language: (•) English  ( ) Deutsch"))
+        #expect(dump.contains("    Clawd's skin: (•) Classic  ( ) Astronaut  ( ) Bow"))
         #expect(dump.contains("    Size: − 120% +"))
         #expect(dump.contains("    Opacity:   30% +"))
         #expect(dump.contains("    [x] Always on top\n    [ ] Week as the main limit\n        The big number"))

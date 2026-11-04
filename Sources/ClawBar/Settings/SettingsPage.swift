@@ -7,6 +7,7 @@ enum SettingsAction: Hashable {
     case toggleTopmost, toggleMainWeek, toggleLaunchAtLogin, toggleMenuBarMascot
     case language(Lang)
     case theme(ThemeChoice)
+    case skin(BuiltInSkin)
     case toggleBlock(WidgetBlock)
     case openConfig
 }
@@ -68,8 +69,15 @@ struct SettingsOption: Hashable {
     var action: SettingsAction
     /// A line under the title saying what the switch changes.
     var detail: String?
+    var icon: SettingsIcon?
+}
+
+/// A picture before an option's title.
+enum SettingsIcon: Hashable {
     /// A theme's colours, drawn as upstream's chip: its background with its accent in the middle.
-    var swatch: ThemePalette?
+    case theme(ThemePalette)
+    /// Clawd standing in the skin, as upstream's skin cards show him.
+    case skin(Skin)
 }
 
 /// One control of a page.
@@ -109,12 +117,17 @@ enum SettingsPage {
             let themes = ThemeChoice.all.map { c in
                 SettingsOption(
                     title: t(c.title), on: c == config.theme, action: .theme(c),
-                    swatch: c.theme(at: now, in: timeZone).palette
+                    icon: .theme(c.theme(at: now, in: timeZone).palette)
                 )
+            }
+            let skin = BuiltInSkin(configValue: config.skin)
+            let skins = BuiltInSkin.allCases.map { s in
+                SettingsOption(title: t(s.title), on: s == skin, action: .skin(s), icon: .skin(s.skin))
             }
             return [
                 SettingsSection(rows: [
                     .picker(title: t(.setLanguage), options: languages), .picker(title: t(.setTheme), options: themes),
+                    .picker(title: t(.setSkin), options: skins),
                 ]),
                 more,
             ]
@@ -190,6 +203,41 @@ extension ThemeChoice {
         case .fixed(.space): .themeSpace
         case .fixed(.ocean): .themeOcean
         case .fixed(.christmas): .themeChristmas
+        }
+    }
+}
+
+extension BuiltInSkin {
+    var title: L10nKey {
+        switch self {
+        case .classic: .skinClassic
+        case .astronaut: .skinAstronaut
+        case .bow: .skinBow
+        case .crown: .skinCrown
+        case .cyanbeanie: .skinCyanbeanie
+        case .dracula: .skinDracula
+        case .ears: .skinEars
+        case .flowershorts: .skinFlowershorts
+        case .frankenstein: .skinFrankenstein
+        case .frost: .skinFrost
+        case .frycook: .skinFrycook
+        case .headtie: .skinHeadtie
+        case .nerd: .skinNerd
+        case .netrunner: .skinNetrunner
+        case .parka: .skinParka
+        case .party: .skinParty
+        case .pompom: .skinPompom
+        case .redcrab: .skinRedcrab
+        case .rockerboy: .skinRockerboy
+        case .santa: .skinSanta
+        case .shades: .skinShades
+        case .skeleton: .skinSkeleton
+        case .squarepants: .skinSquarepants
+        case .tired: .skinTired
+        case .tophat: .skinTophat
+        case .ushanka: .skinUshanka
+        case .witch: .skinWitch
+        case .zombie: .skinZombie
         }
     }
 }

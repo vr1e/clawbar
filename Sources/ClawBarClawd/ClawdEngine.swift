@@ -100,6 +100,9 @@ public final class ClawdEngine {
         }
     }
 
+    /// Clawd's colours and accessories from the next tick on.
+    public func wear(_ skin: Skin) { sprite.skin = skin }
+
     /// A left click on the sprite.
     public func click(now: Date) {
         idleSince = now
@@ -363,8 +366,8 @@ public final class ClawdEngine {
             let moved = rects.map { CGRect(x: box.origin.x + $0.origin.x, y: box.origin.y + $0.origin.y, width: $0.width, height: $0.height) }
             ops.append(.rects(moved, color, opacity: 1))
         }
-        layer(geo.body, Palette.clawdBody)
-        layer(geo.eyes, Palette.clawdEyes)
+        layer(geo.body, sprite.skin.body)
+        layer(geo.eyes, sprite.skin.eyes)
         layer(geo.fx, Palette.clawdFx)
         layer(geo.sand, Palette.sand)
 
@@ -379,6 +382,8 @@ public final class ClawdEngine {
                 Palette.sweat, opacity: 1 - p
             ))
         }
+        // The skin's paths come last in widget.xaml's Mascot canvas, after the sweat.
+        for (accessory, rects) in zip(sprite.skin.layers, geo.accessories) { layer(rects, accessory.color) }
 
         // Asleep: a 'z' floats up from behind the head and fades.
         if zzz {

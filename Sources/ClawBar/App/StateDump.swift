@@ -46,6 +46,7 @@ struct StateDump {
         add("config.mainLimit", config.mainLimit.rawValue)
         add("config.theme", config.theme.rawValue)
         add("config.accent", config.accent?.hex ?? "none")
+        add("config.skin", BuiltInSkin(configValue: config.skin).rawValue)
         add("config.showMascot", config.showMascot)
         add("config.showSky", config.showSky)
         add("config.showHistory", config.showHistory)

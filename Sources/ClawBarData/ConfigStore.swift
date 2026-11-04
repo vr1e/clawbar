@@ -83,6 +83,7 @@ public final class ConfigStore {
         c.theme = ThemeChoice(configValue: j["theme"] as? String)
         // Upstream keeps the previous theme's accent on a bad value; here the theme's own shows.
         c.accent = (j["accent"] as? String).flatMap { RGBA.parse($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+        c.skin = j["skin"] as? String ?? d.skin
         c.scale = Lenient.double(j["scale"]) ?? d.scale
         c.opacity = Lenient.double(j["opacity"]) ?? d.opacity
         c.topmost = Lenient.bool(j["topmost"]) ?? d.topmost
@@ -127,6 +128,7 @@ public final class ConfigStore {
         case .language: c.language
         case .theme: c.theme.rawValue
         case .accent: c.accent?.hex
+        case .skin: c.skin
         case .scale: c.scale
         case .opacity: c.opacity
         case .topmost: c.topmost

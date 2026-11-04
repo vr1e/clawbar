@@ -24,22 +24,29 @@ struct ClawdPose: Hashable, Sendable {
     var spray = 0
 }
 
-/// The four layers inside the 36 × 26.4 sprite box, in the box's own coordinates (y down from its top).
+/// The layers inside the 36 × 26.4 sprite box, in the box's own coordinates (y down from its top).
 struct SpriteGeometry: Sendable, Equatable {
     var body: [CGRect] = []
     var eyes: [CGRect] = []
     var fx: [CGRect] = []
     var sand: [CGRect] = []
+    /// One per layer of the skin, in its order; a hat reaches above the box.
+    var accessories: [[CGRect]] = []
 }
 
 /// mascot.ps1's glyph rasterizer with its geometry cache, kept per engine so no static state mutates.
 final class ClawdSprite {
     private var cache: [ClawdPose: SpriteGeometry] = [:]
 
+    /// The original keys its cache on the skin too, so another skin starts it over.
+    var skin = Skin.classic {
+        didSet { if skin != oldValue { cache = [:] } }
+    }
+
     /// Cached forever, as in the original: the poses Clawd uses are a small set.
     func geometry(_ pose: ClawdPose) -> SpriteGeometry {
         if let geo = cache[pose] { return geo }
-        let geo = Self.render(pose)
+        let geo = Self.render(pose, skin: skin)
         cache[pose] = geo
         return geo
     }
@@ -123,8 +130,8 @@ final class ClawdSprite {
         return g
     }
 
-    /// Get-MascotGeo without the cache: the frame transform, run merging, poof, shadow, sand and spray.
-    static func render(_ pose: ClawdPose) -> SpriteGeometry {
+    /// Get-MascotGeo without the cache: the frame transform, run merging, the skin, poof, shadow, sand and spray.
+    static func render(_ pose: ClawdPose, skin: Skin = .classic) -> SpriteGeometry {
         let g = pixels(pose)
         let w = ClawdTables.width, h = ClawdTables.height
         let px = ClawdTables.px, py = ClawdTables.py
@@ -157,6 +164,8 @@ final class ClawdSprite {
                 if c == 2 { geo.eyes.append(rect) } else { geo.body.append(rect) }
             }
         }
+
+        geo.accessories = skin.layers.map { accessory($0, pose: pose, ox: ox, oy: oy, lim: lim) }
 
         let wd = Double(w), hd = Double(h)
         if let poof = pose.poof, pose.off > 0 {
@@ -193,6 +202,36 @@ final class ClawdSprite {
             }
         }
         return geo
+    }
+
+    /// A skin layer's pixels where the frame puts them, merged into runs per row. Above the head they show while the head
+    /// is in the frame, on the body as the body does; turned, only what is above the head stays; belly-up, nothing.
+    private static func accessory(_ layer: SkinLayer, pose: ClawdPose, ox: Int, oy: Int, lim: Int) -> [CGRect] {
+        guard !pose.flip else { return [] }
+        let w = ClawdTables.width
+        var rows: [Int: [Int]] = [:]
+        for p in layer.pixels {
+            if p.y >= 0, pose.facing != nil { continue }
+            let x = p.x + ox, yy = p.y + oy
+            if x < 0 || x >= w || yy >= lim { continue }
+            if p.y < 0 ? oy < 0 : yy < 0 { continue }
+            rows[yy, default: []].append(x)
+        }
+        var out: [CGRect] = []
+        for yy in rows.keys.sorted() {
+            let xs = rows[yy]!.sorted()
+            var i = 0
+            while i < xs.count {
+                var j = i + 1
+                while j < xs.count, xs[j] == xs[j - 1] + 1 { j += 1 }
+                out.append(CGRect(
+                    x: Double(xs[i]) * ClawdTables.px, y: Double(yy) * ClawdTables.py,
+                    width: Double(j - i) * ClawdTables.px, height: ClawdTables.py
+                ))
+                i = j
+            }
+        }
+        return out
     }
 
     /// Get-SoulGeo: the soul at height `h` above the mouth (the origin), swaying, on its thread.
