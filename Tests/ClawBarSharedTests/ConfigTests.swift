@@ -124,22 +124,22 @@ import ClawBarShared
         #expect(ThemeChoice(configValue: "cyberpunk") == .fixed(.classic))
         #expect(ThemeChoice(configValue: nil) == .fixed(.classic))
         #expect(ThemeChoice.all.map(\.rawValue) == [
-            "auto", "classic", "oled", "midnight", "mocha", "forest", "halloween", "space", "ocean",
+            "auto", "classic", "oled", "midnight", "mocha", "forest", "halloween", "space", "ocean", "christmas",
         ])
     }
 
-    @Test func bySeasonIsHalloweenFromSeptemberToNovemberInTheGivenZone() throws {
-        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
+    @Test func bySeasonIsHalloweenThenChristmasUntilTheFourteenthOfJanuaryInTheGivenZone() throws {
         let utc = try #require(TimeZone(identifier: "UTC"))
-        // 31 August, 23:30 UTC: already September in Berlin.
-        let edge = Date(timeIntervalSince1970: 1_788_219_000)
-        #expect(ThemeChoice.bySeason.theme(at: edge, in: berlin) == .halloween)
-        #expect(ThemeChoice.bySeason.theme(at: edge, in: utc) == .classic)
-        // 30 November, 23:30 UTC: already December in Berlin.
-        let end = Date(timeIntervalSince1970: 1_796_081_400)
-        #expect(ThemeChoice.bySeason.theme(at: end, in: utc) == .halloween)
-        #expect(ThemeChoice.bySeason.theme(at: end, in: berlin) == .classic)
-        #expect(ThemeChoice.fixed(.mocha).theme(at: edge, in: berlin) == .mocha)
+        // The season in UTC and in Berlin at 23:30 UTC on the given day, already the next day in Berlin.
+        func season(_ year: Int, _ month: Int, _ day: Int) throws -> [Theme] {
+            let parts = DateComponents(year: year, month: month, day: day, hour: 23, minute: 30)
+            let at = try #require(Calendar.gregorian(in: utc).date(from: parts))
+            return [utc, Samples.timeZone].map { ThemeChoice.bySeason.theme(at: at, in: $0) }
+        }
+        #expect(try season(2026, 8, 31) == [.classic, .halloween])
+        #expect(try season(2026, 10, 31) == [.halloween, .christmas])
+        #expect(try season(2027, 1, 14) == [.christmas, .classic])
+        #expect(ThemeChoice.fixed(.mocha).theme(at: Date(timeIntervalSince1970: 0), in: utc) == .mocha)
     }
 
     @Test func anAccentParsesOnlyAsHashAndSixOrEightHexDigits() {

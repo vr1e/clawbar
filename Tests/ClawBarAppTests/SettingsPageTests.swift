@@ -23,9 +23,8 @@ import ClawBarShared
         #expect(options.map(\.action) == [.language(.en), .language(.de)])
     }
 
-    @Test func theLookTabPicksTheThemeWithASwatchOfItsColours() throws {
-        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
-        let rows = SettingsPage.sections(.look, config: Config(theme: .bySeason), now: Samples.now, timeZone: berlin)
+    @Test func theLookTabPicksTheThemeWithASwatchOfItsColours() {
+        let rows = SettingsPage.sections(.look, config: Config(theme: .bySeason), now: Samples.now, timeZone: Samples.timeZone)
             .flatMap(\.rows)
         guard case .picker(let title, let options) = rows[1] else {
             Issue.record("no theme picker")
@@ -34,8 +33,9 @@ import ClawBarShared
         #expect(title == "Theme")
         #expect(options.map(\.title) == [
             "By season", "Classic", "OLED black", "Midnight", "Mocha", "Forest", "Halloween", "Space", "Underwater",
+            "Christmas",
         ])
-        #expect(options.map(\.on) == [true] + Array(repeating: false, count: 8))
+        #expect(options.map(\.on) == ThemeChoice.all.map { $0 == .bySeason })
         #expect(options.map(\.action) == ThemeChoice.all.map { .theme($0) })
         // By season shows the season's colours: Halloween in October.
         #expect(options[0].swatch == Theme.halloween.palette)

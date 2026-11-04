@@ -164,6 +164,7 @@ extension L10nKey {
         case .themeHalloween: .text(en: "Halloween", de: "Halloween")
         case .themeSpace: .text(en: "Space", de: "Weltraum")
         case .themeOcean: .text(en: "Underwater", de: "Unter Wasser")
+        case .themeChristmas: .text(en: "Christmas", de: "Weihnachten")
         case .setSize: .text(en: "Size", de: "Größe")
         case .setOpacity: .text(en: "Opacity", de: "Deckkraft")
         case .setTopmost: .text(en: "Always on top", de: "Immer im Vordergrund")

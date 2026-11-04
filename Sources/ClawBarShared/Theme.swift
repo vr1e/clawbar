@@ -43,7 +43,7 @@ public struct ThemePalette: Sendable, Hashable {
 
 /// A named look whose colours are a theme palette: theme.ps1's `$Themes`, in its order. Upstream's `cyberpunk` (1.18.0) is not ported yet.
 public enum Theme: String, Sendable, CaseIterable {
-    case classic, oled, midnight, mocha, forest, halloween, space, ocean
+    case classic, oled, midnight, mocha, forest, halloween, space, ocean, christmas
 
     /// theme.ps1's row: `bg`, `text2`, `muted`, `dim`, `faint`, `accent` and `off`; the rest of a row has no role here.
     public var palette: ThemePalette {
@@ -71,6 +71,7 @@ public enum Theme: String, Sendable, CaseIterable {
                 modelWeekBar: RGBA("#FFF472B6")
             )
         case .ocean: return row("#FF0A2236", "#FFCDE6F5", "#FF86A9BF", "#FF62849A", "#FF456679", "#FF22D3EE", "#FF2F4C5E")
+        case .christmas: return row("#FF231317", "#FFE6D3D0", "#FFA08A88", "#FF7E6865", "#FF5C4A4A", "#FF7DD3FC", "#FF413236")
         }
     }
 }
@@ -104,13 +105,19 @@ public enum ThemeChoice: RawRepresentable, Sendable, Hashable {
         }
     }
 
-    /// Halloween from September to November in the given zone, classic otherwise (`Get-SeasonThemeId`).
+    /// The season's theme in the given zone, as `Get-SeasonThemeId`.
     public func theme(at now: Date, in zone: TimeZone) -> Theme {
         switch self {
         case .fixed(let t): return t
         case .bySeason:
             let calendar = Calendar.gregorian(in: zone)
-            return (9 ... 11).contains(calendar.component(.month, from: now)) ? .halloween : .classic
+            let month = calendar.component(.month, from: now), day = calendar.component(.day, from: now)
+            switch month {
+            case 9, 10: return .halloween
+            case 11, 12: return .christmas
+            case 1 where day <= 14: return .christmas
+            default: return .classic
+            }
         }
     }
 }
