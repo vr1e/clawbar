@@ -181,6 +181,8 @@ public struct WidgetViewState: Sendable, Hashable {
     /// The themed colours, read by role by the card, the hearts, the caption and Clawd Run. Where the role depends on
     /// the state or the row, the presenter resolves it into that field's own colour instead.
     public var palette: ThemePalette
+    /// The theme's wallpaper under the card's content, or none.
+    public var pattern: ThemePattern?
     /// The parts the card shows, in its order; a part left out is not drawn and the pointer finds nothing there.
     public var parts: [CardPart]
 
@@ -258,6 +260,7 @@ public struct WidgetViewState: Sendable, Hashable {
 
     public init(
         palette: ThemePalette = .classic,
+        pattern: ThemePattern? = nil,
         parts: [CardPart] = [],
         title: String = "CLAUDE USAGE",
         detailsGlyph: String = "▾",
@@ -302,6 +305,7 @@ public struct WidgetViewState: Sendable, Hashable {
         trayMascot: Bool = true
     ) {
         self.palette = palette
+        self.pattern = pattern
         self.parts = parts
         self.title = title
         self.detailsGlyph = detailsGlyph

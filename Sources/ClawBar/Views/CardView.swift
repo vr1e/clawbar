@@ -63,11 +63,43 @@ struct CardView: View {
             let outer = RoundedRectangle(cornerRadius: 10 * k)
             ZStack {
                 outer.inset(by: 1 * k).fill(Color(rgba: v.palette.background))
+                if let pattern = v.pattern {
+                    // theme.ps1's layer: inside the border, with the card's own radius.
+                    PatternLayer(pattern: pattern)
+                        .clipShape(RoundedRectangle(cornerRadius: 10 * k))
+                        .padding(1 * k)
+                }
                 outer.strokeBorder(Color(rgba: Palette.border), lineWidth: 1 * k)
             }
         }
         .coordinateSpace(.named(CardSpace.name))
         .onGeometryChange(for: CGSize.self) { $0.size } action: { layout.setCardSize($0) }
+    }
+}
+
+/// The theme's tile repeated from the top-left over whatever size the card has.
+private struct PatternLayer: View {
+    let pattern: ThemePattern
+    @Environment(\.uiScale) private var k
+
+    var body: some View {
+        Canvas { ctx, size in
+            let side = pattern.tile * k
+            for fill in pattern.fills {
+                var path = Path()
+                for ty in stride(from: 0, to: size.height, by: side) {
+                    for tx in stride(from: 0, to: size.width, by: side) {
+                        for r in fill.rects {
+                            path.addRect(CGRect(x: tx + r.minX * k, y: ty + r.minY * k,
+                                                width: r.width * k, height: r.height * k))
+                        }
+                    }
+                }
+                ctx.fill(path, with: .color(Color(rgba: fill.color)))
+            }
+        }
+        .opacity(pattern.opacity)
+        .allowsHitTesting(false)
     }
 }
 

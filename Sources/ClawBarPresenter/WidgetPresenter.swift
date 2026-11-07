@@ -12,6 +12,7 @@ public enum WidgetPresenter {
 private struct Render {
     let input: PresenterInput
     let palette: ThemePalette
+    let pattern: ThemePattern?
     let cfg: Config
     let lang: Lang
     let data: DataSnapshot
@@ -21,16 +22,18 @@ private struct Render {
         self.input = input
         cfg = input.config.clamped()
         // The configured theme, by season in the input's zone, with a hand-set accent over its own (`Set-Theme`).
-        var palette = cfg.theme.theme(at: input.now, in: input.timeZone).palette
+        let theme = cfg.theme.theme(at: input.now, in: input.timeZone)
+        var palette = theme.palette
         if let accent = cfg.accent { palette.accent = accent }
         self.palette = palette
+        pattern = theme.pattern
         lang = cfg.lang
         data = input.data
         now = input.now
     }
 
     func state() -> WidgetViewState {
-        var v = WidgetViewState(palette: palette)
+        var v = WidgetViewState(palette: palette, pattern: pattern)
         header(&v)
         mainLimit(&v)
         otherLimits(&v)
