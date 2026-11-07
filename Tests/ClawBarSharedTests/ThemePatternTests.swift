@@ -30,7 +30,7 @@ import ClawBarShared
         }.first
         #expect(white?.first == CGRect(x: 12, y: 8, width: 2, height: 2))
         // Tiles never overlap, so the pattern repeats cleanly.
-        for p in [ThemePattern.halloween, .space, .ocean, .christmas] {
+        for p in Theme.allCases.compactMap(\.pattern) {
             #expect(p.layers.allSatisfy { op in
                 guard case let .rects(rects, _, _) = op else { return false }
                 return rects.allSatisfy { $0.maxX <= p.tile && $0.maxY <= p.tile }

@@ -210,6 +210,7 @@ extension ThemeChoice {
         case .fixed(.space): .themeSpace
         case .fixed(.ocean): .themeOcean
         case .fixed(.christmas): .themeChristmas
+        case .fixed(.cyberpunk): .themeCyberpunk
         }
     }
 }

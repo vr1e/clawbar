@@ -41,9 +41,9 @@ public struct ThemePalette: Sendable, Hashable {
     )
 }
 
-/// A named look whose colours are a theme palette: theme.ps1's `$Themes`, in its order. Upstream's `cyberpunk` (1.18.0) is not ported yet.
+/// A named look whose colours are a theme palette: theme.ps1's `$Themes`, in its order.
 public enum Theme: String, Sendable, CaseIterable {
-    case classic, oled, midnight, mocha, forest, halloween, space, ocean, christmas
+    case classic, oled, midnight, mocha, forest, halloween, space, ocean, christmas, cyberpunk
 
     /// theme.ps1's row: `bg`, `text2`, `muted`, `dim`, `faint`, `accent` and `off`; the rest of a row has no role here.
     public var palette: ThemePalette {
@@ -72,6 +72,7 @@ public enum Theme: String, Sendable, CaseIterable {
             )
         case .ocean: return row("#FF0A2236", "#FFCDE6F5", "#FF86A9BF", "#FF62849A", "#FF456679", "#FF22D3EE", "#FF2F4C5E")
         case .christmas: return row("#FF231317", "#FFE6D3D0", "#FFA08A88", "#FF7E6865", "#FF5C4A4A", "#FF7DD3FC", "#FF413236")
+        case .cyberpunk: return row("#FF0C0B16", "#FFCBD9E3", "#FF8494A8", "#FF65708A", "#FF474F66", "#FF00E5FF", "#FF33364A")
         }
     }
 
@@ -83,6 +84,7 @@ public enum Theme: String, Sendable, CaseIterable {
         case .space: return .space
         case .ocean: return .ocean
         case .christmas: return .christmas
+        case .cyberpunk: return .cyberpunk
         }
     }
 }
@@ -154,6 +156,11 @@ public struct ThemePattern: Sendable, Hashable {
             (10, 82, ["w"]),
             (92, 40, [".w.", "w.w", ".w."]),
         ]
+    )
+
+    /// Scanlines, as on an old monitor.
+    public static let cyberpunk = ThemePattern(
+        tile: 3, px: 1, opacity: 0.05, colors: ["c": "#FF00E5FF"], sprites: [(0, 0, ["ccc"])]
     )
 }
 

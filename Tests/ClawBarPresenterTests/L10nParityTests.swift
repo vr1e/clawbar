@@ -6,7 +6,7 @@ import ClawBarShared
     /// Keys whose German is, correctly, the English: pure formats, a unit symbol, proper names and loanwords.
     static let sameInBothLanguages: Set<L10nKey> = [
         .period, .spanD, .statMcp, .histSession, .setShowMascot, .gameTitle, .setTabWidget, .setSystem, .themeHalloween,
-        .skinAstronaut, .skinFrost, .skinNerd, .skinNetrunner, .skinParty, .skinRockerboy,
+        .themeCyberpunk, .skinAstronaut, .skinFrost, .skinNerd, .skinNetrunner, .skinParty, .skinRockerboy,
     ]
 
     @Test(arguments: L10nKey.allCases)

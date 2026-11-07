@@ -121,10 +121,12 @@ import ClawBarShared
         #expect(Config().theme == .fixed(.classic))
         #expect(ThemeChoice(configValue: " Auto ") == .bySeason)
         #expect(ThemeChoice(configValue: "OCEAN") == .fixed(.ocean))
-        #expect(ThemeChoice(configValue: "cyberpunk") == .fixed(.classic))
+        #expect(ThemeChoice(configValue: "Cyberpunk") == .fixed(.cyberpunk))
+        #expect(ThemeChoice(configValue: "synthwave") == .fixed(.classic))
         #expect(ThemeChoice(configValue: nil) == .fixed(.classic))
         #expect(ThemeChoice.all.map(\.rawValue) == [
             "auto", "classic", "oled", "midnight", "mocha", "forest", "halloween", "space", "ocean", "christmas",
+            "cyberpunk",
         ])
     }
 
