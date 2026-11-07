@@ -48,6 +48,10 @@ _Avoid_: scene (upstream's animated themes), picture
 The colours a theme changes, one per role: the background, the text tiers (secondary, muted, label, footer), the accent, the model-week bar and the empty heart. The presenter resolves it into the view state; the levels, Clawd, the sky, the card's border and tracks, and the chart's fill, cursor and session line stay fixed.
 _Avoid_: theme (the config's choice of look), colour scheme, skin
 
+**Theme pattern**:
+A tile of faint pixel sprites a theme repeats over the card under its content, like a chat wallpaper; it stands still.
+_Avoid_: scene (upstream's animated themes), wallpaper, texture
+
 **Skin**:
 Clawd's body and eye colours and the pixel accessories drawn over him, such as a hat or glasses: Classic, a built-in one or the user's own from the skins folder (`skin`). It dresses the widget's Clawd only.
 _Avoid_: costume, outfit, theme (the card's colours)

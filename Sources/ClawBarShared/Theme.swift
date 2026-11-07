@@ -74,6 +74,87 @@ public enum Theme: String, Sendable, CaseIterable {
         case .christmas: return row("#FF231317", "#FFE6D3D0", "#FFA08A88", "#FF7E6865", "#FF5C4A4A", "#FF7DD3FC", "#FF413236")
         }
     }
+
+    /// theme.ps1's `pattern`: the faint wallpaper under the card's content, or none.
+    public var pattern: ThemePattern? {
+        switch self {
+        case .classic, .oled, .midnight, .mocha, .forest: return nil
+        case .halloween: return .halloween
+        case .space: return .space
+        case .ocean: return .ocean
+        case .christmas: return .christmas
+        }
+    }
+}
+
+/// One tile of pixel sprites repeated over the card under its content, as theme.ps1's `$Patterns`.
+public struct ThemePattern: Sendable, Hashable {
+    /// The tile's side, in base units.
+    public var tile: Double
+    /// One `.rects` per colour, in the colour letters' order so a tile always draws the same.
+    public var layers: [DrawOp]
+
+    /// `sprites` place art rows at x, y in the tile; '.' and any letter missing from `colors` are empty.
+    public init(tile: Double, px: Double, opacity: Double, colors: [Character: String],
+                sprites: [(x: Double, y: Double, art: [String])]) {
+        self.tile = tile
+        // No two pixels overlap, so fading each colour equals upstream's fading the whole brush.
+        layers = colors.sorted { $0.key < $1.key }.map { letter, hex in
+            .rects(sprites.flatMap {
+                PixelArt.rects($0.art, value: letter, px: px, py: px, origin: CGPoint(x: $0.x, y: $0.y))
+            }, RGBA(hex), opacity: opacity)
+        }
+    }
+
+    public static let halloween = ThemePattern(
+        tile: 104, px: 2, opacity: 0.1,
+        colors: ["o": "#FFF97316", "g": "#FF65A30D", "b": "#FFA78BFA", "w": "#FFF5F5F4", "y": "#FFFDE047"],
+        sprites: [
+            (6, 6, ["....gg...", "...g.....", ".ooo.ooo.", "ooooooooo", "oo.ooo.oo", "ooooooooo", "oo.o.o.oo", ".ooooooo."]),
+            (58, 20, ["b.........b", "bb..b.b..bb", "bbbbbbbbbbb", ".bbb.b.bbb.", "..b.....b.."]),
+            (30, 56, ["..www..", ".wwwww.", "ww.w.ww", "wwwwwww", "wwwwwww", "wwwwwww", "w.w.w.w"]),
+            (76, 70, [".y.", "yyy", ".y."]),
+            (8, 84, ["y"]),
+            (92, 4, ["y"]),
+        ]
+    )
+
+    public static let space = ThemePattern(
+        tile: 96, px: 1, opacity: 0.45,
+        colors: ["w": "#FFFFFFFF", "v": "#FFC4B5FD", "p": "#FFF9A8D4", "b": "#FF93C5FD"],
+        sprites: [
+            (10, 8, ["w"]), (41, 22, ["v"]), (77, 12, ["b"]),
+            (24, 47, ["p"]), (63, 58, [".w.", "www", ".w."]),
+            (88, 40, ["v"]), (6, 79, ["b"]), (47, 86, ["w"]),
+            (83, 81, ["p"]),
+        ]
+    )
+
+    public static let ocean = ThemePattern(
+        tile: 104, px: 2, opacity: 0.07,
+        colors: ["w": "#FFE0F2FE", "p": "#FFF9A8D4", "y": "#FFFDE68A"],
+        sprites: [
+            (8, 10, [".ww.", "w..w", "w..w", ".ww."]),
+            (22, 2, ["w"]),
+            (56, 28, [".p.p.", "ppppp", ".pyp.", "ppppp", ".p.p."]),
+            (30, 70, [".w.", "w.w", ".w."]),
+            (84, 76, [".ww.", "w..w", "w..w", ".ww."]),
+            (94, 62, ["w"]),
+        ]
+    )
+
+    public static let christmas = ThemePattern(
+        tile: 104, px: 2, opacity: 0.07,
+        colors: ["w": "#FFF8FAFC", "r": "#FFF43F5E", "y": "#FFFCD34D", "b": "#FF7DD3FC"],
+        sprites: [
+            (6, 8, ["...w...", ".w.w.w.", "..www..", "wwwwwww", "..www..", ".w.w.w.", "...w..."]),
+            (60, 14, ["..y.y..", "...y...", "rrryrrr", "rrryrrr", "yyyyyyy", "rrryrrr", "rrryrrr"]),
+            (32, 58, [".rwr.", "w...w", "....r", "....w", "....r", "....w", "....r"]),
+            (80, 66, ["..y..", ".bbb.", "bwbbb", "bbbbb", ".bbb."]),
+            (10, 82, ["w"]),
+            (92, 40, [".w.", "w.w", ".w."]),
+        ]
+    )
 }
 
 /// config.json's `theme`: one theme, or `auto`, which follows the season as upstream's default does.

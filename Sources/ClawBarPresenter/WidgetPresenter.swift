@@ -11,6 +11,7 @@ public enum WidgetPresenter {
 /// One render: the input, its clamped config, its language and its themed colours, read once.
 private struct Render {
     let input: PresenterInput
+    let theme: Theme
     let palette: ThemePalette
     let cfg: Config
     let lang: Lang
@@ -21,7 +22,8 @@ private struct Render {
         self.input = input
         cfg = input.config.clamped()
         // The configured theme, by season in the input's zone, with a hand-set accent over its own (`Set-Theme`).
-        var palette = cfg.theme.theme(at: input.now, in: input.timeZone).palette
+        theme = cfg.theme.theme(at: input.now, in: input.timeZone)
+        var palette = theme.palette
         if let accent = cfg.accent { palette.accent = accent }
         self.palette = palette
         lang = cfg.lang
@@ -30,7 +32,7 @@ private struct Render {
     }
 
     func state() -> WidgetViewState {
-        var v = WidgetViewState(palette: palette)
+        var v = WidgetViewState(palette: palette, pattern: theme.pattern)
         header(&v)
         mainLimit(&v)
         otherLimits(&v)

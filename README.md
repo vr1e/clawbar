@@ -189,7 +189,7 @@ Everything ClawBar touches, so you know there is nothing else:
 ## Differences from the original
 
 <!-- parity-table: begin; generated from a private feature map, so edits here are overwritten -->
-ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.19.0.
+ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every release up to 1.20.0.
 *Ported differently* has its gist in the notes and its details in the bullets below.
 
 | Feature | In ClawBar | Notes |
@@ -206,7 +206,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French; Brazilian Portuguese; Spanish. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
 | 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval; the top projects keep folders of the same name apart and weigh each reply at its model's list price; the hover's busiest project is the local hour's, not the UTC hour's. |
-| Themes and skins | ✅ Ported differently | Classic by default, picked from a menu in Settings › Look, as are the skins; Space's model weeks are pink; your own skin under a built-in's name keeps its own name. Not yet: A pattern behind the widget; The Cyberpunk theme; Animated themes behind the widget and in the sky row. |
+| Themes and skins | ✅ Ported differently | Classic by default, picked from a menu in Settings › Look, as are the skins; Space's model weeks are pink; your own skin under a built-in's name keeps its own name; the pattern is on the widget alone. Not yet: The Cyberpunk theme; Animated themes behind the widget and in the sky row. |
 | Settings window | ✅ Ported differently | A native window with Look and Widget tabs, opened from the menu; Look has the language, the theme and Clawd's skin. Not ported: A tab for Claude Code's own settings. |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
 | PC tips | ➖ Not ported | They look over a Windows PC. |
@@ -226,7 +226,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   model weeks' bars are pink, since its violet accent is the original's model-week colour. An `accent` is read only
   as `#RRGGBB` or `#AARRGGBB`, where the original also takes colour names and short hex; anything else shows the
   theme's own, where the original keeps the previous theme's. The Halloween, Space, Underwater and Christmas patterns
-  behind the widget and the Cyberpunk theme are not ported yet.
+  lie behind the widget alone, where the original also puts them behind its Settings window and panel. The Cyberpunk theme is
+  not ported yet.
 - A skin dresses the widget's Clawd; the menu bar's and Clawd Run's keep his own colours. Your own skin under a
   built-in skin's name shows its own `name:` in Settings, where the original keeps the built-in's translated one.
 - When the widget grows (details, size, more sessions) or Settings switches to a taller tab, the window moves up or

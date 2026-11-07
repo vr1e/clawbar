@@ -80,4 +80,13 @@ import ClawBarShared
         #expect(v.modelWeeks.map(\.color) == [Palette.modelWeekBar])
         #expect(render(.empty, config: Config(accent: cyan)).otherLimit.color == cyan)
     }
+
+    @Test func theThemesPatternGoesUnderTheCard() {
+        #expect(render(config: Config(theme: .fixed(.christmas))).pattern == .christmas)
+        // Samples.now is in October, so by season is Halloween and its pattern.
+        #expect(render(config: Config(theme: .bySeason)).pattern == .halloween)
+        #expect(render().pattern == nil)
+        // A hand-set accent recolours the bars, not the pattern.
+        #expect(render(config: Config(theme: .fixed(.ocean), accent: RGBA("#F472B6"))).pattern == .ocean)
+    }
 }
