@@ -11,7 +11,7 @@ import ClawBarShared
             widgetVisible: true, occluded: false, panelFrame: panel,
             screenFrames: [CGRect(x: 0, y: 0, width: 1512, height: 982)], topLeft: CGPoint(x: 1178, y: 33),
             animating: true, tickMilliseconds: 90, config: Config(), loginItemStatus: "enabled", installedApp: true,
-            snapshot: .sample, view: .sample, home: Samples.home
+            snapshot: .sample, view: .sample, skins: .builtIn, home: Samples.home
         )
     }
 

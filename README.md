@@ -76,7 +76,7 @@ the file is not valid JSON, ClawBar runs on the defaults and the widget's last-u
 | `language` | `en` | `en` or `de` |
 | `theme` | `classic` | colours: `classic`, `oled`, `midnight`, `mocha`, `forest`, `halloween`, `space`, `ocean`, `christmas`, or `auto` (Halloween in September–October, Christmas from November through 14 January, Classic otherwise), also in **Settings › Look** |
 | `accent` | unset | your own `#RRGGBB` or `#AARRGGBB` for the weekly bar and the chart's week line, over the theme's |
-| `skin` | `classic` | Clawd's colours and accessories: `classic` or a built-in skin such as `santa`, `tophat` or `witch`, also in **Settings › Look** |
+| `skin` | `classic` | Clawd's colours and accessories: `classic`, a built-in skin such as `santa`, `tophat` or `witch`, or one of [your own](#your-own-skins), also in **Settings › Look** |
 | `scale` | `1.2` | widget size, 0.6–4.0 |
 | `opacity` | `1.0` | 0.2–1.0 |
 | `topmost` | `false` | keep the widget above other windows |
@@ -96,6 +96,47 @@ the file is not valid JSON, ClawBar runs on the defaults and the widget's last-u
 | `claudePath` | unset | a `claude` executable to use first |
 | `launchAtLogin` | `true` | open at login |
 | `menuBarMascot` | `true` | Clawd beside the % in the menu bar |
+
+### Your own skins
+
+**Open your skins folder** in Settings › Look opens `~/Library/Application Support/ClawBar/skins`. Put a `.txt` file
+there and pick it from the skin menu; its file name, lowercased, is what `skin` names, and the same name as a built-in
+skin replaces that one. Edits show on the next refresh. The format is the original's:
+
+```
+---
+name: Top hat
+body: #D77757
+eyes: #141416
+k: #4B5563
+r: #DC2626
+---
+......kkkkkkk.....
+......kkkkkkk.....
+......kkkkkkk.....
+......rrrrrrr.....
+...kkkkkkkkkkkkk..
+```
+
+`name`, `body` and `eyes` are optional. Every one-letter key is a colour (`#RRGGBB` or `#AARRGGBB`) for that letter in
+the art below; any other character is empty. The art is 18 pixels wide, as Clawd, and sits right on his head; `top: 1`
+(any row number) puts its first row elsewhere, counted from his top row. Clawd himself, `#` the body, `o` the eyes:
+
+```
+  0 ...#############..
+  1 ...#############..
+  2 ...##o#######o##..
+  3 ...##o#######o##..
+  4 .#################
+  5 .#################
+  6 ...#############..
+  7 ...#############..
+  8 ...#.#.......#.#..
+  9 ...#.#.......#.#..
+```
+
+A hat shows while his head is in the frame, the rest moves like his body, and lying on his back he loses them all.
+A file without the `---` lines is skipped.
 
 ## What it reads and sends
 
@@ -165,7 +206,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French; Brazilian Portuguese; Spanish. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
 | 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval; the top projects keep folders of the same name apart and weigh each reply at its model's list price; the hover's busiest project is the local hour's, not the UTC hour's. |
-| Themes and skins | ✅ Ported differently | Classic by default, picked from a menu in Settings › Look, as are the skins; Space's model weeks are pink; a Christmas theme of ClawBar's own. Not yet: A pattern behind the widget; The Cyberpunk theme; Your own skins from a text file; Animated themes behind the widget and in the sky row. |
+| Themes and skins | ✅ Ported differently | Classic by default, picked from a menu in Settings › Look, as are the skins; Space's model weeks are pink; your own skin under a built-in's name keeps its own name. Not yet: A pattern behind the widget; The Cyberpunk theme; Animated themes behind the widget and in the sky row. |
 | Settings window | ✅ Ported differently | A native window with Look and Widget tabs, opened from the menu; Look has the language, the theme and Clawd's skin. Not ported: A tab for Claude Code's own settings. |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
 | PC tips | ➖ Not ported | They look over a Windows PC. |
@@ -186,8 +227,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   as `#RRGGBB` or `#AARRGGBB`, where the original also takes colour names and short hex; anything else shows the
   theme's own, where the original keeps the previous theme's. The Halloween, Space, Underwater and Christmas patterns
   behind the widget and the Cyberpunk theme are not ported yet.
-- A skin dresses the widget's Clawd; the menu bar's and Clawd Run's keep his own colours. Your own skins from a text
-  file are not ported yet.
+- A skin dresses the widget's Clawd; the menu bar's and Clawd Run's keep his own colours. Your own skin under a
+  built-in skin's name shows its own `name:` in Settings, where the original keeps the built-in's translated one.
 - When the widget grows (details, size, more sessions) or Settings switches to a taller tab, the window moves up or
   left just enough to stay on screen, where the original's widget grows past the screen's edge.
 - The menu bar item's tooltip gives every limit a line of its own, each model's week included, with the time left

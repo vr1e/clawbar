@@ -17,11 +17,11 @@ public final class AnimationEngine {
 
     /// Clawd's entrance act draws first, then the sky's stars, clouds and fog: one generator, like the original's
     /// shared $script:Rnd.
-    public init(random: any RandomSource, config: Config, now: Date) {
+    public init(random: any RandomSource, config: Config, skins: SkinCatalog, now: Date) {
         clawd = ClawdEngine(random: random, now: now)
         sky = SkyEngine(random: random)
         self.config = config
-        clawd.wear(BuiltInSkin(configValue: config.skin).skin)
+        clawd.wear(skins.skin(for: config.skin))
     }
 
     /// showMascot: the play area, Clawd and the hearts.
@@ -33,7 +33,7 @@ public final class AnimationEngine {
 
     /// A data tick or a changed setting. Clawd waits for the first registry read, so he starts idle instead of
     /// burrowing; hidden, he forgets the hearts, so showing him again is no loss.
-    public func apply(_ data: DataSnapshot, config: Config, now: Date) {
+    public func apply(_ data: DataSnapshot, config: Config, skins: SkinCatalog, now: Date) {
         self.config = config
         weather = data.weather
         place = data.place
@@ -42,7 +42,7 @@ public final class AnimationEngine {
             frame.clawd = .empty
             return
         }
-        clawd.wear(BuiltInSkin(configValue: config.skin).skin)
+        clawd.wear(skins.skin(for: config.skin))
         if data.sessionsRead { clawd.apply(ClawdDataInput(data, mainLimit: config.mainLimit, critPercent: config.critPercent), now: now) }
     }
 

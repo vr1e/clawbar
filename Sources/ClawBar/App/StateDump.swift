@@ -21,6 +21,8 @@ struct StateDump {
     var installedApp: Bool
     var snapshot: DataSnapshot
     var view: WidgetViewState
+    /// What `config.skin` names: a built-in skin or the user's own.
+    var skins: SkinCatalog
     var home: String = NSHomeDirectory()
 
     /// The panel's frame meets some screen.
@@ -46,7 +48,7 @@ struct StateDump {
         add("config.mainLimit", config.mainLimit.rawValue)
         add("config.theme", config.theme.rawValue)
         add("config.accent", config.accent?.hex ?? "none")
-        add("config.skin", BuiltInSkin(configValue: config.skin).rawValue)
+        add("config.skin", skins.skin(for: config.skin).id)
         add("config.showMascot", config.showMascot)
         add("config.showSky", config.showSky)
         add("config.showHistory", config.showHistory)

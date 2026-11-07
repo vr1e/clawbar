@@ -79,11 +79,4 @@ import ClawBarShared
         #expect(s.layers.flatMap(\.pixels).map(\.y).min() == -7)
         #expect(s.layers.flatMap(\.pixels).map(\.y).max() == -1)
     }
-
-    @Test func theConfigNamesASkinInAnyCase() {
-        #expect(BuiltInSkin(configValue: " Santa ") == .santa)
-        #expect(BuiltInSkin(configValue: "TOPHAT") == .tophat)
-        #expect(BuiltInSkin(configValue: "mine") == .classic)
-        #expect(BuiltInSkin(configValue: nil) == .classic)
-    }
 }

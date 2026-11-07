@@ -142,6 +142,8 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case themeOcean = "theme.ocean"
     case themeChristmas = "theme.christmas"
     case setSkin = "set.skin"
+    case setSkinFolder = "set.skinFolder"
+    case setSkinFolderTip = "set.skinFolderTip"
     case skinClassic = "skin.classic"
     case skinAstronaut = "skin.astronaut"
     case skinBow = "skin.bow"

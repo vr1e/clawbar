@@ -7,8 +7,8 @@ import ClawBarShared
 
 let t0 = Samples.now
 
-func engine(seed: UInt64 = 2026, config: Config = Config()) -> AnimationEngine {
-    AnimationEngine(random: SeededRandomSource(seed: seed), config: config, now: t0)
+func engine(seed: UInt64 = 2026, config: Config = Config(), skins: SkinCatalog = .builtIn) -> AnimationEngine {
+    AnimationEngine(random: SeededRandomSource(seed: seed), config: config, skins: skins, now: t0)
 }
 
 /// A fresh engine with Clawd's entrance act cut short, so a test starts from a standing Clawd.

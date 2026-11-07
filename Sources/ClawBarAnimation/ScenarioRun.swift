@@ -22,9 +22,9 @@ public final class ScenarioRun {
     /// Update-Texts renders once before the first tick, with no data yet.
     public init(_ scenario: RecordScenario, seed: UInt64) {
         script = Scenarios.script(scenario)
-        engine = AnimationEngine(random: SeededRandomSource(seed: seed), config: config, now: now)
+        engine = AnimationEngine(random: SeededRandomSource(seed: seed), config: config, skins: .builtIn, now: now)
         data = fakeData(now: now)
-        engine.apply(data, config: config, now: now)
+        engine.apply(data, config: config, skins: .builtIn, now: now)
     }
 
     /// Crop below the reset line, as every scenario but the tour does.
@@ -47,7 +47,7 @@ public final class ScenarioRun {
         var fresh: DataSnapshot?
         if applied > 0 {
             data = fakeData(now: at)
-            engine.apply(data, config: config, now: at)
+            engine.apply(data, config: config, skins: .builtIn, now: at)
             fresh = data
         }
         if due >= script.steps.count { return nil }
