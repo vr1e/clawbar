@@ -66,7 +66,7 @@ struct CardView: View {
                 if let pattern = v.pattern {
                     // theme.ps1's layer: inside the border, with the card's own radius.
                     PatternLayer(pattern: pattern)
-                        .clipShape(RoundedRectangle(cornerRadius: 10 * k))
+                        .clipShape(outer)
                         .padding(1 * k)
                 }
                 outer.strokeBorder(Color(rgba: Palette.border), lineWidth: 1 * k)

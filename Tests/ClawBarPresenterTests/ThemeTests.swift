@@ -90,7 +90,7 @@ import ClawBarShared
         #expect(render(config: Config(theme: .fixed(.ocean), accent: RGBA("#F472B6"))).pattern == .ocean)
     }
 
-    @Test func onlyTheSeasonalAndSceneThemesHaveAPattern() {
+    @Test func onlyFourThemesHaveAPattern() {
         #expect(Theme.allCases.filter { $0.pattern != nil } == [.halloween, .space, .ocean, .christmas])
     }
 }

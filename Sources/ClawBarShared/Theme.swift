@@ -78,11 +78,11 @@ public enum Theme: String, Sendable, CaseIterable {
     /// theme.ps1's `pattern`: the faint wallpaper under the card's content, or none.
     public var pattern: ThemePattern? {
         switch self {
-        case .halloween: .halloween
-        case .space: .space
-        case .ocean: .ocean
-        case .christmas: .christmas
-        default: nil
+        case .classic, .oled, .midnight, .mocha, .forest: return nil
+        case .halloween: return .halloween
+        case .space: return .space
+        case .ocean: return .ocean
+        case .christmas: return .christmas
         }
     }
 }
@@ -95,9 +95,9 @@ public struct ThemePattern: Sendable, Hashable {
         public var rects: [CGRect]
     }
 
-    /// The tile's side, in base units; the first tile starts at the card's top-left inside its border.
+    /// The tile's side, in base units.
     public var tile: Double
-    /// The whole layer's opacity, as the brush's.
+    /// Applied to the layer as a whole, not per sprite.
     public var opacity: Double
     /// In the colour letters' order, so a tile always draws the same.
     public var fills: [Fill]
@@ -107,8 +107,8 @@ public struct ThemePattern: Sendable, Hashable {
                 sprites: [(x: Double, y: Double, art: [String])]) {
         self.tile = tile
         self.opacity = opacity
-        fills = colors.keys.sorted().map { letter in
-            Fill(color: RGBA(colors[letter]!), rects: sprites.flatMap {
+        fills = colors.sorted { $0.key < $1.key }.map { letter, hex in
+            Fill(color: RGBA(hex), rects: sprites.flatMap {
                 PixelArt.rects($0.art, value: letter, px: px, py: px, origin: CGPoint(x: $0.x, y: $0.y))
             })
         }

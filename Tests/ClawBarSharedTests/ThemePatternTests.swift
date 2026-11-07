@@ -25,7 +25,7 @@ import ClawBarShared
     @Test func theBuiltInPatternsKeepUpstreamsTiles() {
         #expect([ThemePattern.halloween, .space, .ocean, .christmas].map(\.tile) == [104, 96, 104, 104])
         #expect([ThemePattern.halloween, .space, .ocean, .christmas].map(\.opacity) == [0.1, 0.45, 0.07, 0.07])
-        // Christmas's snowflake: 17 white pixels at 2 px from (6, 8); its first row is one pixel at column 3.
+        // Christmas's snowflake: 21 white pixels at 2 px from (6, 8); its first row is one pixel at column 3.
         let white = ThemePattern.christmas.fills.first { $0.color == RGBA("#FFF8FAFC") }
         #expect(white?.rects.first == CGRect(x: 12, y: 8, width: 2, height: 2))
         // Every sprite stays inside its tile, so tiles never overlap.

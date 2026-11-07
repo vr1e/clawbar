@@ -226,7 +226,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   model weeks' bars are pink, since its violet accent is the original's model-week colour. An `accent` is read only
   as `#RRGGBB` or `#AARRGGBB`, where the original also takes colour names and short hex; anything else shows the
   theme's own, where the original keeps the previous theme's. The Halloween, Space, Underwater and Christmas patterns
-  lie behind the widget alone, where the original also puts them behind its Settings window. The Cyberpunk theme is
+  lie behind the widget alone, where the original also puts them behind its Settings window and panel. The Cyberpunk theme is
   not ported yet.
 - A skin dresses the widget's Clawd; the menu bar's and Clawd Run's keep his own colours. Your own skin under a
   built-in skin's name shows its own `name:` in Settings, where the original keeps the built-in's translated one.
