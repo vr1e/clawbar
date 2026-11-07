@@ -87,13 +87,15 @@ private struct PatternLayer: View {
         Canvas { ctx, size in
             ctx.scaleBy(x: scale, y: scale)
             let side = pattern.tile
-            for ty in stride(from: 0, to: size.height / scale, by: side) {
-                for tx in stride(from: 0, to: size.width / scale, by: side) {
-                    var tile = ctx
-                    tile.translateBy(x: tx, y: ty)
-                    DrawOpRenderer.draw(pattern.layers, in: &tile)
-                }
+            let origins = stride(from: 0, to: size.height / scale, by: side).flatMap { y in
+                stride(from: 0, to: size.width / scale, by: side).map { CGPoint(x: $0, y: y) }
             }
+            // One fill per colour over all tiles, as Cyberpunk's 3-unit tile would be thousands of draws.
+            let tiled = pattern.layers.map { op -> DrawOp in
+                guard case let .rects(rects, color, opacity) = op else { return op }
+                return .rects(origins.flatMap { o in rects.map { $0.offsetBy(dx: o.x, dy: o.y) } }, color, opacity: opacity)
+            }
+            DrawOpRenderer.draw(tiled, in: &ctx)
         }
         .allowsHitTesting(false)
     }

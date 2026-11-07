@@ -165,6 +165,7 @@ extension L10nKey {
         case .themeSpace: .text(en: "Space", de: "Weltraum")
         case .themeOcean: .text(en: "Underwater", de: "Unter Wasser")
         case .themeChristmas: .text(en: "Christmas", de: "Weihnachten")
+        case .themeCyberpunk: .text(en: "Cyberpunk", de: "Cyberpunk")
         case .setSkin: .text(en: "Clawd's skin", de: "Clawds Skin")
         case .setSkinFolder: .text(en: "Open your skins folder", de: "Ordner für eigene Skins öffnen")
         case .setSkinFolderTip: .text(

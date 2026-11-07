@@ -33,7 +33,7 @@ import ClawBarShared
         #expect(title == "Theme")
         #expect(options.map(\.title) == [
             "By season", "Classic", "OLED black", "Midnight", "Mocha", "Forest", "Halloween", "Space", "Underwater",
-            "Christmas",
+            "Christmas", "Cyberpunk",
         ])
         #expect(options.map(\.on) == ThemeChoice.all.map { $0 == .bySeason })
         #expect(options.map(\.action) == ThemeChoice.all.map { .theme($0) })
