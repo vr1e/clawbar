@@ -35,6 +35,13 @@ private func pinConfigStore(_ paths: AppPaths) throws {
     try store.ensureExists()
 }
 
+private func pinSkinFolder(_ paths: AppPaths) throws {
+    let folder = SkinFolder(paths: paths)
+    let _: URL = folder.url
+    let _: SkinCatalog? = folder.reloadIfChanged()
+    try folder.ensureExists()
+}
+
 private func pinDiagnostics(_ paths: AppPaths) async {
     let report: DiagnosticsReport = await Diagnostics.run(config: Config(), paths: paths)
     let _: String = report.text
@@ -73,8 +80,8 @@ private func pinSky() {
 }
 
 private func pinAnimation() {
-    let engine = AnimationEngine(random: SeededRandomSource(seed: 1), config: Config(), now: Date())
-    engine.apply(.empty, config: Config(), now: Date())
+    let engine = AnimationEngine(random: SeededRandomSource(seed: 1), config: Config(), skins: .builtIn, now: Date())
+    engine.apply(.empty, config: Config(), skins: .builtIn, now: Date())
     engine.click(now: Date())
     engine.perform(.skyPhase(.night))
     let _: AnimationFrame = engine.step(AnimationInputs(now: Date(), timeZone: .gmt, numberWidth: 32, mouseOverWindow: false, mouseX: nil))

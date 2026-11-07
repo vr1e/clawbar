@@ -9,10 +9,10 @@ import ClawBarShared
         sections.flatMap(\.rows).compactMap { if case .toggle(let o) = $0 { o } else { nil } }
     }
 
-    private func widget(_ config: Config = Config()) -> [SettingsSection] { SettingsPage.sections(.widget, config: config) }
+    private func widget(_ config: Config = Config()) -> [SettingsSection] { SettingsPage.sections(.widget, config: config, skins: .builtIn) }
 
     @Test func theLookTabPicksTheLanguageByItsOwnName() throws {
-        let rows = SettingsPage.sections(.look, config: Config(language: "de")).flatMap(\.rows)
+        let rows = SettingsPage.sections(.look, config: Config(language: "de"), skins: .builtIn).flatMap(\.rows)
         guard case .picker(let title, let options) = try #require(rows.first) else {
             Issue.record("no language picker")
             return
@@ -24,7 +24,7 @@ import ClawBarShared
     }
 
     @Test func theLookTabPicksTheThemeWithASwatchOfItsColours() {
-        let rows = SettingsPage.sections(.look, config: Config(theme: .bySeason), now: Samples.now, timeZone: Samples.timeZone)
+        let rows = SettingsPage.sections(.look, config: Config(theme: .bySeason), skins: .builtIn, now: Samples.now, timeZone: Samples.timeZone)
             .flatMap(\.rows)
         guard case .picker(let title, let options) = rows[1] else {
             Issue.record("no theme picker")
@@ -43,7 +43,7 @@ import ClawBarShared
     }
 
     @Test func theLookTabPicksClawdsSkinWithHimInIt() {
-        let rows = SettingsPage.sections(.look, config: Config(skin: " Santa ")).flatMap(\.rows)
+        let rows = SettingsPage.sections(.look, config: Config(skin: " Santa "), skins: .builtIn).flatMap(\.rows)
         guard case .picker(let title, let options) = rows[2] else {
             Issue.record("no skin picker")
             return
@@ -51,18 +51,41 @@ import ClawBarShared
         #expect(title == "Clawd's skin")
         #expect(options.count == 28)
         #expect(options.prefix(3).map(\.title) == ["Classic", "Astronaut", "Bow"])
-        #expect(options.filter(\.on).map(\.action) == [.skin(.santa)])
-        #expect(options.map(\.action) == BuiltInSkin.allCases.map { .skin($0) })
+        #expect(options.filter(\.on).map(\.action) == [.skin("santa")])
+        #expect(options.map(\.action) == BuiltInSkin.allCases.map { .skin($0.rawValue) })
         #expect(options.map(\.icon) == BuiltInSkin.allCases.map { .skin($0.skin) })
     }
 
-    @Test func anUnknownSkinShowsClassicAsTheChoice() {
-        let rows = SettingsPage.sections(.look, config: Config(skin: "mine")).flatMap(\.rows)
-        guard case .picker(_, let options) = rows[2] else {
-            Issue.record("no skin picker")
-            return
-        }
-        #expect(options.filter(\.on).map(\.action) == [.skin(.classic)])
+    /// The Look tab's rows, with the skin picker's options.
+    private func look(_ config: Config, skins: SkinCatalog = .builtIn) throws -> ([SettingsRow], [SettingsOption]) {
+        let rows = SettingsPage.sections(.look, config: config, skins: skins).flatMap(\.rows)
+        guard case .picker(_, let options) = rows[2] else { throw SkinPickerMissing() }
+        return (rows, options)
+    }
+
+    private struct SkinPickerMissing: Error {}
+
+    @Test func anUnknownSkinShowsClassicAsTheChoice() throws {
+        let (_, options) = try look(Config(skin: "mine"))
+        #expect(options.filter(\.on).map(\.action) == [.skin("classic")])
+    }
+
+    @Test func yourOwnSkinsFollowTheBuiltInOnesUnderTheirFilesNames() throws {
+        let mine = Skin(id: "mine", name: "My hat", body: Palette.clawdBody, eyes: Palette.clawdEyes, layers: [])
+        let santa = Skin(id: "santa", name: "Better Santa", body: Palette.clawdBody, eyes: Palette.clawdEyes, layers: [])
+        let skins = SkinCatalog(own: [santa, mine])
+        let (rows, options) = try look(Config(language: "de", skin: "MINE"), skins: skins)
+        #expect(options.count == 29)
+        #expect(options.last?.title == "My hat" && options.last?.icon == .skin(mine))
+        #expect(options.filter(\.on).map(\.action) == [.skin("mine")])
+        // A file under a built-in id keeps its place and is named by its own name, not the translated one.
+        let i = BuiltInSkin.allCases.firstIndex(of: .santa)!
+        #expect(options[i].title == "Better Santa" && options[i].action == .skin("santa"))
+        #expect(options[1].title == "Astronaut")
+        #expect(rows[3] == .button(
+            title: "Ordner für eigene Skins öffnen", action: .openSkinsFolder,
+            help: "Eine .txt-Datei pro Skin, zu wählen im Menü darüber; das Format beschreibt die README"
+        ))
     }
 
     @Test func everySkinsEnglishNameIsItsFilesName() {
@@ -122,7 +145,7 @@ import ClawBarShared
 
     @Test func everyTabEndsWithConfigJson() {
         for tab in SettingsTab.allCases {
-            #expect(SettingsPage.sections(tab, config: Config()).last?.rows.last == .button(title: "Open config.json", action: .openConfig))
+            #expect(SettingsPage.sections(tab, config: Config(), skins: .builtIn).last?.rows.last == .button(title: "Open config.json", action: .openConfig))
         }
     }
 
@@ -134,7 +157,7 @@ import ClawBarShared
     }
 
     @Test func theTextDumpShowsEveryControl() {
-        let dump = SettingsPage.dump(config: Config(opacity: 0.3, topmost: true, showMascot: false))
+        let dump = SettingsPage.dump(config: Config(opacity: 0.3, topmost: true, showMascot: false), skins: .builtIn)
         #expect(dump.contains("  Look:\n    Language: (•) English  ( ) Deutsch"))
         #expect(dump.contains("    Clawd's skin: (•) Classic  ( ) Astronaut  ( ) Bow"))
         #expect(dump.contains("    Size: − 120% +"))

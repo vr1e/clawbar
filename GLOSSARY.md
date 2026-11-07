@@ -49,7 +49,7 @@ The colours a theme changes, one per role: the background, the text tiers (secon
 _Avoid_: theme (the config's choice of look), colour scheme, skin
 
 **Skin**:
-Clawd's body and eye colours and the pixel accessories drawn over him, such as a hat or glasses: Classic or a built-in one (`skin`). It dresses the widget's Clawd only.
+Clawd's body and eye colours and the pixel accessories drawn over him, such as a hat or glasses: Classic, a built-in one or the user's own from the skins folder (`skin`). It dresses the widget's Clawd only.
 _Avoid_: costume, outfit, theme (the card's colours)
 
 **Play area**:

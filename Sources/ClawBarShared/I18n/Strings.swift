@@ -166,6 +166,11 @@ extension L10nKey {
         case .themeOcean: .text(en: "Underwater", de: "Unter Wasser")
         case .themeChristmas: .text(en: "Christmas", de: "Weihnachten")
         case .setSkin: .text(en: "Clawd's skin", de: "Clawds Skin")
+        case .setSkinFolder: .text(en: "Open your skins folder", de: "Ordner für eigene Skins öffnen")
+        case .setSkinFolderTip: .text(
+            en: "One .txt file per skin, shown in the menu above; the README describes the format",
+            de: "Eine .txt-Datei pro Skin, zu wählen im Menü darüber; das Format beschreibt die README"
+        )
         case .skinClassic: .text(en: "Classic", de: "Klassisch")
         case .skinAstronaut: .text(en: "Astronaut", de: "Astronaut")
         case .skinBow: .text(en: "Bow", de: "Schleife")

@@ -27,10 +27,15 @@ public enum MainLimit: String, Sendable, CaseIterable {
     }
 }
 
+/// A name config.json gives, as it is matched: trimmed and in any case.
+func configName(_ configValue: String?) -> String {
+    (configValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+}
+
 extension RawRepresentable where RawValue == String {
     /// A config.json choice, trimmed and case-insensitive; nil when unknown.
     static func parse(_ configValue: String?) -> Self? {
-        Self(rawValue: (configValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+        Self(rawValue: configName(configValue))
     }
 }
 
@@ -51,7 +56,7 @@ public struct Config: Sendable, Hashable {
     public var theme: ThemeChoice
     /// A hand-set colour over the theme's accent.
     public var accent: RGBA?
-    /// Clawd's skin by id, as written: `BuiltInSkin(configValue:)` reads it.
+    /// Clawd's skin by id, as written: `SkinCatalog.skin(for:)` reads it.
     public var skin: String
     public var scale: Double
     public var opacity: Double
