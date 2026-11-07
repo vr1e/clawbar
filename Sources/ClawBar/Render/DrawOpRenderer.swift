@@ -61,6 +61,8 @@ enum DrawOpRenderer {
             return rect.isEmpty || opacity <= 0 || (inner.a == 0 && outer.a == 0) ? nil : op
         case let .hGradient(rect, stops, opacity):
             return rect.isEmpty || opacity <= 0 || !stops.contains(where: { $0.color.a > 0 }) ? nil : op
+        case let .stroke(points, color, width, opacity):
+            return points.count < 2 || width <= 0 || color.a == 0 || opacity <= 0 ? nil : op
         }
     }
 
@@ -100,6 +102,10 @@ enum DrawOpRenderer {
                     Path(rect),
                     with: .linearGradient(gradient, startPoint: CGPoint(x: rect.minX, y: rect.midY), endPoint: CGPoint(x: rect.maxX, y: rect.midY))
                 )
+            case let .stroke(points, color, width, opacity):
+                var path = Path()
+                path.addLines(points)
+                ctx.stroke(path, with: .color(Color(rgba: color).opacity(opacity)), lineWidth: width)
             }
         }
     }

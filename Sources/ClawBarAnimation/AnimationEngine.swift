@@ -1,14 +1,18 @@
 import Foundation
 import ClawBarClawd
+import ClawBarScenes
 import ClawBarShared
 import ClawBarSky
 
-/// The widget's moving parts on one tick, as mascot-menu.ps1's timer runs them: Clawd first, then the sky while it
-/// shows, on one generator. The data, a click and the developer menu reach both through here.
+/// The widget's moving parts on one tick, as mascot-menu.ps1's timer runs them: Clawd first, then the theme's scene
+/// or else the sky while it shows, on one generator. The data, a click and the developer menu reach them through here.
 public final class AnimationEngine {
     private let clawd: ClawdEngine
     private let sky: SkyEngine
+    private let scenes: SceneEngine
     private var config: Config
+    /// The theme's scene as of the last data tick or animation tick.
+    private var sceneID: SceneID?
     private(set) var skyDev = SkyDevState()
     private var weather: WeatherSnapshot?
     private var place: Place?
@@ -20,6 +24,7 @@ public final class AnimationEngine {
     public init(random: any RandomSource, config: Config, skins: SkinCatalog, now: Date) {
         clawd = ClawdEngine(random: random, now: now)
         sky = SkyEngine(random: random)
+        scenes = SceneEngine(random: random)
         self.config = config
         clawd.wear(skins.skin(for: config.skin))
     }
@@ -28,15 +33,20 @@ public final class AnimationEngine {
     public var mascotVisible: Bool { config.showMascot }
     /// The sky goes with Clawd: the original's Sync-Mascot collapses it when he hides.
     public var skyVisible: Bool { config.showMascot && config.showSky }
-    /// Milliseconds to the next tick: 60 while a Claude Code sequence plays, else 90; nil while nothing moves.
-    public var tickMilliseconds: Int? { mascotVisible ? clawd.tickMilliseconds : nil }
+    /// Milliseconds to the next tick: 60 while a Claude Code sequence plays, else 90, also for a scene alone with Clawd
+    /// hidden; nil while nothing moves.
+    public var tickMilliseconds: Int? {
+        mascotVisible ? clawd.tickMilliseconds : sceneID != nil ? SceneEngine.stepMilliseconds : nil
+    }
 
     /// A data tick or a changed setting. Clawd waits for the first registry read, so he starts idle instead of
     /// burrowing; hidden, he forgets the hearts, so showing him again is no loss.
-    public func apply(_ data: DataSnapshot, config: Config, skins: SkinCatalog, now: Date) {
+    public func apply(_ data: DataSnapshot, config: Config, skins: SkinCatalog, now: Date, timeZone: TimeZone) {
         self.config = config
         weather = data.weather
         place = data.place
+        // Leaving the scene clears it now: with Clawd hidden no tick may follow to do it.
+        syncScene(now: now, timeZone: timeZone)
         guard mascotVisible else {
             clawd.resetHearts()
             frame.clawd = .empty
@@ -64,18 +74,31 @@ public final class AnimationEngine {
         }
     }
 
-    /// One animation tick. Clawd steps before the sky, as the original loads them: both draw from one generator.
+    /// One animation tick. Clawd steps before the scene or the sky, as the original loads them: all draw from one
+    /// generator. A scene steps even with Clawd hidden, where upstream's freezes.
     @discardableResult
     public func step(_ inputs: AnimationInputs) -> AnimationFrame {
-        guard mascotVisible else { return frame }
-        frame.clawd = clawd.step(ClawdStepEnv(
-            areaWidth: PlayArea.width(numberWidth: inputs.numberWidth), mouseOverWindow: inputs.mouseOverWindow,
-            mouseX: inputs.mouseX, now: inputs.now, lang: config.lang
-        ))
-        if skyVisible {
+        syncScene(now: inputs.now, timeZone: inputs.timeZone)
+        if mascotVisible {
+            frame.clawd = clawd.step(ClawdStepEnv(
+                areaWidth: PlayArea.width(numberWidth: inputs.numberWidth), mouseOverWindow: inputs.mouseOverWindow,
+                mouseX: inputs.mouseX, now: inputs.now, lang: config.lang
+            ))
+        }
+        if let id = sceneID {
+            // The weather's sky waits, its state kept, until the theme has no scene.
+            let scene = SceneInputs(now: inputs.now, size: inputs.backdropSize, skyVisible: skyVisible)
+            if let f = scenes.step(id, inputs: scene) { frame.scene = f }
+        } else if skyVisible {
             frame.sky = sky.step(size: PlayArea.skySize, inputs: skyInputs(now: inputs.now, timeZone: inputs.timeZone))
         }
         return frame
+    }
+
+    /// By season changes the theme at midnight, so the scene follows the clock as the presenter's colours do.
+    private func syncScene(now: Date, timeZone: TimeZone) {
+        sceneID = config.theme.theme(at: now, in: timeZone).scene
+        if sceneID == nil { frame.scene = nil }
     }
 
     /// mascot-menu.ps1's developer menu as it opens now, its Sky submenu enabled only while the sky shows.

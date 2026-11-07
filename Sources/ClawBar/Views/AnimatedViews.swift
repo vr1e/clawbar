@@ -42,22 +42,65 @@ struct MascotView: View {
 /// The sky behind the percent row: the gradient, then the sprites faded as one layer, then the edge fade.
 struct SkyView: View {
     let animation: AnimationModel
-    @Environment(\.uiScale) private var k
 
     var body: some View {
         let frame = animation.sky
-        let layers = DrawOpRenderer.layers(frame.ops)
-        let scale = k
         ZStack {
             LinearGradient(colors: [Color(rgba: frame.top), Color(rgba: frame.bottom)], startPoint: .top, endPoint: .bottom)
             // A Canvas is one layer, so opacity 0.7 fades the sprites as a group like SkyFx's Opacity.
-            Canvas { ctx, _ in
-                ctx.scaleBy(x: scale, y: scale)
-                DrawOpRenderer.draw(layers, in: &ctx)
-            }
-            .opacity(0.7)
+            OpsCanvas(ops: frame.ops)
+                .opacity(0.7)
         }
-        .mask(
+        .skyRowEdges()
+    }
+}
+
+/// The sky row: the weather's sky, or the theme's scene in its place.
+struct SkyRowView: View {
+    let animation: AnimationModel
+
+    var body: some View {
+        if let ops = animation.scene?.sky {
+            // No gradient, so the backdrop shows through, and not faded like the weather's sprites.
+            OpsCanvas(ops: ops)
+                .skyRowEdges()
+        } else {
+            SkyView(animation: animation)
+        }
+    }
+}
+
+/// A scene's backdrop over the whole card, from its top-left inside the border.
+struct SceneBackdropView: View {
+    let animation: AnimationModel
+
+    var body: some View {
+        if let ops = animation.scene?.backdrop {
+            OpsCanvas(ops: ops)
+                .allowsHitTesting(false)
+        }
+    }
+}
+
+/// An engine's ops in base units, scaled by k.
+private struct OpsCanvas: View {
+    let ops: [DrawOp]
+    @Environment(\.uiScale) private var k
+
+    var body: some View {
+        let layers = DrawOpRenderer.layers(ops)
+        let scale = k
+        Canvas { ctx, _ in
+            ctx.scaleBy(x: scale, y: scale)
+            DrawOpRenderer.draw(layers, in: &ctx)
+        }
+    }
+}
+
+private extension View {
+    /// widget.xaml's Sky: its edges fade out over a tenth of the row each side, and nothing spills past it.
+    func skyRowEdges() -> some View {
+        mask(
             LinearGradient(
                 stops: [
                     .init(color: .clear, location: 0), .init(color: .black, location: 0.1),

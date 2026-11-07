@@ -21,6 +21,8 @@ struct SnapshotCase {
     var everyLanguageAndSize = true
     /// The pointer this far into the 7-day chart, in base units.
     var hoverX: Double?
+    /// Animation ticks from `Samples.now` before the picture: enough for a scene's visitor to be in frame.
+    var ticks = 60
 }
 
 /// Every presenter state the data contract can express, all at `Samples.now` in Berlin.
@@ -146,6 +148,12 @@ enum SnapshotCases {
                 $0.config.theme = .fixed(theme)
             }
         }
+        add("scene-christmas") {
+            $0.everyLanguageAndSize = false
+            $0.config.theme = .fixed(.christmas)
+            // The sleigh launches 120 scene steps in and is a third of the way across by now.
+            $0.ticks = 330
+        }
         add("skin-santa") {
             $0.everyLanguageAndSize = false
             $0.config.skin = BuiltInSkin.santa.rawValue
@@ -232,7 +240,7 @@ enum SnapshotMode {
     static func renderCard(_ c: SnapshotCase, lang: Lang, scale k: Double) -> CGImage? {
         let input = input(for: c, lang: lang)
         let engine = AnimationEngine(random: SeededRandomSource(seed: 7), config: input.config, skins: .builtIn, now: Samples.now)
-        engine.apply(c.data, config: input.config, skins: .builtIn, now: Samples.now)
+        engine.apply(c.data, config: input.config, skins: .builtIn, now: Samples.now, timeZone: Samples.timeZone)
         let layout = LayoutModel()
         var card = CardRenderer.Input(
             view: WidgetPresenter.make(input), mascotVisible: engine.mascotVisible, skyVisible: engine.skyVisible
@@ -240,19 +248,20 @@ enum SnapshotMode {
         if let x = c.hoverX, let chart = card.view.history {
             card.historyHover = HistoryReadout.hover(x: x, chart: chart, input: input)
         }
-        // A first pass measures the number, which sets the play area Clawd walks in.
+        // A first pass measures the number, which sets the play area Clawd walks in, and the card a scene covers.
         _ = CardRenderer.render(card, scale: k, layout: layout)
-        card.animation = settle(engine, c, numberWidth: layout.numberWidth)
+        card.animation = settle(engine, c, numberWidth: layout.numberWidth, backdropSize: layout.backdropSize(scale: k))
         return CardRenderer.render(card, scale: k, layout: layout)
     }
 
-    /// Clawd and the sky after 60 ticks from `Samples.now`, the case's sky overrides set as the developer menu would.
-    static func settle(_ engine: AnimationEngine, _ c: SnapshotCase, numberWidth: Double) -> AnimationFrame {
+    /// Clawd and the sky or the scene after the case's ticks from `Samples.now`, its sky overrides set as the
+    /// developer menu would.
+    static func settle(_ engine: AnimationEngine, _ c: SnapshotCase, numberWidth: Double, backdropSize: CGSize) -> AnimationFrame {
         if let phase = c.skyDev.phase { engine.perform(.skyPhase(phase)) }
         if let code = c.skyDev.weatherCode { engine.perform(.skyWeather(code)) }
         var now = Samples.now
-        for _ in 0 ..< 60 {
-            engine.step(AnimationInputs(now: now, timeZone: Samples.timeZone, numberWidth: numberWidth))
+        for _ in 0 ..< c.ticks {
+            engine.step(AnimationInputs(now: now, timeZone: Samples.timeZone, numberWidth: numberWidth, backdropSize: backdropSize))
             guard let ms = engine.tickMilliseconds else { break }
             now = now.addingTimeInterval(Double(ms) / 1000)
         }

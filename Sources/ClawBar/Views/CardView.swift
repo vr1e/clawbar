@@ -10,6 +10,8 @@ struct CardView: View {
 
     static let width = 262.0
     static let content = PlayArea.content
+    /// The rim's width: the background, the pattern and a scene's backdrop all sit inside it.
+    static let border = 1.0
 
     var body: some View {
         let v = app.view
@@ -62,14 +64,18 @@ struct CardView: View {
             // WPF fills only inside the border, so the rim shows #33FFFFFF over whatever is behind the window.
             let outer = RoundedRectangle(cornerRadius: 10 * k)
             ZStack {
-                outer.inset(by: 1 * k).fill(Color(rgba: v.palette.background))
+                outer.inset(by: Self.border * k).fill(Color(rgba: v.palette.background))
                 if let pattern = v.pattern {
                     // theme.ps1's layer: inside the border, with the card's own radius.
                     PatternLayer(pattern: pattern)
                         .clipShape(outer)
-                        .padding(1 * k)
+                        .padding(Self.border * k)
                 }
-                outer.strokeBorder(Color(rgba: Palette.border), lineWidth: 1 * k)
+                // scene.ps1's backdrop: between the pattern and the content, clipped like the pattern.
+                SceneBackdropView(animation: animation)
+                    .clipShape(outer)
+                    .padding(Self.border * k)
+                outer.strokeBorder(Color(rgba: Palette.border), lineWidth: Self.border * k)
             }
         }
         .coordinateSpace(.named(CardSpace.name))
@@ -130,7 +136,7 @@ private struct HeaderRow: View {
     }
 }
 
-/// The 40-tall row: the sky behind, the number with its superscript %, and Clawd's layer over both.
+/// The 40-tall row: the sky or the scene's sky layer behind, the number with its superscript %, and Clawd's layer over both.
 private struct PercentRow: View {
     let v: WidgetViewState
     let mascot: Bool
@@ -143,7 +149,7 @@ private struct PercentRow: View {
         ZStack(alignment: .topLeading) {
             if sky {
                 // Bottom margin −3: the sky reaches the ground line below the row.
-                SkyView(animation: animation)
+                SkyRowView(animation: animation)
                     .frame(width: CardView.content * k, height: PlayArea.height * k)
             }
             NumberView(v: v, layout: layout)

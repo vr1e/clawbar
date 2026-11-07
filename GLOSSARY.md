@@ -33,24 +33,28 @@ The `--snapshot` run that renders every widget state to PNGs for the README and 
 _Avoid_: screenshot mode
 
 **Animation tick**:
-One step of everything that moves: Clawd, his hearts and the sky, every 90 ms (60 while a Claude Code sequence plays), only while the widget shows and has Clawd. Not the data tick.
+One step of everything that moves: Clawd, his hearts, and the sky or the theme's scene, every 90 ms (60 while a Claude Code sequence plays, though a scene keeps its 90), only while the widget shows and has Clawd or a scene. Not the data tick.
 _Avoid_: frame tick, timer tick
 
 **Animation engine**:
-The decisions of the moving side: what Clawd and the sky do on an animation tick, and what the data, a click or a developer action does to them. It takes the data snapshot, the settings and one tick's inputs, and returns the frame and the cadence of the next tick.
+The decisions of the moving side: what Clawd, the sky and the scene do on an animation tick, and what the data, a click or a developer action does to them. It takes the data snapshot, the settings and one tick's inputs, and returns the frame and the cadence of the next tick.
 _Avoid_: animator, stepper, ticker
 
 **Animation frame**:
-Everything one animation tick drew: Clawd with his hearts, and the sky.
-_Avoid_: scene (upstream's animated themes), picture
+Everything one animation tick drew: Clawd with his hearts, the sky, and the theme's scene. Not the scene alone.
+_Avoid_: picture
 
 **Theme palette**:
 The colours a theme changes, one per role: the background, the text tiers (secondary, muted, label, footer), the accent, the model-week bar and the empty heart. The presenter resolves it into the view state; the levels, Clawd, the sky, the card's border and tracks, and the chart's fill, cursor and session line stay fixed.
 _Avoid_: theme (the config's choice of look), colour scheme, skin
 
 **Theme pattern**:
-A tile of faint pixel sprites a theme repeats over the card under its content, like a chat wallpaper; it stands still.
-_Avoid_: scene (upstream's animated themes), wallpaper, texture
+A tile of faint pixel sprites a theme repeats over the card under its content, like a chat wallpaper; it stands still. Not the scene.
+_Avoid_: wallpaper, texture
+
+**Scene**:
+A theme's animation: a backdrop over the pattern and under the card's content, and a layer in the sky row in the weather's place. It moves on the animation tick at its own steady pace, with or without Clawd.
+_Avoid_: animated theme (upstream's name for the feature), backdrop (one of its layers)
 
 **Skin**:
 Clawd's body and eye colours and the pixel accessories drawn over him, such as a hat or glasses: Classic, a built-in one or the user's own from the skins folder (`skin`). It dresses the widget's Clawd only.

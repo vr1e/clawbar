@@ -38,4 +38,6 @@ public enum DrawOp: Sendable, Hashable {
     case radialGlow(CGRect, inner: RGBA, outer: RGBA, opacity: Double)
     /// A rect filled with a left-to-right gradient.
     case hGradient(CGRect, stops: [GradientStop], opacity: Double)
+    /// A polyline stroked in one colour, then faded by `opacity`.
+    case stroke([CGPoint], RGBA, width: Double, opacity: Double)
 }
