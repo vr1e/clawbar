@@ -22,7 +22,7 @@ import ClawBarSky
         clawd.apply(ClawdDataInput(busy, mainLimit: .session, critPercent: 85), now: t0)
         clawd.perform(.auto)
         let engine = engine(seed: 5)
-        engine.apply(busy, config: Config(), now: t0)
+        engine.apply(busy, config: Config(), skins: .builtIn, now: t0)
         engine.perform(.auto)
         engine.perform(.skyWeather(63))
         var now = t0
@@ -42,40 +42,53 @@ import ClawBarSky
     @Test func dataWaitsForTheFirstRegistryRead() {
         // Before the registry's first read an empty session list means nothing; after it, no session puts him to bed.
         let waiting = settled()
-        waiting.apply(data(sessions: 0, read: false), config: Config(), now: t0)
+        waiting.apply(data(sessions: 0, read: false), config: Config(), skins: .builtIn, now: t0)
         let idle = (0 ..< 40).map { _ in FrameView(waiting.step(inputs()).clawd) }
         #expect(idle.allSatisfy { !$0.z })
 
         let read = settled()
-        read.apply(data(sessions: 0, read: true), config: Config(), now: t0)
+        read.apply(data(sessions: 0, read: true), config: Config(), skins: .builtIn, now: t0)
         let asleep = (0 ..< 40).map { _ in FrameView(read.step(inputs()).clawd) }
         // The 30-tick burrow, then the 'z'.
         #expect(!asleep[29].z && asleep[30].z)
     }
 
+    /// The colours Clawd is drawn in on the next tick.
+    private func colours(_ e: AnimationEngine) -> Set<RGBA> {
+        Set(e.step(inputs()).clawd.ops.compactMap { if case let .rects(_, c, _) = $0 { c } else { nil } })
+    }
+
     @Test func clawdWearsTheConfigsSkinFromTheStartAndOnEveryChange() {
-        func colours(_ e: AnimationEngine) -> Set<RGBA> {
-            Set(e.step(inputs()).clawd.ops.compactMap { if case let .rects(_, c, _) = $0 { c } else { nil } })
-        }
         let santa = BuiltInSkin.santa.skin.layers.map(\.color)
         let engine = engine(config: Config(skin: "santa"))
         engine.perform(.auto)
         #expect(colours(engine).isSuperset(of: santa))
-        engine.apply(data(sessions: 1), config: Config(skin: "frost"), now: t0)
+        engine.apply(data(sessions: 1), config: Config(skin: "frost"), skins: .builtIn, now: t0)
         let frost = colours(engine)
         #expect(frost.contains(BuiltInSkin.frost.skin.body) && !frost.contains(Palette.clawdBody))
-        engine.apply(data(sessions: 1), config: Config(), now: t0)
+        engine.apply(data(sessions: 1), config: Config(), skins: .builtIn, now: t0)
         #expect(colours(engine).isDisjoint(with: santa + BuiltInSkin.frost.skin.layers.map(\.color)))
+    }
+
+    @Test func clawdWearsTheUsersOwnSkinFromTheCatalogue() {
+        let mine = Skin.parse("---\nbody: #123456\nk: #ABCDEF\n---\nkkkk\n", id: "mine")!
+        let skins = SkinCatalog(own: [mine])
+        let engine = engine(config: Config(skin: "mine"), skins: skins)
+        engine.perform(.auto)
+        #expect(colours(engine).isSuperset(of: [RGBA("#FF123456"), RGBA("#FFABCDEF")]))
+        // Without its file the name is unknown, so Clawd is Classic again.
+        engine.apply(data(sessions: 1), config: Config(skin: "mine"), skins: .builtIn, now: t0)
+        #expect(!colours(engine).contains(RGBA("#FF123456")))
     }
 
     @Test func hidingClawdForgetsTheHeartsAndStopsTheTicks() {
         let engine = settled()
-        engine.apply(data(sessions: 1, pct: 50), config: Config(), now: t0)
+        engine.apply(data(sessions: 1, pct: 50), config: Config(), skins: .builtIn, now: t0)
         let shown = engine.step(inputs())
         #expect(shown.clawd.hearts == HeartsFrame(visible: true, shownHalves: 3, tooltip: "tired · 50% of the session limit left"))
         #expect(engine.tickMilliseconds != nil && engine.mascotVisible && engine.skyVisible)
 
-        engine.apply(data(sessions: 1, pct: 50), config: Config(showMascot: false), now: t0)
+        engine.apply(data(sessions: 1, pct: 50), config: Config(showMascot: false), skins: .builtIn, now: t0)
         #expect(engine.frame.clawd == .empty && !engine.frame.clawd.hearts.visible)
         // The sky's last frame stays; no view draws it while Clawd is hidden.
         #expect(engine.frame.sky == shown.sky)
@@ -83,7 +96,7 @@ import ClawBarSky
         #expect(engine.step(inputs()) == engine.frame)
 
         // Shown again with fewer halves: a new value, not a loss, so no blink of the old one.
-        engine.apply(data(sessions: 1, pct: 90), config: Config(), now: t0)
+        engine.apply(data(sessions: 1, pct: 90), config: Config(), skins: .builtIn, now: t0)
         #expect(engine.tickMilliseconds == 90)
         let back = (0 ..< 4).map { _ in engine.step(inputs()).clawd.hearts.shownHalves }
         #expect(back == [1, 1, 1, 1])
@@ -92,7 +105,7 @@ import ClawBarSky
     @Test func theSkyFollowsClawdsCadenceDuringASequence() {
         // Waiting for you, so that no random hop or act of his own gets in the way of the cadence.
         let engine = engine()
-        engine.apply(data(waiting: 1, pct: 10), config: Config(), now: t0)
+        engine.apply(data(waiting: 1, pct: 10), config: Config(), skins: .builtIn, now: t0)
         engine.perform(.auto)
         engine.step(inputs())
         #expect(engine.tickMilliseconds == 90)
@@ -115,7 +128,7 @@ import ClawBarSky
     @Test func anOverrideShowsOnTheNextTickAndAutoReturnsToTheClock() {
         // 14:05 in Berlin with no weather: a clear day by the fallback sun times.
         let engine = engine()
-        engine.apply(data(sessions: 1), config: Config(), now: t0)
+        engine.apply(data(sessions: 1), config: Config(), skins: .builtIn, now: t0)
         #expect(engine.step(inputs()).sky.top == Self.dayTop)
         engine.perform(.skyPhase(.night))
         #expect(engine.step(inputs()).sky.top == Self.nightTop)
@@ -147,7 +160,7 @@ import ClawBarSky
         engine.perform(.skyWeather(63))
         var last = SkyFrame.empty
         for shown in [true, false, true] {
-            engine.apply(oneSession, config: Config(showSky: shown), now: t0)
+            engine.apply(oneSession, config: Config(showSky: shown), skins: .builtIn, now: t0)
             clawd.apply(ClawdDataInput(oneSession, mainLimit: .session, critPercent: 85), now: t0)
             let c = clawd.step(env)
             if shown { last = sky.step(size: PlayArea.skySize, inputs: rain) }
@@ -160,7 +173,7 @@ import ClawBarSky
     @Test func theLanguageAndTheCritPercentArriveWithTheData() {
         // Built in English, switched to German by a data tick, as a reloaded config.json reaches the engine.
         let german = engine()
-        german.apply(data(sessions: 1, pct: 50), config: Config(language: "de"), now: t0)
+        german.apply(data(sessions: 1, pct: 50), config: Config(language: "de"), skins: .builtIn, now: t0)
         #expect(german.step(inputs()).clawd.hearts.tooltip == "müde · 50% des Sitzungslimits übrig")
         #expect(german.developerMenu()[2].title == "Automatisch (Live-Daten)")
         #expect(german.skyTooltip(now: t0, timeZone: Samples.timeZone).hasPrefix("Wetter: keine Daten\n"))
@@ -168,7 +181,7 @@ import ClawBarSky
         // 50% leaves three halves, a tier that does not sweat by itself: only critPercent makes him.
         func sweats(critPercent: Int) -> Bool {
             let engine = settled()
-            engine.apply(data(sessions: 1, pct: 50), config: Config(critPercent: critPercent), now: t0)
+            engine.apply(data(sessions: 1, pct: 50), config: Config(critPercent: critPercent), skins: .builtIn, now: t0)
             return (0 ..< 5).contains { _ in !FrameView(engine.step(inputs()).clawd).sweat.isEmpty }
         }
         #expect(sweats(critPercent: 50) && !sweats(critPercent: 85))
@@ -177,22 +190,22 @@ import ClawBarSky
     @Test func theZoneInputReachesTheSkyAndItsTooltip() {
         // No weather or place: 21:05 in Tokyo is night by the fallback sun times, where Berlin's 14:05 is day.
         let plain = engine()
-        plain.apply(data(sessions: 1), config: Config(), now: t0)
+        plain.apply(data(sessions: 1), config: Config(), skins: .builtIn, now: t0)
         #expect(plain.step(inputs(zone: Self.tokyo)).sky.top == Self.nightTop)
         // Configured coordinates carry no zone, so NOAA's sun times are on the given zone's clock.
         let placed = engine()
-        placed.apply(data(sessions: 1, place: Place(lat: 52.52, lon: 13.405)), config: Config(), now: t0)
+        placed.apply(data(sessions: 1, place: Place(lat: 52.52, lon: 13.405)), config: Config(), skins: .builtIn, now: t0)
         #expect(placed.skyTooltip(now: t0, timeZone: Samples.timeZone).hasPrefix("weather: no data\nsunrise 07:34 · sunset 18:08\n"))
         #expect(placed.skyTooltip(now: t0, timeZone: Self.tokyo).hasPrefix("weather: no data\nsunrise 14:34 · sunset 01:08\n"))
     }
 
     @Test func thePlaceReachesTheSkyAndItsTooltip() {
         let berlin = engine()
-        berlin.apply(data(sessions: 1, weather: DataSnapshot.sample.weather, place: DataSnapshot.sample.place), config: Config(), now: t0)
+        berlin.apply(data(sessions: 1, weather: DataSnapshot.sample.weather, place: DataSnapshot.sample.place), config: Config(), skins: .builtIn, now: t0)
         #expect(berlin.skyTooltip(now: t0, timeZone: Samples.timeZone).hasPrefix("Berlin · "))
         // A place with its own zone: 23:05 in Sydney is night, whatever the Mac's zone says.
         let sydney = engine()
-        sydney.apply(data(sessions: 1, place: Place(lat: -33.87, lon: 151.21, city: "Sydney", timeZoneID: "Australia/Sydney")), config: Config(), now: t0)
+        sydney.apply(data(sessions: 1, place: Place(lat: -33.87, lon: 151.21, city: "Sydney", timeZoneID: "Australia/Sydney")), config: Config(), skins: .builtIn, now: t0)
         #expect(sydney.step(inputs()).sky.top == Self.nightTop)
     }
 
@@ -200,7 +213,7 @@ import ClawBarSky
         // Waiting for you with the pointer far to his right, he looks right: his eyes sit further right than when it is left.
         func eyesX(mouseX: Double) -> Double {
             let engine = settled(seed: 3)
-            engine.apply(data(waiting: 1), config: Config(), now: t0)
+            engine.apply(data(waiting: 1), config: Config(), skins: .builtIn, now: t0)
             return Double(FrameView(engine.step(inputs(over: true, mouseX: mouseX)).clawd).eyes.map(\.minX).min() ?? .nan)
         }
         #expect(eyesX(mouseX: 190) > eyesX(mouseX: 0))
@@ -210,7 +223,7 @@ import ClawBarSky
         // Ten minutes of silence doze him off; a pointer over the window counts as company, even without an x.
         func dozes(over: Bool) -> Bool {
             let engine = settled()
-            engine.apply(data(sessions: 1), config: Config(), now: t0)
+            engine.apply(data(sessions: 1), config: Config(), skins: .builtIn, now: t0)
             return (0 ..< 10).contains { _ in FrameView(engine.step(inputs(now: t0 + 600, over: over)).clawd).z }
         }
         #expect(dozes(over: false) && !dozes(over: true))

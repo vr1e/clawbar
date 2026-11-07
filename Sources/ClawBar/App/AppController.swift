@@ -11,6 +11,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private let errorLog: ErrorLog
     private let configStore: ConfigStore
     private var config: Config
+    private let skinFolder: SkinFolder
+    /// The built-in skins and the user's own, as the skins folder last read.
+    private var skins: SkinCatalog
     private let data: DataController
     private let engine: AnimationEngine
     /// The Mac's zone, for the presenter, the animation tick and the sky's tooltip alike.
@@ -45,8 +48,10 @@ final class AppController: NSObject, WidgetPanelDelegate {
         errorLog = ErrorLog(url: paths.errorLog)
         configStore = ConfigStore(paths: paths)
         config = configStore.load()
+        skinFolder = SkinFolder(paths: paths)
+        skins = skinFolder.reloadIfChanged() ?? .builtIn
         data = DataController(config: config, paths: paths)
-        engine = AnimationEngine(random: SystemRandomSource(), config: config, now: Date())
+        engine = AnimationEngine(random: SystemRandomSource(), config: config, skins: skins, now: Date())
         host = CardHostView(root: WidgetRootView(app: app, animation: animation, layout: layout))
         panel = WidgetPanel(content: host)
         tooltips = TooltipRegistrar(view: host)
@@ -79,6 +84,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         statusItem.onToggle = { [unowned self] in toggleWidget() }
         statusItem.menuProvider = { [unowned self] in statusMenu() }
         settings.perform = { [unowned self] in perform($0) }
+        settings.update(skins: skins)
 
         // The card publishes its size during layout; with sizingOptions = [] the hosting view reports none itself.
         host.hosting.layoutSubtreeIfNeeded()
@@ -146,6 +152,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private func dataTick() {
         let now = Date()
         if let fresh = configStore.reloadIfChanged() { apply(config: fresh) }
+        reloadSkins()
         data.tick(now: now)
         recompute(now: now)
     }
@@ -158,7 +165,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         if view != app.view { app.view = view }
         statusItem.update(text: view.trayText, color: view.trayColor, mascot: view.trayMascot, tooltip: view.trayTooltip)
         game.update(caption: view.gameCaption, lang: config.lang, palette: view.palette)
-        engine.apply(input.data, config: config, now: now)
+        engine.apply(input.data, config: config, skins: skins, now: now)
         syncVisibility()
         animation.publish(engine.frame)
         syncAnimation()
@@ -258,6 +265,15 @@ final class AppController: NSObject, WidgetPanelDelegate {
             edit(&next)
             apply(config: next.clamped())
         }
+    }
+
+    /// Set-Skin on every update, so an added or edited skin file shows without a restart.
+    @discardableResult
+    private func reloadSkins() -> Bool {
+        guard let fresh = skinFolder.reloadIfChanged() else { return false }
+        skins = fresh
+        settings.update(skins: fresh)
+        return true
     }
 
     private func scheduleSave() {
@@ -374,7 +390,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
         switch action {
         case .toggleWidget: toggleWidget()
         case .refresh: data.refreshNow()
-        case .settings: settings.show(beside: panel.frame, on: (panel.screen ?? NSScreen.main)?.visibleFrame)
+        case .settings:
+            if reloadSkins() { recompute() }
+            settings.show(beside: panel.frame, on: (panel.screen ?? NSScreen.main)?.visibleFrame)
         case .play: game.show()
         case .quit: NSApp.terminate(nil)
         }
@@ -389,9 +407,10 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
         case .language(let l): change { $0.language = l.rawValue }
         case .theme(let t): change { $0.theme = t }
-        case .skin(let s): change { $0.skin = s.rawValue }
+        case .skin(let id): change { $0.skin = id }
         case .toggleBlock(let b): change { $0[keyPath: b.flag].toggle() }
         case .openConfig: openConfig()
+        case .openSkinsFolder: openSkinsFolder()
         }
     }
 
@@ -427,6 +446,17 @@ final class AppController: NSObject, WidgetPanelDelegate {
         }
     }
 
+    /// Upstream's Your own card: the folder in Finder, created first so there is one to open.
+    private func openSkinsFolder() {
+        do {
+            try skinFolder.ensureExists()
+        } catch {
+            errorLog.append("skins: \(error)")
+            return
+        }
+        NSWorkspace.shared.open(skinFolder.url)
+    }
+
     // MARK: Dump
 
     private func writeStateDump(nonce: String) {
@@ -437,7 +467,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
             screenFrames: NSScreen.screens.map(\.frame), topLeft: panel.topLeft,
             animating: animationTimer != nil, tickMilliseconds: animationInterval, config: config,
             loginItemStatus: loginItem.status.rawValue, installedApp: loginItem.installed,
-            snapshot: data.snapshot, view: app.view
+            snapshot: data.snapshot, view: app.view, skins: skins
         )
         do {
             try dump.render().write(to: IPC.dumpFile(paths), atomically: true, encoding: .utf8)

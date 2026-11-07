@@ -231,8 +231,8 @@ enum SnapshotMode {
     /// The card at 2 pixels per point, with Clawd and the sky after a few seeded ticks.
     static func renderCard(_ c: SnapshotCase, lang: Lang, scale k: Double) -> CGImage? {
         let input = input(for: c, lang: lang)
-        let engine = AnimationEngine(random: SeededRandomSource(seed: 7), config: input.config, now: Samples.now)
-        engine.apply(c.data, config: input.config, now: Samples.now)
+        let engine = AnimationEngine(random: SeededRandomSource(seed: 7), config: input.config, skins: .builtIn, now: Samples.now)
+        engine.apply(c.data, config: input.config, skins: .builtIn, now: Samples.now)
         let layout = LayoutModel()
         var card = CardRenderer.Input(
             view: WidgetPresenter.make(input), mascotVisible: engine.mascotVisible, skyVisible: engine.skyVisible
@@ -302,10 +302,11 @@ enum SnapshotMode {
 
     /// Every built-in skin as the Settings picker draws it, larger, with its English name.
     static func writeSkins(to dir: URL) throws -> [URL] {
+        let frame = ClawdPreview.frame(fitting: SkinCatalog.builtIn.skins)
         let sheet = LazyVGrid(columns: Array(repeating: GridItem(.fixed(110)), count: 7), spacing: 12) {
             ForEach(BuiltInSkin.allCases, id: \.self) { s in
                 VStack(spacing: 4) {
-                    Image(nsImage: SkinIcon.image(s.skin, scale: 2))
+                    Image(nsImage: SkinIcon.image(s.skin, frame: frame, scale: 2))
                     Text(L10n.t(s.title, .en)).font(.system(size: 11)).foregroundStyle(.white)
                 }
             }
@@ -365,13 +366,13 @@ enum SnapshotMode {
                 "Status menu, main limit used up",
                 MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: true, limitReached: true))
             ),
-            ("Settings window", SettingsPage.dump(config: Config(language: lang.rawValue))),
+            ("Settings window", SettingsPage.dump(config: Config(language: lang.rawValue), skins: .builtIn)),
             (
                 "Settings window, smallest and most transparent, always on top, no Clawd in the menu bar or the widget, no stats",
                 SettingsPage.dump(config: Config(
                     language: lang.rawValue, scale: 0.6, opacity: 0.3, topmost: true, showStats: false, showMascot: false,
                     launchAtLogin: false, menuBarMascot: false
-                ))
+                ), skins: .builtIn)
             ),
             ("Developer menu, live data", DevMenuBuilder.dump(DevMenu.build(dev: ClawdDevState(), sky: SkyDevState(), skyVisible: true, lang: lang))),
             (

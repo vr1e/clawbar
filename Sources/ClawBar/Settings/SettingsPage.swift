@@ -7,9 +7,10 @@ enum SettingsAction: Hashable {
     case toggleTopmost, toggleMainWeek, toggleLaunchAtLogin, toggleMenuBarMascot
     case language(Lang)
     case theme(ThemeChoice)
-    case skin(BuiltInSkin)
+    /// A skin's id, as config.json's `skin` takes it.
+    case skin(String)
     case toggleBlock(WidgetBlock)
-    case openConfig
+    case openConfig, openSkinsFolder
 }
 
 /// The window's tabs: the original's Look and Window; its Clawd and Claude Code tabs belong to skipped features.
@@ -88,7 +89,8 @@ enum SettingsRow: Hashable {
     /// "Size  − 120% +"; an action is nil where the value cannot move further.
     case stepper(title: String, value: String, decrease: SettingsAction?, increase: SettingsAction?)
     case note(String)
-    case button(title: String, action: SettingsAction)
+    /// `help` is the button's tooltip.
+    case button(title: String, action: SettingsAction, help: String? = nil)
 }
 
 struct SettingsSection: Hashable {
@@ -100,7 +102,7 @@ struct SettingsSection: Hashable {
 enum SettingsPage {
     /// `now` picks the season whose colours the By season swatch shows.
     static func sections(
-        _ tab: SettingsTab, config: Config, now: Date = Date(), timeZone: TimeZone = .current
+        _ tab: SettingsTab, config: Config, skins: SkinCatalog, now: Date = Date(), timeZone: TimeZone = .current
     ) -> [SettingsSection] {
         let lang = config.lang
         func t(_ key: L10nKey) -> String { L10n.t(key, lang) }
@@ -120,14 +122,19 @@ enum SettingsPage {
                     icon: .theme(c.theme(at: now, in: timeZone).palette)
                 )
             }
-            let skin = BuiltInSkin(configValue: config.skin)
-            let skins = BuiltInSkin.allCases.map { s in
-                SettingsOption(title: t(s.title), on: s == skin, action: .skin(s), icon: .skin(s.skin))
+            let worn = skins.skin(for: config.skin)
+            // A user's file under a built-in id is named by its own `name:`, where upstream keeps the translated one.
+            let skinOptions = skins.skins.map { s in
+                SettingsOption(
+                    title: skins.untouchedBuiltIn(s).map { t($0.title) } ?? s.name, on: s.id == worn.id, action: .skin(s.id),
+                    icon: .skin(s)
+                )
             }
             return [
                 SettingsSection(rows: [
                     .picker(title: t(.setLanguage), options: languages), .picker(title: t(.setTheme), options: themes),
-                    .picker(title: t(.setSkin), options: skins),
+                    .picker(title: t(.setSkin), options: skinOptions),
+                    .button(title: t(.setSkinFolder), action: .openSkinsFolder, help: t(.setSkinFolderTip)),
                 ]),
                 more,
             ]
@@ -162,11 +169,11 @@ enum SettingsPage {
     static func percent(_ v: Double) -> String { "\(Int((v * 100).rounded()))%" }
 
     /// Every tab as text: `[x]`/`[ ]` switches, `(•)`/`( )` choices, `(disabled)`, `−`/`+` where a stepper can move.
-    static func dump(config: Config) -> String {
+    static func dump(config: Config, skins: SkinCatalog) -> String {
         let lang = config.lang
         return SettingsTab.allCases.map { tab in
             var lines = ["  \(L10n.t(tab.title, lang)):"]
-            for s in sections(tab, config: config) {
+            for s in sections(tab, config: config, skins: skins) {
                 // Only rows under a header sit deeper, so a headerless section after one stands apart.
                 if let h = s.header { lines.append("    \(h.uppercased())") }
                 let indent = s.header == nil ? "    " : "      "
@@ -185,7 +192,7 @@ enum SettingsPage {
         case .stepper(let title, let value, let down, let up):
             return "\(title): \(down == nil ? " " : "−") \(value) \(up == nil ? "" : "+")"
         case .note(let s): return s
-        case .button(let title, _): return "[\(title)]"
+        case .button(let title, _, let help): return "[\(title)]" + (help.map { "\n        " + $0 } ?? "")
         }
     }
 }

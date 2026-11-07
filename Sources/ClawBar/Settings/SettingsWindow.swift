@@ -4,10 +4,15 @@ import SwiftUI
 import ClawBarClawd
 import ClawBarShared
 
-/// The config the open pages show; set on every applied change, so a hand edit of config.json shows too.
+/// What the open pages show; set on every applied change, so a hand edit of config.json or the skins folder shows too.
 @Observable
 final class ShownConfig {
     var config = Config()
+    var skins = SkinCatalog.builtIn {
+        didSet { skinFrame = ClawdPreview.frame(fitting: skins.skins) }
+    }
+    /// One frame for every skin's icon, so the menu's rows line up and the tallest hat fits.
+    private(set) var skinFrame = ClawdPreview.frame(fitting: SkinCatalog.builtIn.skins)
 }
 
 /// One tab's page: its sections as a grouped form.
@@ -20,7 +25,7 @@ struct SettingsPageView: View {
 
     var body: some View {
         Form {
-            ForEach(Array(SettingsPage.sections(tab, config: shown.config).enumerated()), id: \.offset) { _, section in
+            ForEach(Array(SettingsPage.sections(tab, config: shown.config, skins: shown.skins).enumerated()), id: \.offset) { _, section in
                 Section {
                     ForEach(Array(section.rows.enumerated()), id: \.offset) { _, row in self.row(row) }
                 } header: {
@@ -51,7 +56,7 @@ struct SettingsPageView: View {
             )) {
                 ForEach(options.indices, id: \.self) { i in
                     if let icon = options[i].icon {
-                        Label { Text(options[i].title) } icon: { Image(nsImage: icon.image) }.tag(i)
+                        Label { Text(options[i].title) } icon: { Image(nsImage: icon.image(skinFrame: shown.skinFrame)) }.tag(i)
                     } else {
                         Text(options[i].title).tag(i)
                     }
@@ -68,28 +73,27 @@ struct SettingsPageView: View {
             }
         case .note(let text):
             Text(text).font(.callout).foregroundStyle(.secondary)
-        case .button(let title, let action):
-            Button(title) { perform(action) }
+        case .button(let title, let action, let help):
+            Button(title) { perform(action) }.help(help ?? "")
         }
     }
 }
 
 extension SettingsIcon {
-    var image: NSImage {
+    func image(skinFrame: CGRect) -> NSImage {
         switch self {
         case .theme(let p): ThemeSwatch.image(p)
-        case .skin(let s): SkinIcon.image(s)
+        case .skin(let s): SkinIcon.image(s, frame: skinFrame)
         }
     }
 }
 
-/// Clawd standing in a skin, every skin in one frame, so the menu's rows line up and the tallest hat fits.
+/// Clawd standing in a skin, in a frame all the picker's skins share.
 enum SkinIcon {
     /// Half size: one of Clawd's pixels is a point wide, so it lands on whole device pixels.
     static let scale: CGFloat = 0.5
-    static let frame = ClawdPreview.frame(fitting: BuiltInSkin.allCases.map(\.skin))
 
-    static func image(_ skin: Skin, scale k: CGFloat = scale) -> NSImage {
+    static func image(_ skin: Skin, frame: CGRect, scale k: CGFloat = scale) -> NSImage {
         let ops = ClawdPreview.standing(in: skin)
         return NSImage(size: NSSize(width: frame.width * k, height: frame.height * k), flipped: true) { _ in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
@@ -168,6 +172,10 @@ final class SettingsWindowController {
         shown.config = config
         if relabel { label() }
         applyLevel()
+    }
+
+    func update(skins: SkinCatalog) {
+        shown.skins = skins
     }
 
     /// Placed anew beside the widget each time it opens; brought forward where it is when already open.

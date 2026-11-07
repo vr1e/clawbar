@@ -12,6 +12,8 @@ public struct AppPaths: Sendable, Equatable {
     public let lockFile: URL
     /// Output of a headless `claude update`, written to a file so the update survives quitting.
     public let updateLog: URL
+    /// The user's own skins, one `.txt` each; nothing creates it until Settings opens it.
+    public let skinsFolder: URL
 
     public init(root: URL) {
         self.root = root
@@ -21,6 +23,7 @@ public struct AppPaths: Sendable, Equatable {
         errorLog = root.appendingPathComponent("error.log")
         lockFile = root.appendingPathComponent("clawbar.lock")
         updateLog = root.appendingPathComponent("update.log")
+        skinsFolder = root.appendingPathComponent("skins", isDirectory: true)
     }
 
     /// `$CLAWBAR_HOME`, else `~/Library/Application Support/ClawBar`. Nothing is created here.

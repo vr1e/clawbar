@@ -7,11 +7,6 @@ public enum BuiltInSkin: String, Sendable, CaseIterable {
     case netrunner, parka, party, pompom, redcrab, rockerboy, santa, shades, skeleton, squarepants, tired, tophat
     case ushanka, witch, zombie
 
-    /// Case-insensitive, as skins.ps1 lowercases the id; anything unknown is Classic.
-    public init(configValue: String?) {
-        self = .parse(configValue) ?? .classic
-    }
-
     public var skin: Skin { Self.parsed[self]! }
 
     private static let parsed: [BuiltInSkin: Skin] = Dictionary(uniqueKeysWithValues: allCases.map { s in
