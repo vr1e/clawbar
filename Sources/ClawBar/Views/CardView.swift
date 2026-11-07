@@ -83,22 +83,18 @@ private struct PatternLayer: View {
     @Environment(\.uiScale) private var k
 
     var body: some View {
+        let scale = k
         Canvas { ctx, size in
-            let side = pattern.tile * k
-            for fill in pattern.fills {
-                var path = Path()
-                for ty in stride(from: 0, to: size.height, by: side) {
-                    for tx in stride(from: 0, to: size.width, by: side) {
-                        for r in fill.rects {
-                            path.addRect(CGRect(x: tx + r.minX * k, y: ty + r.minY * k,
-                                                width: r.width * k, height: r.height * k))
-                        }
-                    }
+            ctx.scaleBy(x: scale, y: scale)
+            let side = pattern.tile
+            for ty in stride(from: 0, to: size.height / scale, by: side) {
+                for tx in stride(from: 0, to: size.width / scale, by: side) {
+                    var tile = ctx
+                    tile.translateBy(x: tx, y: ty)
+                    DrawOpRenderer.draw(pattern.layers, in: &tile)
                 }
-                ctx.fill(path, with: .color(Color(rgba: fill.color)))
             }
         }
-        .opacity(pattern.opacity)
         .allowsHitTesting(false)
     }
 }

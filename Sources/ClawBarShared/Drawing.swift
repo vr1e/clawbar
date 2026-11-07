@@ -18,7 +18,7 @@ public enum TextAnchor: String, Sendable, CaseIterable {
     case top
 }
 
-public struct GradientStop: Sendable, Equatable {
+public struct GradientStop: Sendable, Hashable {
     /// 0...1 across the rect.
     public var location: Double
     public var color: RGBA
@@ -30,7 +30,7 @@ public struct GradientStop: Sendable, Equatable {
 }
 
 /// One drawing instruction in base units. The engines emit them in the original's z-order.
-public enum DrawOp: Sendable, Equatable {
+public enum DrawOp: Sendable, Hashable {
     /// One layer: every rect filled in one colour, then faded by `opacity`.
     case rects([CGRect], RGBA, opacity: Double)
     case text(String, at: CGPoint, size: Double, weight: FontWeight, color: RGBA, opacity: Double, anchor: TextAnchor)

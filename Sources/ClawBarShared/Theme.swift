@@ -89,28 +89,20 @@ public enum Theme: String, Sendable, CaseIterable {
 
 /// One tile of pixel sprites repeated over the card under its content, as theme.ps1's `$Patterns`.
 public struct ThemePattern: Sendable, Hashable {
-    /// One colour's pixels in a tile, merged into horizontal runs.
-    public struct Fill: Sendable, Hashable {
-        public var color: RGBA
-        public var rects: [CGRect]
-    }
-
     /// The tile's side, in base units.
     public var tile: Double
-    /// Applied to the layer as a whole, not per sprite.
-    public var opacity: Double
-    /// In the colour letters' order, so a tile always draws the same.
-    public var fills: [Fill]
+    /// One `.rects` per colour, in the colour letters' order so a tile always draws the same.
+    public var layers: [DrawOp]
 
     /// `sprites` place art rows at x, y in the tile; '.' and any letter missing from `colors` are empty.
     public init(tile: Double, px: Double, opacity: Double, colors: [Character: String],
                 sprites: [(x: Double, y: Double, art: [String])]) {
         self.tile = tile
-        self.opacity = opacity
-        fills = colors.sorted { $0.key < $1.key }.map { letter, hex in
-            Fill(color: RGBA(hex), rects: sprites.flatMap {
+        // No two pixels overlap, so fading each colour equals upstream's fading the whole brush.
+        layers = colors.sorted { $0.key < $1.key }.map { letter, hex in
+            .rects(sprites.flatMap {
                 PixelArt.rects($0.art, value: letter, px: px, py: px, origin: CGPoint(x: $0.x, y: $0.y))
-            })
+            }, RGBA(hex), opacity: opacity)
         }
     }
 
