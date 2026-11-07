@@ -39,13 +39,19 @@ public struct AnimationInputs: Sendable, Hashable {
     public var mouseOverWindow: Bool
     /// The pointer's x in play-area coordinates, when over the window.
     public var mouseX: Double?
+    /// The card inside its border, in base units: what a scene's backdrop covers. Zero before the first layout.
+    public var backdropSize: CGSize
 
-    public init(now: Date, timeZone: TimeZone, numberWidth: Double, mouseOverWindow: Bool = false, mouseX: Double? = nil) {
+    public init(
+        now: Date, timeZone: TimeZone, numberWidth: Double, mouseOverWindow: Bool = false, mouseX: Double? = nil,
+        backdropSize: CGSize = .zero
+    ) {
         self.now = now
         self.timeZone = timeZone
         self.numberWidth = numberWidth
         self.mouseOverWindow = mouseOverWindow
         self.mouseX = mouseX
+        self.backdropSize = backdropSize
     }
 }
 
@@ -53,12 +59,15 @@ public struct AnimationInputs: Sendable, Hashable {
 public struct AnimationFrame: Sendable, Equatable {
     /// Clawd with his hearts; empty while he is hidden.
     public var clawd: ClawdFrame
-    /// The sky's last frame, kept while the sky is hidden, when no view draws it.
+    /// The sky's last frame, kept while the sky is hidden or a scene takes its place, when no view draws it.
     public var sky: SkyFrame
+    /// The theme's scene, drawn behind the card's content and in the sky row in the weather's place; nil without one.
+    public var scene: SceneFrame?
 
-    public init(clawd: ClawdFrame, sky: SkyFrame) {
+    public init(clawd: ClawdFrame, sky: SkyFrame, scene: SceneFrame? = nil) {
         self.clawd = clawd
         self.sky = sky
+        self.scene = scene
     }
 
     public static let empty = AnimationFrame(clawd: .empty, sky: .empty)

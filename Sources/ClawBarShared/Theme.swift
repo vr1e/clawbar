@@ -76,6 +76,14 @@ public enum Theme: String, Sendable, CaseIterable {
         }
     }
 
+    /// theme.ps1's `scene`: the animation behind the card's content and in the sky row, or none.
+    public var scene: SceneID? {
+        switch self {
+        case .classic, .oled, .midnight, .mocha, .forest, .halloween, .space, .ocean, .cyberpunk: return nil
+        case .christmas: return .christmas
+        }
+    }
+
     /// theme.ps1's `pattern`: the faint wallpaper under the card's content, or none.
     public var pattern: ThemePattern? {
         switch self {

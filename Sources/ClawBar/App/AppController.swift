@@ -165,7 +165,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         if view != app.view { app.view = view }
         statusItem.update(text: view.trayText, color: view.trayColor, mascot: view.trayMascot, tooltip: view.trayTooltip)
         game.update(caption: view.gameCaption, lang: config.lang, palette: view.palette)
-        engine.apply(input.data, config: config, skins: skins, now: now)
+        engine.apply(input.data, config: config, skins: skins, now: now, timeZone: zone)
         syncVisibility()
         animation.publish(engine.frame)
         syncAnimation()
@@ -221,7 +221,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
         }
         let heartsVisibleBefore = animation.hearts.visible
         animation.publish(engine.step(AnimationInputs(
-            now: Date(), timeZone: zone, numberWidth: layout.numberWidth, mouseOverWindow: over, mouseX: mouseX
+            now: Date(), timeZone: zone, numberWidth: layout.numberWidth, mouseOverWindow: over, mouseX: mouseX,
+            backdropSize: layout.backdropSize(scale: k)
         )))
         if animation.hearts.visible != heartsVisibleBefore { scheduleRegionRefresh() }
         if engine.tickMilliseconds != animationInterval { syncAnimation() }

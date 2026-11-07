@@ -5,6 +5,7 @@ import ClawBarAnimation
 import ClawBarClawd
 import ClawBarData
 import ClawBarPresenter
+import ClawBarScenes
 import ClawBarShared
 import ClawBarSky
 
@@ -81,10 +82,16 @@ private func pinSky() {
 
 private func pinAnimation() {
     let engine = AnimationEngine(random: SeededRandomSource(seed: 1), config: Config(), skins: .builtIn, now: Date())
-    engine.apply(.empty, config: Config(), skins: .builtIn, now: Date())
+    engine.apply(.empty, config: Config(), skins: .builtIn, now: Date(), timeZone: .gmt)
     engine.click(now: Date())
     engine.perform(.skyPhase(.night))
-    let _: AnimationFrame = engine.step(AnimationInputs(now: Date(), timeZone: .gmt, numberWidth: 32, mouseOverWindow: false, mouseX: nil))
+    let _: AnimationFrame = engine.step(AnimationInputs(
+        now: Date(), timeZone: .gmt, numberWidth: 32, mouseOverWindow: false, mouseX: nil, backdropSize: CGSize(width: 260, height: 220)
+    ))
+    let scenes = SceneEngine(random: SeededRandomSource(seed: 1))
+    let _: SceneFrame? = scenes.step(.christmas, inputs: SceneInputs(now: Date(), size: CGSize(width: 260, height: 220), skyVisible: true))
+    let _: Int = SceneEngine.stepMilliseconds
+    let _: SceneID? = Theme.christmas.scene
     let _: AnimationFrame = engine.frame
     let _: Int? = engine.tickMilliseconds
     let _: Bool = engine.mascotVisible

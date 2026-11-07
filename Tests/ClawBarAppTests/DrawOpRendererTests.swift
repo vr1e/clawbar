@@ -47,6 +47,8 @@ import ClawBarShared
             .text("", at: .zero, size: 9, weight: .regular, color: red, opacity: 1, anchor: .topLeading),
             .radialGlow(a, inner: red, outer: blue, opacity: 0),
             .hGradient(a, stops: [], opacity: 1),
+            .stroke([CGPoint(x: 1, y: 1)], red, width: 1, opacity: 1),
+            .stroke([.zero, CGPoint(x: 4, y: 0)], red, width: 0, opacity: 1),
         ])
         #expect(layers.isEmpty)
     }
@@ -109,6 +111,13 @@ import ClawBarShared
         let r = paint([.hGradient(CGRect(x: 0, y: 0, width: 20, height: 10), stops: stops, opacity: 1)], k: 1)
         #expect(r.color(atPoint: 1, 5).r < 40)
         #expect(r.color(atPoint: 18.5, 5).r > 215)
+    }
+
+    @Test func aStrokeFollowsItsPointsAtItsWidth() {
+        let r = paint([.stroke([CGPoint(x: 0, y: 2), CGPoint(x: 10, y: 2), CGPoint(x: 10, y: 8)], Palette.white, width: 2, opacity: 1)], k: 2)
+        #expect(r.color(atPoint: 10, 4).r > 200)
+        #expect(r.color(atPoint: 20, 12).r > 200)
+        #expect(r.color(atPoint: 10, 10).r < 5)
     }
 }
 

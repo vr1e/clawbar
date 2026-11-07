@@ -24,7 +24,7 @@ public final class ScenarioRun {
         script = Scenarios.script(scenario)
         engine = AnimationEngine(random: SeededRandomSource(seed: seed), config: config, skins: .builtIn, now: now)
         data = fakeData(now: now)
-        engine.apply(data, config: config, skins: .builtIn, now: now)
+        engine.apply(data, config: config, skins: .builtIn, now: now, timeZone: Samples.timeZone)
     }
 
     /// Crop below the reset line, as every scenario but the tour does.
@@ -47,7 +47,7 @@ public final class ScenarioRun {
         var fresh: DataSnapshot?
         if applied > 0 {
             data = fakeData(now: at)
-            engine.apply(data, config: config, skins: .builtIn, now: at)
+            engine.apply(data, config: config, skins: .builtIn, now: at, timeZone: Samples.timeZone)
             fresh = data
         }
         if due >= script.steps.count { return nil }

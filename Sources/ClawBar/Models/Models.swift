@@ -17,13 +17,14 @@ final class AppModel {
     var historyHover: HistoryHover?
 }
 
-/// The animation tick's output. Only the hearts, sky and mascot views read it, so the card itself
+/// The animation tick's output. Only the hearts, sky, scene and mascot views read it, so the card itself
 /// does not re-render at 11 Hz.
 @Observable
 final class AnimationModel {
     var clawd: ClawdFrame = .empty
     var hearts: HeartsFrame = .hidden
     var sky: SkyFrame = .empty
+    var scene: SceneFrame?
 
     /// Stores a frame, touching each property only when it changed, so the hearts view sleeps through Clawd's ticks.
     func publish(_ frame: ClawdFrame) {
@@ -40,6 +41,7 @@ final class AnimationModel {
     func publish(_ frame: AnimationFrame) {
         publish(frame.clawd)
         publish(frame.sky)
+        if frame.scene != scene { scene = frame.scene }
     }
 }
 
@@ -73,6 +75,13 @@ final class LayoutModel {
 
     func setNumberWidth(_ w: Double) {
         if w != numberWidth { numberWidth = w }
+    }
+
+    /// What a scene's backdrop covers, in base units: the card inside its rim; zero before the first layout.
+    func backdropSize(scale k: Double) -> CGSize {
+        guard cardSize.width > 0, cardSize.height > 0 else { return .zero }
+        let inset = 2 * CardView.border
+        return CGSize(width: cardSize.width / k - inset, height: cardSize.height / k - inset)
     }
 
     func setCardSize(_ size: CGSize) {
