@@ -42,6 +42,10 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private var regionRefreshPending = false
     /// Card space, while the pointer is over the widget.
     private var pointer: CGPoint?
+    /// The presenter's view state, which the card shows unless the 20:77 secret goes haywire.
+    private var presented = WidgetViewState.placeholder
+    /// The haywire the card shows now.
+    private var shownHaywire: SceneHaywire?
 
     init(paths: AppPaths) {
         self.paths = paths
@@ -66,7 +70,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         apply(config: config, initial: true)
         panel.widgetDelegate = self
         tooltips.text = { [unowned self] id in
-            CardRegions.text(id, view: app.view, hearts: animation.hearts) { self.engine.skyTooltip(now: Date(), timeZone: self.zone) }
+            CardRegions.text(id, view: self.presented, hearts: animation.hearts) { self.engine.skyTooltip(now: Date(), timeZone: self.zone) }
         }
         layout.onCardSize = { [unowned self] _ in
             // After SwiftUI's layout pass: resizing the window inside its geometry callback would re-enter it.
@@ -162,12 +166,13 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private func recompute(now: Date = Date()) {
         let input = presenterInput(now: now)
         let view = WidgetPresenter.make(input)
-        if view != app.view { app.view = view }
+        presented = view
         statusItem.update(text: view.trayText, color: view.trayColor, mascot: view.trayMascot, tooltip: view.trayTooltip)
         game.update(caption: view.gameCaption, lang: config.lang, palette: view.palette)
         engine.apply(input.data, config: config, skins: skins, now: now, timeZone: zone)
         syncVisibility()
         animation.publish(engine.frame)
+        showView(changed: true)
         syncAnimation()
         scheduleRegionRefresh()
     }
@@ -178,6 +183,15 @@ final class AppController: NSObject, WidgetPanelDelegate {
             config: config, now: now, timeZone: zone, data: data.snapshot, tickError: configStore.isUnreadable,
             appVersion: AppInfo.version, homeDirectory: NSHomeDirectory()
         )
+    }
+
+    /// The presented view state, haywire while the 20:77 secret says so; `changed` for a new one.
+    private func showView(changed: Bool = false) {
+        let haywire = engine.frame.scene?.secret?.haywire
+        guard changed || haywire != shownHaywire else { return }
+        shownHaywire = haywire
+        let view = Haywire.scramble(presented, haywire)
+        if view != app.view { app.view = view }
     }
 
     /// The engine decides what shows: the play area with Clawd and the hearts, and the sky behind the row.
@@ -222,8 +236,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
         let heartsVisibleBefore = animation.hearts.visible
         animation.publish(engine.step(AnimationInputs(
             now: Date(), timeZone: zone, numberWidth: layout.numberWidth, mouseOverWindow: over, mouseX: mouseX,
-            backdropSize: layout.backdropSize(scale: k)
+            backdropSize: layout.backdropSize(scale: k), skyOrigin: layout.skyOrigin(scale: k)
         )))
+        showView()
         if animation.hearts.visible != heartsVisibleBefore { scheduleRegionRefresh() }
         if engine.tickMilliseconds != animationInterval { syncAnimation() }
     }
@@ -317,6 +332,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         widgetVisible = false
         engine.endSecret()
         animation.publish(engine.frame)
+        showView()
         syncAnimation()
     }
 
@@ -470,7 +486,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
             screenFrames: NSScreen.screens.map(\.frame), topLeft: panel.topLeft,
             animating: animationTimer != nil, tickMilliseconds: animationInterval, config: config,
             loginItemStatus: loginItem.status.rawValue, installedApp: loginItem.installed,
-            snapshot: data.snapshot, view: app.view, skins: skins
+            snapshot: data.snapshot, view: presented, skins: skins
         )
         do {
             try dump.render().write(to: IPC.dumpFile(paths), atomically: true, encoding: .utf8)

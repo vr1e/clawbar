@@ -5,6 +5,8 @@ import ClawBarShared
 
 /// A widget card's inner size, the backdrop a scene covers.
 let sceneCard = CGSize(width: 260, height: 220)
+/// Where the card puts the sky row in that backdrop.
+let sceneSkyRow = CGRect(origin: CGPoint(x: 12, y: 33.5), size: PlayArea.skySize)
 
 /// `steps` scene steps, each due.
 func runScene(_ scene: SceneID, _ steps: Int, size: CGSize = sceneCard, sky: Bool = true, seed: UInt64 = 3) -> [SceneFrame] {
@@ -18,6 +20,28 @@ func rects(_ ops: [DrawOp], _ color: RGBA) -> [CGRect] {
         guard case let .rects(r, c, _) = op, c == color else { return [] }
         return r
     }
+}
+
+/// The groups among `ops` with a layer drawn in `color`: how each is placed, and how faded.
+func groups(_ ops: [DrawOp], _ color: RGBA) -> [(transform: Transform2D, opacity: Double)] {
+    ops.compactMap {
+        guard case let .group(children, t, o, _) = $0, !rects(children, color).isEmpty else { return nil }
+        return (t, o)
+    }
+}
+
+/// When a scene's secret starts, stepping from ten seconds before `minute` to a minute and ten past it.
+func secretStarts(_ scene: SceneID, around minute: Date, seed: UInt64, zone: TimeZone = Samples.timeZone, asleep: Bool = false) -> [Date] {
+    var clock = SceneClock(scene, seed: seed, from: minute.addingTimeInterval(-10), zone: zone)
+    var on = false
+    var starts: [Date] = []
+    for _ in 0 ..< 900 {
+        let now = clock.now
+        let playing = clock.step(asleep: asleep).secret != nil
+        if playing, !on { starts.append(now) }
+        on = playing
+    }
+    return starts
 }
 
 /// A scene engine stepped every 90 ms, so every step is due.
@@ -34,8 +58,9 @@ struct SceneClock {
         now = start
     }
 
-    mutating func step(size: CGSize = sceneCard, sky: Bool = true) -> SceneFrame {
+    mutating func step(size: CGSize = sceneCard, sky: Bool = true, asleep: Bool = false, lang: Lang = .en) -> SceneFrame {
         defer { now = now.addingTimeInterval(0.09) }
-        return engine.step(scene, inputs: SceneInputs(now: now, timeZone: zone, size: size, skyVisible: sky)) ?? .empty
+        let inputs = SceneInputs(now: now, timeZone: zone, size: size, skyRow: sky ? sceneSkyRow : nil, lang: lang, clawdAsleep: asleep)
+        return engine.step(scene, inputs: inputs) ?? .empty
     }
 }

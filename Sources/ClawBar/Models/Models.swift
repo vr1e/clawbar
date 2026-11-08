@@ -84,6 +84,12 @@ final class LayoutModel {
         return CGSize(width: cardSize.width / k - inset, height: cardSize.height / k - inset)
     }
 
+    /// The sky row's top-left in the backdrop, in base units: the percent row's, inside the rim.
+    func skyOrigin(scale k: Double) -> CGPoint {
+        guard let row = rects[.percentRow] else { return .zero }
+        return CGPoint(x: row.minX / k - CardView.border, y: row.minY / k - CardView.border)
+    }
+
     func setCardSize(_ size: CGSize) {
         guard size != cardSize else { return }
         cardSize = size

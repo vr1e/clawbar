@@ -11,6 +11,8 @@ public final class AnimationEngine {
     private let sky: SkyEngine
     private let scenes: SceneEngine
     private var config: Config
+    /// Where the 20:77 secret finds the Netrunner.
+    private var skins: SkinCatalog
     /// The theme's scene as of the last data tick or animation tick.
     private var sceneID: SceneID?
     private(set) var skyDev = SkyDevState()
@@ -26,6 +28,7 @@ public final class AnimationEngine {
         sky = SkyEngine(random: random)
         scenes = SceneEngine(random: random)
         self.config = config
+        self.skins = skins
         clawd.wear(skins.skin(for: config.skin))
     }
 
@@ -43,6 +46,7 @@ public final class AnimationEngine {
     /// burrowing; hidden, he forgets the hearts, so showing him again is no loss.
     public func apply(_ data: DataSnapshot, config: Config, skins: SkinCatalog, now: Date, timeZone: TimeZone) {
         self.config = config
+        self.skins = skins
         weather = data.weather
         place = data.place
         // Leaving the scene clears it now: with Clawd hidden no tick may follow to do it.
@@ -87,13 +91,14 @@ public final class AnimationEngine {
         }
         if let id = sceneID {
             // The weather's sky waits, its state kept, until the theme has no scene.
-            let scene = SceneInputs(now: inputs.now, timeZone: inputs.timeZone, size: inputs.backdropSize, skyVisible: skyVisible)
+            let row = skyVisible ? CGRect(origin: inputs.skyOrigin, size: PlayArea.skySize) : nil
+            let scene = SceneInputs(
+                now: inputs.now, timeZone: inputs.timeZone, size: inputs.backdropSize, skyRow: row, lang: config.lang,
+                clawdAsleep: mascotVisible && clawd.asleep
+            )
             if let f = scenes.step(id, inputs: scene) {
                 frame.scene = f
-                // Hidden, Clawd misses the cue; upstream's scene would have stopped with him.
-                if mascotVisible, let cues = f.secret?.cues {
-                    for case let .act(a) in cues { clawd.cue(a) }
-                }
+                for cue in f.secret?.cues ?? [] { perform(cue) }
             }
         } else if skyVisible {
             frame.sky = sky.step(size: PlayArea.skySize, inputs: skyInputs(now: inputs.now, timeZone: inputs.timeZone))
@@ -109,10 +114,24 @@ public final class AnimationEngine {
         if sceneID == nil { frame.scene = nil }
     }
 
-    /// The theme changed or the widget hid: a secret halfway through ends at once, its layer gone and the sky lit.
+    /// A scene's cue. Hidden, Clawd misses the act, as upstream's scene would have stopped with him, but not the
+    /// skin or the mood that must be put back.
+    private func perform(_ cue: SceneCue) {
+        switch cue {
+        case .act(let a): if mascotVisible { clawd.cue(a) }
+        case .wake: clawd.wake()
+        case .letSleep: clawd.letSleep()
+        case .jack(let on): clawd.jack(on ? skins.skin(for: BuiltInSkin.netrunner.rawValue) : nil)
+        }
+    }
+
+    /// The theme changed or the widget hid: a secret halfway through ends at once, its layer gone, the sky lit and
+    /// Clawd himself again.
     public func endSecret() {
         scenes.endSecret()
         frame.scene?.secret = nil
+        perform(.jack(false))
+        perform(.letSleep)
     }
 
     /// Starts a scene's secret at `step` on the next scene step: for snapshot mode and the tests.

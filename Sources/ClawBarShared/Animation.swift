@@ -41,10 +41,12 @@ public struct AnimationInputs: Sendable, Hashable {
     public var mouseX: Double?
     /// The card inside its border, in base units: what a scene's backdrop covers. Zero before the first layout.
     public var backdropSize: CGSize
+    /// The sky row's top-left in the backdrop, in base units. Zero before the first layout.
+    public var skyOrigin: CGPoint
 
     public init(
         now: Date, timeZone: TimeZone, numberWidth: Double, mouseOverWindow: Bool = false, mouseX: Double? = nil,
-        backdropSize: CGSize = .zero
+        backdropSize: CGSize = .zero, skyOrigin: CGPoint = .zero
     ) {
         self.now = now
         self.timeZone = timeZone
@@ -52,6 +54,7 @@ public struct AnimationInputs: Sendable, Hashable {
         self.mouseOverWindow = mouseOverWindow
         self.mouseX = mouseX
         self.backdropSize = backdropSize
+        self.skyOrigin = skyOrigin
     }
 }
 

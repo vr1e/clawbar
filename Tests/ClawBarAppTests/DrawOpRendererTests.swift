@@ -52,6 +52,8 @@ import ClawBarShared
             .stroke([.zero, CGPoint(x: 4, y: 0)], red, width: 0, opacity: 1),
             .strokedEllipse(a, red, width: 0, opacity: 1),
             .strokedEllipse(.zero, red, width: 1, opacity: 1),
+            .polygon([.zero, CGPoint(x: 4, y: 0)], stops: [GradientStop(location: 0, color: red)], opacity: 1),
+            .polygon([.zero, CGPoint(x: 4, y: 0), CGPoint(x: 0, y: 4)], stops: [GradientStop(location: 0, color: red)], opacity: 0),
             .group([.rects([], red, opacity: 1)], .translation(0, 0), opacity: 1, clip: nil),
             .group([.rects([a], red, opacity: 1)], .translation(0, 0), opacity: 0, clip: nil),
             .group([.rects([a], red, opacity: 1)], .translation(0, 0), opacity: 1, clip: .zero),
@@ -129,6 +131,16 @@ import ClawBarShared
         let r = paint([.vGradient(CGRect(x: 0, y: 0, width: 20, height: 10), stops: stops, opacity: 1)], k: 1)
         #expect(r.color(atPoint: 10, 0.5).r > 215)
         #expect(r.color(atPoint: 10, 9.5).r < 40)
+    }
+
+    @Test func aPolygonFillsTopToBottomInsideItsEdges() {
+        // A cone from its tip at the bottom, bright there and clear at its wide top.
+        let stops = [GradientStop(location: 0, color: Palette.white.withAlpha(0)), GradientStop(location: 1, color: Palette.white)]
+        let r = paint([.polygon([CGPoint(x: 10, y: 10), CGPoint(x: 0, y: 0), CGPoint(x: 20, y: 0)], stops: stops, opacity: 1)], k: 2)
+        // In view points at k = 2: (10, 8.5) near the tip, (10, 0.5) at the top, (3, 8.5) beside the cone.
+        #expect(r.color(atPoint: 20, 17).r > 180)
+        #expect(r.color(atPoint: 20, 1).r < 40)
+        #expect(r.color(atPoint: 6, 17).r < 5)
     }
 
     @Test func aSkewSlidesRowsByTheirDistanceFromItsAnchor() {

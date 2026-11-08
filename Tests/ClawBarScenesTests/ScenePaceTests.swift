@@ -12,7 +12,7 @@ import ClawBarShared
         var now = Samples.now
         return ms.map { gap in
             now = now.addingTimeInterval(gap / 1000)
-            return engine.step(.christmas, inputs: SceneInputs(now: now, timeZone: Samples.timeZone, size: CGSize(width: 260, height: 220), skyVisible: true)) != nil
+            return engine.step(.christmas, inputs: SceneInputs(now: now, timeZone: Samples.timeZone, size: sceneCard, skyRow: sceneSkyRow)) != nil
         }
     }
 

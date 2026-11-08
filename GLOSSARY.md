@@ -61,8 +61,12 @@ A scene's rare event at a set local time, such as Halloween's midnight scare, dr
 _Avoid_: easter egg, event
 
 **Cue**:
-What a scene asks of Clawd on one of its steps, such as the scare's jump; the animation engine carries it out behind his own guards, and a hidden Clawd misses it.
+What a scene asks of Clawd on one of its steps, such as the scare's jump or the 20:77 secret's wake and Netrunner skin; the animation engine carries it out behind his own guards, and a hidden Clawd misses an act.
 _Avoid_: command (that is the data engine's word), trigger
+
+**Haywire**:
+The 20:77 secret scrambling the card: its plain texts' digits and characters and its usage bars, every other step from a seed the scene hands out. The presented view state stays as it is underneath and shows again when the haywire stops; the menu bar item is untouched.
+_Avoid_: glitch (the Cyberpunk scene's torn bars), scramble (the function, not the state)
 
 **Skin**:
 Clawd's body and eye colours and the pixel accessories drawn over him, such as a hat or glasses: Classic, a built-in one or the user's own from the skins folder (`skin`). It dresses the widget's Clawd only.

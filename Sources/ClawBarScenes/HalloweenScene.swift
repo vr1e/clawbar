@@ -148,14 +148,9 @@ final class HalloweenScene: ThemeScene {
 
     /// Midnight strikes, one night in three, while the widget shows; then the scare's step.
     func secret(tick: Int, inputs: SceneInputs, random: any RandomSource) -> SceneSecretFrame? {
-        if scare == nil, tick % 10 == 0 {
-            let calendar = Calendar.gregorian(in: inputs.timeZone)
-            let c = calendar.dateComponents([.hour, .minute], from: inputs.now)
-            let today = calendar.startOfDay(for: inputs.now)
-            if c.hour == 0, c.minute == 0, night != today {
-                night = today
-                if random.nextInt(3) == 0 { scare = 0 }
-            }
+        if scare == nil, tick % 10 == 0, let day = secretDay(inputs, hour: 0, minute: 0, last: night) {
+            night = day
+            if random.nextInt(3) == 0 { scare = 0 }
         }
         guard let k = scare else { return nil }
         // Upstream's last step puts the lights back before anything renders.

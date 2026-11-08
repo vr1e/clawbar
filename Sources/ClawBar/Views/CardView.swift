@@ -78,8 +78,12 @@ struct CardView: View {
         }
         .overlay {
             // A scene's secret: above the content, Clawd included, clipped like the backdrop.
-            SceneLayerView(animation: animation) { $0.secret?.overlay }
-                .insideBorder(k)
+            ZStack(alignment: .topLeading) {
+                SceneLayerView(animation: animation) { $0.secret?.overlay }
+                ErrorBoxView(animation: animation)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .insideBorder(k)
         }
         .coordinateSpace(.named(CardSpace.name))
         .onGeometryChange(for: CGSize.self) { $0.size } action: { layout.setCardSize($0) }

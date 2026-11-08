@@ -31,11 +31,12 @@ struct WText: View {
     /// TextTrimming="CharacterEllipsis": one line cut with an ellipsis.
     var truncates = false
     var digits = false
+    var design = Font.Design.default
     @Environment(\.uiScale) private var k
 
     init(
         _ text: String, _ size: Double, weight: Font.Weight = .regular, color: RGBA, wraps: Bool = false,
-        truncates: Bool = false, digits: Bool = false
+        truncates: Bool = false, digits: Bool = false, design: Font.Design = .default
     ) {
         self.text = text
         self.size = size
@@ -44,11 +45,12 @@ struct WText: View {
         self.wraps = wraps
         self.truncates = truncates
         self.digits = digits
+        self.design = design
     }
 
     var body: some View {
         let s = size * k
-        var t = Text(text).font(.system(size: s, weight: weight)).foregroundColor(Color(rgba: color))
+        var t = Text(text).font(.system(size: s, weight: weight, design: design)).foregroundColor(Color(rgba: color))
         if digits { t = t.monospacedDigit() }
         return t
             .lineLimit(wraps ? nil : 1)

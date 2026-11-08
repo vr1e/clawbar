@@ -17,8 +17,7 @@ struct SnapshotCase {
     var skyDev = SkyDevState()
     /// False for a state that only its menu bar tooltip shows, so it gets no PNG.
     var card = true
-    /// False for a theme, which changes colours alone: one card, in English at the default size.
-    var everyLanguageAndSize = true
+    var coverage = Coverage.all
     /// The pointer this far into the 7-day chart, in base units.
     var hoverX: Double?
     /// Animation ticks from `Samples.now` before the picture: enough for a scene's visitor to be in frame.
@@ -27,6 +26,16 @@ struct SnapshotCase {
     var shows: ((SceneFrame) -> Bool)?
     /// A scene's secret, started so the picture shows this step of it.
     var secret: (SceneSecret, step: Int)?
+}
+
+/// Which cards a case gets.
+enum Coverage {
+    /// Every language at every size.
+    case all
+    /// Every language at the default size, for a picture whose text is translated.
+    case languages
+    /// For a theme, which changes colours alone: one card, in English at the default size.
+    case one
 }
 
 /// Every presenter state the data contract can express, all at `Samples.now` in Berlin.
@@ -148,7 +157,7 @@ enum SnapshotCases {
         add("snow") { $0.skyDev = SkyDevState(phase: .day, weatherCode: 73) }
         for theme in Theme.allCases {
             add("theme-\(theme.rawValue)") {
-                $0.everyLanguageAndSize = false
+                $0.coverage = .one
                 $0.config.theme = .fixed(theme)
             }
         }
@@ -157,7 +166,7 @@ enum SnapshotCases {
             { $0.sky.contains { if case let .rects(r, c, _) = $0, c == color { r.allSatisfy { $0.minX >= 0 && $0.maxX <= PlayArea.skySize.width } } else { false } } }
         }
         add("scene-christmas") {
-            $0.everyLanguageAndSize = false
+            $0.coverage = .one
             $0.config.theme = .fixed(.christmas)
             // The sleigh launches 120 scene steps in and is a third of the way across by now.
             $0.ticks = 330
@@ -166,7 +175,7 @@ enum SnapshotCases {
         // Opening the details uncovers more of the starfield.
         for (name, expanded) in [("scene-space", false), ("scene-space-expanded", true)] {
             add(name) {
-                $0.everyLanguageAndSize = false
+                $0.coverage = .one
                 $0.config.theme = .fixed(.space)
                 $0.config.expanded = expanded
                 // The seeded shooting star flies from tick 21 to 35: a faded group led by its rotated tail.
@@ -175,21 +184,21 @@ enum SnapshotCases {
             }
         }
         add("scene-ocean") {
-            $0.everyLanguageAndSize = false
+            $0.coverage = .one
             $0.config.theme = .fixed(.ocean)
             // Both seeded fish are in the sky row from tick 608 to past 750.
             $0.ticks = 680
             $0.shows = { frame in [RGBA("#FFFACC15"), RGBA("#FFFB7185")].allSatisfy { inSkyRow($0)(frame) } }
         }
         add("scene-halloween") {
-            $0.everyLanguageAndSize = false
+            $0.coverage = .one
             $0.config.theme = .fixed(.halloween)
             // The ghost sets off 80 scene steps in and is at its clearest half way across, 125 steps later.
             $0.ticks = 205
             $0.shows = { $0.backdrop.contains { if case let .rects(_, c, o) = $0 { c == RGBA("#FFF5F3FF") && o > 0.4 } else { false } } }
         }
         add("scene-halloween-scare") {
-            $0.everyLanguageAndSize = false
+            $0.coverage = .one
             $0.config.theme = .fixed(.halloween)
             // The face has loomed out of the dark and holds, eyes open: the dark, the flash, and the face's six layers.
             $0.secret = (.scare, step: 35)
@@ -198,12 +207,33 @@ enum SnapshotCases {
                 return face.count == 6 && opacity == 1
             }
         }
+        add("scene-cyberpunk") {
+            $0.coverage = .one
+            $0.config.theme = .fixed(.cyberpunk)
+            // Both seeded cars are between the towers from tick 534, passing each other near tick 600.
+            $0.ticks = 570
+            $0.shows = { frame in
+                let cars = frame.sky.filter { op in
+                    guard case let .group(art, t, _, _) = op, (0 ... PlayArea.skySize.width).contains(t.tx) else { return false }
+                    return art.contains { if case let .rects(_, c, _) = $0 { c == RGBA("#FF3B3656") } else { false } }
+                }
+                return cars.count == 2
+            }
+        }
+        add("scene-cyberpunk-relic") {
+            $0.coverage = .languages
+            $0.config.theme = .fixed(.cyberpunk)
+            // Past the storm: the card tinted and haywire, the quote typed out, and Clawd jacked in and waving.
+            $0.secret = (.relic, step: 60)
+            $0.ticks = 61
+            $0.shows = { $0.secret?.errorBox != nil && $0.secret?.haywire != nil }
+        }
         add("skin-santa") {
-            $0.everyLanguageAndSize = false
+            $0.coverage = .one
             $0.config.skin = BuiltInSkin.santa.rawValue
         }
         add("theme-accent") {
-            $0.everyLanguageAndSize = false
+            $0.coverage = .one
             $0.config.accent = RGBA("#F472B6")
         }
         add("reset-tomorrow") {
@@ -240,7 +270,8 @@ enum SnapshotMode {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         var out: [URL] = []
         for c in SnapshotCases.all() where c.card {
-            let (langs, ks) = c.everyLanguageAndSize ? (Lang.allCases, scales) : ([Lang.en], [Config().scale])
+            let langs = c.coverage == .one ? [.en] : Lang.allCases
+            let ks = c.coverage == .all ? scales : [Config().scale]
             for lang in langs {
                 for k in ks {
                     guard let card = renderCard(c, lang: lang, scale: k), let image = Imaging.onBackdrop(card, pad: 24, color: backdrop) else {
@@ -300,19 +331,27 @@ enum SnapshotMode {
         }
         // A first pass measures the number, which sets the play area Clawd walks in, and the card a scene covers.
         _ = CardRenderer.render(card, scale: k, layout: layout)
-        card.animation = settle(engine, c, numberWidth: layout.numberWidth, backdropSize: layout.backdropSize(scale: k))
+        card.animation = settle(
+            engine, c, numberWidth: layout.numberWidth, backdropSize: layout.backdropSize(scale: k), skyOrigin: layout.skyOrigin(scale: k)
+        )
+        card.view = Haywire.scramble(card.view, card.animation.scene?.secret?.haywire)
         return (card, layout)
     }
 
     /// Clawd and the sky or the scene after the case's ticks from `Samples.now`, its sky overrides set as the
     /// developer menu would.
-    static func settle(_ engine: AnimationEngine, _ c: SnapshotCase, numberWidth: Double, backdropSize: CGSize) -> AnimationFrame {
+    static func settle(
+        _ engine: AnimationEngine, _ c: SnapshotCase, numberWidth: Double, backdropSize: CGSize, skyOrigin: CGPoint
+    ) -> AnimationFrame {
         if let phase = c.skyDev.phase { engine.perform(.skyPhase(phase)) }
         if let code = c.skyDev.weatherCode { engine.perform(.skyWeather(code)) }
         var now = Samples.now
         for i in 0 ..< c.ticks {
-            if let (secret, step) = c.secret, i == c.ticks - 1 { engine.play(secret, at: step) }
-            engine.step(AnimationInputs(now: now, timeZone: Samples.timeZone, numberWidth: numberWidth, backdropSize: backdropSize))
+            // Played from its start, so every cue before the pictured step reaches Clawd.
+            if let (secret, step) = c.secret, i == c.ticks - 1 - step { engine.play(secret) }
+            engine.step(AnimationInputs(
+                now: now, timeZone: Samples.timeZone, numberWidth: numberWidth, backdropSize: backdropSize, skyOrigin: skyOrigin
+            ))
             guard let ms = engine.tickMilliseconds else { break }
             now = now.addingTimeInterval(Double(ms) / 1000)
         }

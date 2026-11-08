@@ -136,6 +136,8 @@ struct Sprites {
                 order.append("stroke")
             case .group:
                 order.append("group")
+            case .polygon:
+                order.append("polygon")
             }
         }
     }

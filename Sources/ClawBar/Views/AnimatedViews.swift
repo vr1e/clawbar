@@ -84,6 +84,42 @@ struct SceneLayerView: View {
     }
 }
 
+/// cyberpunk.ps1's RelicBox: a red-rimmed box, its header over the quote typed three times, the red and cyan copies
+/// jittering off the white one.
+struct ErrorBoxView: View {
+    let animation: AnimationModel
+    @Environment(\.uiScale) private var k
+
+    static let red = RGBA("#FFFF003C")
+    static let background = RGBA("#EE0C0B16")
+    static let redCopy = RGBA("#B3FF003C"), cyanCopy = RGBA("#B300F0FF"), whiteCopy = RGBA("#FFF2FBFF")
+
+    var body: some View {
+        if let box = animation.scene?.secret?.errorBox {
+            VStack(alignment: .leading, spacing: 3 * k) {
+                text(box.header, 9, Self.red)
+                ZStack(alignment: .topLeading) {
+                    text(box.quote, 12, Self.redCopy).offset(x: box.redShift * k)
+                    text(box.quote, 12, Self.cyanCopy).offset(x: box.cyanShift * k)
+                    text(box.quote, 12, Self.whiteCopy)
+                }
+            }
+            // Upstream's padding 8/5/8/7, plus the 1-wide rim drawn over it.
+            .padding(EdgeInsets(top: 6 * k, leading: 9 * k, bottom: 8 * k, trailing: 9 * k))
+            .frame(width: box.width * k, alignment: .leading)
+            .background(Color(rgba: Self.background))
+            .overlay(Rectangle().strokeBorder(Color(rgba: Self.red), lineWidth: k))
+            .offset(x: box.origin.x * k, y: box.origin.y * k)
+            .allowsHitTesting(false)
+        }
+    }
+
+    /// Monospaced bold in upstream's Consolas place, wrapping to the box.
+    private func text(_ s: String, _ size: Double, _ color: RGBA) -> WText {
+        WText(s, size, weight: .bold, color: color, wraps: true, design: .monospaced)
+    }
+}
+
 /// An engine's ops in base units, scaled by k.
 private struct OpsCanvas: View {
     let ops: [DrawOp]

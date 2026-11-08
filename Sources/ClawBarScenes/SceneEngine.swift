@@ -32,7 +32,7 @@ public final class SceneEngine {
         let backdrop = scene.backdrop(tick: tick, inputs: inputs, random: random)
         let secret = scene.secret(tick: tick, inputs: inputs, random: random)
         // Hidden, the sky layer waits where it was, as upstream's returns early.
-        let sky = inputs.skyVisible ? scene.sky(tick: tick, inputs: inputs, random: random) : []
+        let sky = inputs.skyRow != nil ? scene.sky(tick: tick, inputs: inputs, random: random) : []
         return SceneFrame(backdrop: backdrop, sky: sky, secret: secret)
     }
 
@@ -75,6 +75,7 @@ public final class SceneEngine {
         case .space: SpaceScene(random: random)
         case .ocean: OceanScene(random: random)
         case .halloween: HalloweenScene(random: random)
+        case .cyberpunk: CyberpunkScene(random: random)
         }
     }
 }
@@ -142,6 +143,15 @@ func fade(_ c: RGBA, _ a: Double, in rect: CGRect, opacity: Double = 1) -> DrawO
 extension RandomSource {
     /// A sway's or twinkle's starting point: upstream's `NextDouble() * 6.28`, just short of a full turn.
     func phase() -> Double { nextDouble() * 6.28 }
+}
+
+/// A secret's minute: the local day when `inputs.now` is `hour:minute` in the input's zone and that day isn't `last`,
+/// so each day gets one chance.
+func secretDay(_ inputs: SceneInputs, hour: Int, minute: Int, last: Date?) -> Date? {
+    let calendar = Calendar.gregorian(in: inputs.timeZone)
+    let c = calendar.dateComponents([.hour, .minute], from: inputs.now)
+    let today = calendar.startOfDay(for: inputs.now)
+    return c.hour == hour && c.minute == minute && last != today ? today : nil
 }
 
 /// Set-At after upstream's `[math]::Round` of both coordinates.
