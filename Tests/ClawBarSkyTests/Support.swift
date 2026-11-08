@@ -105,7 +105,7 @@ struct Sprites {
             case .radialGlow(let rect, _, _, let opacity):
                 glow = (rect, opacity)
                 order.append("glow")
-            case .hGradient(let rect, _, let opacity):
+            case .hGradient(let rect, _, let opacity), .vGradient(let rect, _, let opacity):
                 fog.append((rect, opacity))
                 order.append("fog")
             case .rects(let rects, let color, let opacity):

@@ -54,7 +54,7 @@ final class ChristmasScene: ThemeScene {
                 f.y = f.y < -50 ? random.nextDouble() * h : -4
                 f.speed = 0.25 + 0.5 * random.nextDouble()
                 f.sway = 1 + 3 * random.nextDouble()
-                f.phase = random.nextDouble() * 6.28
+                f.phase = random.phase()
             }
             f.y += f.speed
             let at = CGPoint(x: f.x + f.sway * sin(time / 15 + f.phase), y: f.y)
@@ -126,7 +126,7 @@ final class ChristmasScene: ThemeScene {
             } else {
                 sleigh = next
                 let legs = Self.sleighFrames[Int(t / 3) % 2]
-                ops += legs.ops(at: CGPoint(x: next.rounded(.toNearestOrEven), y: (4 + 2 * sin(t / 10)).rounded(.toNearestOrEven)))
+                ops += legs.ops(at: pixelPoint(next, 4 + 2 * sin(t / 10)))
             }
         } else {
             sleighWait -= 1

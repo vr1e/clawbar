@@ -38,6 +38,8 @@ public enum DrawOp: Sendable, Hashable {
     case radialGlow(CGRect, inner: RGBA, outer: RGBA, opacity: Double)
     /// A rect filled with a left-to-right gradient.
     case hGradient(CGRect, stops: [GradientStop], opacity: Double)
+    /// A rect filled with a top-to-bottom gradient.
+    case vGradient(CGRect, stops: [GradientStop], opacity: Double)
     /// A polyline stroked in one colour, then faded by `opacity`.
     case stroke([CGPoint], RGBA, width: Double, opacity: Double)
     /// An ellipse's outline, stroked inside the rect as WPF's Ellipse, then faded by `opacity`.
@@ -63,5 +65,28 @@ public struct Transform2D: Sendable, Hashable {
     /// A turn by `radians` about the origin; y points down, so a positive turn is clockwise on screen.
     public static func rotation(_ radians: Double) -> Transform2D {
         Transform2D(a: cos(radians), b: sin(radians), c: -sin(radians), d: cos(radians), tx: 0, ty: 0)
+    }
+
+    /// WPF's SkewTransform with AngleX `degrees`: each row slides sideways by its height below the origin.
+    public static func skewX(degrees: Double) -> Transform2D {
+        Transform2D(a: 1, b: 0, c: tan(degrees * .pi / 180), d: 1, tx: 0, ty: 0)
+    }
+
+    public static func scale(_ sx: Double, _ sy: Double) -> Transform2D {
+        Transform2D(a: sx, b: 0, c: 0, d: sy, tx: 0, ty: 0)
+    }
+
+    /// This transform, then `next`; a WPF render transform then the element's place is `.concatenating(.translation(…))`.
+    public func concatenating(_ next: Transform2D) -> Transform2D {
+        Transform2D(
+            a: next.a * a + next.c * b, b: next.b * a + next.d * b,
+            c: next.a * c + next.c * d, d: next.b * c + next.d * d,
+            tx: next.a * tx + next.c * ty + next.tx, ty: next.b * tx + next.d * ty + next.ty
+        )
+    }
+
+    /// This transform about `p` rather than the origin, as WPF's CenterX and CenterY: `p` stays where it is.
+    public func about(_ p: CGPoint) -> Transform2D {
+        Transform2D.translation(-p.x, -p.y).concatenating(self).concatenating(.translation(p.x, p.y))
     }
 }

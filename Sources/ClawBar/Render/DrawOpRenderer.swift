@@ -59,7 +59,7 @@ enum DrawOpRenderer {
             return s.isEmpty || size <= 0 || color.a == 0 || opacity <= 0 ? nil : op
         case let .radialGlow(rect, inner, outer, opacity):
             return rect.isEmpty || opacity <= 0 || (inner.a == 0 && outer.a == 0) ? nil : op
-        case let .hGradient(rect, stops, opacity):
+        case let .hGradient(rect, stops, opacity), let .vGradient(rect, stops, opacity):
             return rect.isEmpty || opacity <= 0 || !stops.contains(where: { $0.color.a > 0 }) ? nil : op
         case let .stroke(points, color, width, opacity):
             return points.count < 2 || width <= 0 || color.a == 0 || opacity <= 0 ? nil : op
@@ -100,13 +100,9 @@ enum DrawOpRenderer {
                     )
                 )
             case let .hGradient(rect, stops, opacity):
-                var g = ctx
-                g.opacity *= opacity
-                let gradient = Gradient(stops: stops.map { .init(color: Color(rgba: $0.color), location: $0.location) })
-                g.fill(
-                    Path(rect),
-                    with: .linearGradient(gradient, startPoint: CGPoint(x: rect.minX, y: rect.midY), endPoint: CGPoint(x: rect.maxX, y: rect.midY))
-                )
+                fill(rect, stops: stops, from: CGPoint(x: rect.minX, y: rect.midY), to: CGPoint(x: rect.maxX, y: rect.midY), opacity: opacity, in: ctx)
+            case let .vGradient(rect, stops, opacity):
+                fill(rect, stops: stops, from: CGPoint(x: rect.midX, y: rect.minY), to: CGPoint(x: rect.midX, y: rect.maxY), opacity: opacity, in: ctx)
             case let .stroke(points, color, width, opacity):
                 var path = Path()
                 path.addLines(points)
@@ -128,6 +124,13 @@ enum DrawOpRenderer {
                 }
             }
         }
+    }
+
+    private static func fill(_ rect: CGRect, stops: [GradientStop], from start: CGPoint, to end: CGPoint, opacity: Double, in ctx: GraphicsContext) {
+        var g = ctx
+        g.opacity *= opacity
+        let gradient = Gradient(stops: stops.map { .init(color: Color(rgba: $0.color), location: $0.location) })
+        g.fill(Path(rect), with: .linearGradient(gradient, startPoint: start, endPoint: end))
     }
 
     /// Places SF so its baseline sits where Segoe UI's would in the same WPF line box.
