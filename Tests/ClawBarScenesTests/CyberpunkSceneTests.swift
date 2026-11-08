@@ -173,4 +173,122 @@ import ClawBarShared
     @Test func nothingDrawsBeforeTheCardHasASize() {
         #expect(run(3, size: .zero).allSatisfy { $0 == .empty })
     }
+
+    // MARK: The 20:77 secret
+
+    private func evening(hour: Int = 21, minute: Int = 17) throws -> Date {
+        try #require(Calendar.gregorian(in: Samples.timeZone).date(from: DateComponents(year: 2026, month: 11, day: 2, hour: hour, minute: minute)))
+    }
+
+    private func relicStarts(at minute: Date, asleep: Bool = true, zone: TimeZone = Samples.timeZone) -> [Date] {
+        secretStarts(.cyberpunk, around: minute, seed: 3, zone: zone, asleep: asleep)
+    }
+
+    /// The secret from its first step, `steps` long; a step that draws nothing is nil.
+    private func relic(_ steps: Int = 112, from step: Int = 0, size: CGSize = sceneCard, sky: Bool = true, lang: Lang = .en) -> [SceneFrame] {
+        var clock = SceneClock(.cyberpunk, seed: 3)
+        _ = clock.step()
+        clock.engine.play(.relic, at: step)
+        return (0 ..< steps).map { _ in clock.step(size: size, sky: sky, lang: lang) }
+    }
+
+    @Test func twentySeventySevenStrikesOnceAnEveningWhileClawdSleeps() throws {
+        let starts = relicStarts(at: try evening())
+        #expect(starts.count == 1)
+        #expect(starts.allSatisfy { Calendar.gregorian(in: Samples.timeZone).dateComponents([.hour, .minute], from: $0) == DateComponents(hour: 21, minute: 17) })
+        #expect(relicStarts(at: try evening(), asleep: false).isEmpty)
+        #expect(relicStarts(at: try evening(hour: 20)).isEmpty)
+        // 21:17 in Berlin is 20:17 in UTC.
+        #expect(relicStarts(at: try evening(), zone: .gmt).isEmpty)
+    }
+
+    @Test func theNextEveningStrikesAgain() throws {
+        var clock = SceneClock(.cyberpunk, seed: 3, from: try evening().addingTimeInterval(-10))
+        var starts = 0
+        for night in 0 ..< 3 {
+            clock.now = try evening().addingTimeInterval(Double(night) * 86_400 - 10)
+            var on = false
+            for _ in 0 ..< 900 {
+                let playing = clock.step(asleep: true).secret != nil
+                if playing, !on { starts += 1 }
+                on = playing
+            }
+        }
+        #expect(starts == 3)
+    }
+
+    @Test func theCardFlushesRedWithBarsTornThickestInTheStorms() {
+        let s = relic().map(\.secret)
+        let tint = RGBA("#FFFF003C")
+        func tintOpacity(_ f: SceneSecretFrame?) -> Double? {
+            if case let .rects(r, c, o)? = f?.overlay.first, c == tint, r == [CGRect(origin: .zero, size: sceneCard)] { o } else { nil }
+        }
+        #expect(tintOpacity(s[0]) == 0 && tintOpacity(s[1]) == 0.12)
+        #expect(s[15 ..< 98].allSatisfy { (0.03 ... 0.11).contains(tintOpacity($0) ?? -1) })
+        // Every bar in the storms, one in five between them.
+        #expect(s[0 ..< 15].allSatisfy { $0?.overlay.count == 7 } && s[98 ..< 109].allSatisfy { $0?.overlay.count == 7 })
+        let calm = s[15 ..< 98].map { ($0?.overlay.count ?? 0) - 1 }.reduce(0, +)
+        #expect((60 ... 140).contains(calm))
+    }
+
+    @Test func theStormShakesTheSkylineAndTheSearchlightsWithIt() {
+        let frames = relic()
+        #expect(frames[0 ..< 15].allSatisfy { abs(shift($0)) == 3 } && frames[98 ..< 109].allSatisfy { abs(shift($0)) == 3 })
+        #expect(frames[15 ..< 98].allSatisfy { shift($0) == 0 })
+        // The same step moves both, as upstream's relic steps before the searchlights.
+        let x = sceneSkyRow.minX + 96 * 1.6 + 0.8
+        #expect(frames[0 ..< 15].allSatisfy { f in beams(f).allSatisfy { abs($0.tip.x - x - shift(f)) < 1e-9 } })
+        #expect(shift(frames[109]) == 0)
+    }
+
+    @Test func theCardGoesHaywireEveryOtherStepAndCalmsBeforeTheEnd() {
+        let s = relic().map { $0.secret?.haywire }
+        #expect(s[0]?.strength == 0.6 && s[1] == s[0] && s[2] != s[1])
+        #expect(s[20]?.strength == 0.2 && s[21] == s[20])
+        #expect(s[100]?.strength == 0.6)
+        #expect(s[105] != nil && s[106 ..< 112].allSatisfy { $0 == nil })
+    }
+
+    @Test func theErrorBoxTypesTheQuoteUnderTheSkyRow() throws {
+        let s = relic().map { $0.secret?.errorBox }
+        // Hidden in the storms and on every 17th step.
+        let shown = s.indices.filter { s[$0] != nil }
+        #expect(shown == Array(15 ..< 98).filter { $0 % 17 != 0 })
+        let box = try #require(s[30])
+        #expect(box.origin == CGPoint(x: 16, y: (sceneSkyRow.maxY + 8).rounded(.toNearestOrEven)) && box.width == 260 - 32)
+        #expect(box.header == "RELIC: MALFUNCTION")
+        // 1.4 characters a step from step 18, the cursor blinking while it types.
+        #expect(s[20]?.quote == "Wak_" && s[22]?.quote == "Wake u")
+        #expect(s[30]?.quote == "Wake up, Samurai." && s[60]?.quote == "Wake up, Samurai. We have a city to vibecode.")
+        #expect(s.compactMap { $0?.redShift }.allSatisfy { [-1.5, -3, -4.5, -6].contains($0) })
+        #expect(s.compactMap { $0?.cyanShift }.allSatisfy { [1.5, 3, 4.5, 6].contains($0) })
+        #expect(s.compactMap { $0?.redShift }.contains { $0 != -1.5 })
+    }
+
+    @Test func theErrorBoxSitsHigherWithoutTheSkyRowAndSpeaksTheLanguage() {
+        let box = relic(1, from: 30, sky: false, lang: .de)[0].secret?.errorBox
+        #expect(box?.origin == CGPoint(x: 16, y: 88) && box?.header == "RELIKT: FEHLFUNKTION")
+        #expect(relic(1, from: 30, size: CGSize(width: 100, height: 220))[0].secret?.errorBox?.width == 80)
+    }
+
+    @Test func clawdWakesFlickersIntoTheNetrunnerWavesAndGoesBackToSleep() {
+        let s = relic().map { $0.secret }
+        #expect(s[12]?.cues == [.jack(false), .wake])
+        #expect(s[55]?.cues == [.jack(true), .act(.wave)])
+        // On for three steps, off for three, from step 20; steady from 48 to the last 15.
+        let jacked = s.indices.filter { s[$0]?.cues.contains(.jack(true)) == true }
+        #expect(jacked == [20, 24, 25, 26, 30, 31, 32, 36, 37, 38, 42, 43, 44] + Array(48 ..< 95))
+        // The last step draws nothing and puts him back to sleep.
+        #expect(s[109] == SceneSecretFrame(overlay: [], cues: [.letSleep]))
+        #expect(s[110 ..< 112].allSatisfy { $0 == nil })
+    }
+
+    @Test func endingTheSecretStopsItAtOnce() {
+        var clock = SceneClock(.cyberpunk, seed: 3)
+        _ = clock.step()
+        clock.engine.play(.relic)
+        #expect(clock.step().secret != nil)
+        clock.engine.endSecret()
+        #expect((0 ..< 120).allSatisfy { _ in clock.step().secret == nil })
+    }
 }

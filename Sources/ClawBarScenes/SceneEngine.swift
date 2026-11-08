@@ -145,6 +145,15 @@ extension RandomSource {
     func phase() -> Double { nextDouble() * 6.28 }
 }
 
+/// A secret's minute: the local day when `inputs.now` is `hour:minute` in the input's zone and that day isn't `last`,
+/// so each day gets one chance.
+func secretDay(_ inputs: SceneInputs, hour: Int, minute: Int, last: Date?) -> Date? {
+    let calendar = Calendar.gregorian(in: inputs.timeZone)
+    let c = calendar.dateComponents([.hour, .minute], from: inputs.now)
+    let today = calendar.startOfDay(for: inputs.now)
+    return c.hour == hour && c.minute == minute && last != today ? today : nil
+}
+
 /// Set-At after upstream's `[math]::Round` of both coordinates.
 func pixelPoint(_ x: Double, _ y: Double) -> CGPoint {
     CGPoint(x: x.rounded(.toNearestOrEven), y: y.rounded(.toNearestOrEven))

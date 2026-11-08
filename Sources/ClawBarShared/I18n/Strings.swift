@@ -345,6 +345,8 @@ extension L10nKey {
         case .skyMoonName5: .text(en: "waning gibbous", de: "abnehmender Mond")
         case .skyMoonName6: .text(en: "last quarter", de: "letztes Viertel")
         case .skyMoonName7: .text(en: "waning crescent", de: "abnehmende Sichel")
+        case .cyberRelic: .text(en: "RELIC: MALFUNCTION", de: "RELIKT: FEHLFUNKTION")
+        case .cyberSamurai: .text(en: "Wake up, Samurai. We have a city to vibecode.", de: "Wach auf, Samurai. Wir haben eine Stadt zu vibecoden.")
         }
     }
 }

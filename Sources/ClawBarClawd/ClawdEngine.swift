@@ -33,6 +33,8 @@ public final class ClawdEngine {
     private var act: ClawdAct?
     private var actT = 0
     private var force: Mood?
+    /// A scene's `wake` forced idle, which `letSleep` drops again.
+    private var woke = false
     private var forceCrit = false
     private var demo = -1
     private var demoT = 0
@@ -51,6 +53,9 @@ public final class ClawdEngine {
     private var lastPct: Int?
     private var buried = false
     private var confetti = [ConfettiPiece](repeating: ConfettiPiece(), count: 12)
+    /// The configured skin, and a scene's stand-in for it.
+    private var own = Skin.classic
+    private var jackedSkin: Skin?
 
     /// Picks the random entrance act.
     public init(random: any RandomSource, now: Date) {
@@ -100,8 +105,35 @@ public final class ClawdEngine {
         }
     }
 
-    /// Clawd's colours and accessories from the next tick on.
-    public func wear(_ skin: Skin) { sprite.skin = skin }
+    /// The data mood is sleep: no session runs.
+    public var asleep: Bool { mood == .sleep }
+
+    /// Clawd's colours and accessories from the next tick on; a scene's jack wins while it lasts.
+    public func wear(_ skin: Skin) {
+        own = skin
+        dress()
+    }
+
+    /// Show-Skin: `skin` on him without saving it, or his own back for nil.
+    public func jack(_ skin: Skin?) {
+        jackedSkin = skin
+        dress()
+    }
+
+    private func dress() { sprite.skin = jackedSkin ?? own }
+
+    /// A scene's noise wakes him, unless the mood is already forced.
+    public func wake() {
+        guard mood == .sleep, force == nil else { return }
+        force = .idle
+        woke = true
+    }
+
+    /// Back to sleep, unless the mood was set by hand since `wake`.
+    public func letSleep() {
+        if woke, force == .idle { force = nil }
+        woke = false
+    }
 
     /// A left click on the sprite.
     public func click(now: Date) {

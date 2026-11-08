@@ -105,18 +105,8 @@ import ClawBarShared
 
     // MARK: The midnight scare
 
-    /// Ten seconds before `midnight` to a minute and ten past: each step's time and whether a scare starts on it.
     private func scareStarts(around midnight: Date, seed: UInt64, zone: TimeZone = Samples.timeZone) -> [Date] {
-        var clock = SceneClock(.halloween, seed: seed, from: midnight.addingTimeInterval(-10), zone: zone)
-        var scared = false
-        var starts: [Date] = []
-        for _ in 0 ..< 900 {
-            let now = clock.now
-            let on = clock.step().secret != nil
-            if on, !scared { starts.append(now) }
-            scared = on
-        }
-        return starts
+        secretStarts(.halloween, around: midnight, seed: seed, zone: zone)
     }
 
     private func midnight() throws -> Date {

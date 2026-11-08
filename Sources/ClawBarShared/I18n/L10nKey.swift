@@ -306,4 +306,8 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case skyMoonName5 = "sky.moonNames.5"
     case skyMoonName6 = "sky.moonNames.6"
     case skyMoonName7 = "sky.moonNames.7"
+
+    // Cyberpunk's 20:77 secret: the error box's header and its quote
+    case cyberRelic = "cyber.relic"
+    case cyberSamurai = "cyber.samurai"
 }

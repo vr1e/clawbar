@@ -206,7 +206,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French; Brazilian Portuguese; Spanish. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
 | 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval; the top projects keep folders of the same name apart and weigh each reply at its model's list price; the hover's busiest project is the local hour's, not the UTC hour's. |
-| Themes and skins | ✅ Ported differently | Classic by default, picked from a menu in Settings › Look, as are the skins; Space's model weeks are pink; your own skin under a built-in's name keeps its own name; the pattern is on the widget alone; the scenes keep moving with Clawd hidden, at one pace; Space's ship flies in from the left edge; Halloween's scare plays with Clawd hidden, without his jump; Cyberpunk's rain falls. Not yet: Cyberpunk's 20:77 secret. |
+| Themes and skins | ✅ Ported differently | Classic by default, picked from a menu in Settings › Look, as are the skins; Space's model weeks are pink; your own skin under a built-in's name keeps its own name; the pattern is on the widget alone; the scenes keep moving with Clawd hidden, at one pace; Space's ship flies in from the left edge; Halloween's scare plays with Clawd hidden, without his jump; Cyberpunk's 20:77 secret doesn't play with Clawd hidden; Cyberpunk's rain falls. |
 | Settings window | ✅ Ported differently | A native window with Look and Widget tabs, opened from the menu; Look has the language, the theme and Clawd's skin. Not ported: A tab for Claude Code's own settings. |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
 | PC tips | ➖ Not ported | They look over a Windows PC. |
@@ -230,8 +230,10 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 - The Christmas, Space, Underwater, Halloween and Cyberpunk scenes keep moving with Clawd hidden, and at their own
   pace while he plays a Claude Code animation, where the original's scenes freeze when he hides and play one and a
   half times as fast while he does. Space's ship flies in from the left edge, where the original's appears a quarter
-  of the way across. With Clawd hidden, Halloween's midnight scare still plays, without his jump. Cyberpunk's neon
-  rain falls, where the original's drops never start.
+  of the way across. With Clawd hidden, Halloween's midnight scare still plays, without his jump, and Cyberpunk's
+  20:77 secret doesn't play, since it needs him asleep. That secret leaves the card's fixed glyphs (`%`, `–`, `✕`) and
+  the chart's hover readout alone, and ending it early puts the skyline straight at once, where the original's stays
+  shifted until the next glitch. Cyberpunk's neon rain falls, where the original's drops never start.
 - A skin dresses the widget's Clawd; the menu bar's and Clawd Run's keep his own colours. Your own skin under a
   built-in skin's name shows its own `name:` in Settings, where the original keeps the built-in's translated one.
 - When the widget grows (details, size, more sessions) or Settings switches to a taller tab, the window moves up or

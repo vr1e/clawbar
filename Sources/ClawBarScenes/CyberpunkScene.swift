@@ -4,11 +4,12 @@ import ClawBarShared
 
 /// cyberpunk.ps1, a night in a neon megacity: neon rain over the card, the city's glow along the bottom and now and
 /// then a glitch tearing across; in the sky row a skyline with flickering windows, a tower with a blinking beacon and
-/// searchlights, stuttering neon signs and flying cars between the towers.
+/// searchlights, stuttering neon signs and flying cars between the towers. At 20:77, with Clawd asleep, the relic.
 final class CyberpunkScene: ThemeScene {
     static let px = 1.6
     static let rows = 26, cols = 170
     static let towerX = 92
+    static let relicLength = 110
 
     private struct Glow {
         let color: RGBA
@@ -82,6 +83,14 @@ final class CyberpunkScene: ThemeScene {
     private var cars = CyberpunkScene.cars
     private let near: Skyline
     private var signs: [Sign]
+    /// The 20:77 secret's step, or nil while none plays.
+    private var relic: Int?
+    /// The start of the last local day whose 21:17 started the secret, so each evening gets one.
+    private var relicNight: Date?
+    /// The secret's share of this step, made in the backdrop step so the searchlights follow the storm's shift.
+    private var relicFrame: SceneSecretFrame?
+    /// The haywire held between its steps.
+    private var haywire: SceneHaywire?
 
     init(random: any RandomSource) {
         glows = [("#FF2A6D", 0.13), ("#05D9E8", 0.10), ("#B026FF", 0.10)].map { Glow(color: RGBA($0), alpha: $1, phase: random.phase()) }
@@ -170,6 +179,7 @@ final class CyberpunkScene: ThemeScene {
                 skylineShift = 0
             }
         }
+        relicFrame = stepRelic(tick: tick, inputs: inputs, random: random)
 
         // The searchlights sweep up from the tower's top, over the card since the tower reaches the row's top edge.
         if let row = inputs.skyRow {
@@ -180,6 +190,18 @@ final class CyberpunkScene: ThemeScene {
             }
         }
         return ops
+    }
+
+    func secret(tick: Int, inputs: SceneInputs, random: any RandomSource) -> SceneSecretFrame? { relicFrame }
+
+    func play(_ secret: SceneSecret, at step: Int) { relic = step }
+
+    /// The engine undoes the jack and the wake; the skyline comes back unless a glitch holds it.
+    func endSecret() {
+        relic = nil
+        relicFrame = nil
+        haywire = nil
+        if glitch == nil { skylineShift = 0 }
     }
 
     func sky(tick: Int, inputs: SceneInputs, random: any RandomSource) -> [DrawOp] {
@@ -227,6 +249,64 @@ final class CyberpunkScene: ThemeScene {
     private func shifted(_ ops: [DrawOp]) -> [DrawOp] {
         skylineShift == 0 ? ops : [.group(ops, .translation(skylineShift, 0), opacity: 1, clip: nil)]
     }
+
+    // MARK: The relic
+
+    /// 20:77 (21:17, that is) strikes while Clawd sleeps, once an evening; then Step-Relic.
+    private func stepRelic(tick: Int, inputs: SceneInputs, random: any RandomSource) -> SceneSecretFrame? {
+        if relic == nil, tick % 10 == 0, inputs.clawdAsleep, let day = secretDay(inputs, hour: 21, minute: 17, last: relicNight) {
+            relicNight = day
+            relic = 0
+        }
+        guard let k = relic else { return nil }
+        let n = Self.relicLength, w = inputs.size.width, h = inputs.size.height
+        // Upstream's last step puts everything back before anything renders, so only its cue is left.
+        guard k + 1 < n else {
+            endSecret()
+            skylineShift = 0
+            return SceneSecretFrame(overlay: [], cues: [.letSleep])
+        }
+        relic = k + 1
+
+        let storm = k < 15 || k >= n - 12
+        let tint = storm ? Double(k % 2) * 0.12 : 0.07 + 0.04 * sin(Double(k) / 2)
+        var overlay: [DrawOp] = [.rects([CGRect(origin: .zero, size: inputs.size)], Self.relicTint, opacity: tint)]
+        for color in Self.relicBarColors {
+            if !storm, random.nextInt(5) > 0 { continue }
+            let bw = w * (0.15 + 0.8 * random.nextDouble()), bh = Double(1 + random.nextInt(5))
+            overlay.append(.rects([CGRect(x: random.nextDouble() * (w - bw), y: random.nextDouble() * h, width: bw, height: bh)], color, opacity: 1))
+        }
+        if storm { skylineShift = random.nextInt(2) == 0 ? -3 : 3 } else if glitch == nil { skylineShift = 0 }
+        // Every other step, stronger in the storms; calm for the last few steps.
+        if k >= n - 4 {
+            haywire = nil
+        } else if k % 2 == 0 {
+            haywire = SceneHaywire(strength: storm ? 0.6 : 0.2, seed: UInt64(random.nextInt(Int.max)))
+        }
+
+        // The quote types itself under the sky row, its red and cyan copies jittering; the box blinks out now and then.
+        let quote = Array(L10n.t(.cyberSamurai, inputs.lang))
+        let typed = max(0, min(quote.count, Int((Double(k - 18) * 1.4).rounded(.toNearestOrEven))))
+        func jitter(_ dx: Double) -> Double { random.nextInt(4) == 0 ? dx * Double(2 + random.nextInt(3)) : dx }
+        let red = jitter(-1.5), cyan = jitter(1.5)
+        var box: SceneErrorBox?
+        if !storm, k % 17 != 0 {
+            let y = inputs.skyRow.map { $0.maxY + 8 } ?? h * 0.4
+            box = SceneErrorBox(
+                origin: pixelPoint(16, y), width: max(80, w - 32), header: L10n.t(.cyberRelic, inputs.lang),
+                quote: String(quote[..<typed]) + (typed < quote.count && k % 4 < 2 ? "_" : ""), redShift: red, cyanShift: cyan
+            )
+        }
+
+        // Woken by the noise, Clawd climbs out; the Netrunner flickers through, then stays a while and waves.
+        var cues: [SceneCue] = [.jack(k >= 20 && k < n - 15 && (k >= 48 || (k / 3) % 2 == 0))]
+        if k == 12 { cues.append(.wake) }
+        if k == 55 { cues.append(.act(.wave)) }
+        return SceneSecretFrame(overlay: overlay, cues: cues, errorBox: box, haywire: haywire)
+    }
+
+    static let relicTint = RGBA("#FFFF003C")
+    static let relicBarColors = ["#99FF003C", "#8800F0FF", "#77FF003C", "#6600F0FF", "#66F2FBFF", "#55FCEE0A"].map(RGBA.init)
 
     // MARK: The skyline
 

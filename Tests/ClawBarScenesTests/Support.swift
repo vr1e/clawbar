@@ -30,6 +30,20 @@ func groups(_ ops: [DrawOp], _ color: RGBA) -> [(transform: Transform2D, opacity
     }
 }
 
+/// When a scene's secret starts, stepping from ten seconds before `minute` to a minute and ten past it.
+func secretStarts(_ scene: SceneID, around minute: Date, seed: UInt64, zone: TimeZone = Samples.timeZone, asleep: Bool = false) -> [Date] {
+    var clock = SceneClock(scene, seed: seed, from: minute.addingTimeInterval(-10), zone: zone)
+    var on = false
+    var starts: [Date] = []
+    for _ in 0 ..< 900 {
+        let now = clock.now
+        let playing = clock.step(asleep: asleep).secret != nil
+        if playing, !on { starts.append(now) }
+        on = playing
+    }
+    return starts
+}
+
 /// A scene engine stepped every 90 ms, so every step is due.
 struct SceneClock {
     let engine: SceneEngine
@@ -44,8 +58,9 @@ struct SceneClock {
         now = start
     }
 
-    mutating func step(size: CGSize = sceneCard, sky: Bool = true) -> SceneFrame {
+    mutating func step(size: CGSize = sceneCard, sky: Bool = true, asleep: Bool = false, lang: Lang = .en) -> SceneFrame {
         defer { now = now.addingTimeInterval(0.09) }
-        return engine.step(scene, inputs: SceneInputs(now: now, timeZone: zone, size: size, skyRow: sky ? sceneSkyRow : nil)) ?? .empty
+        let inputs = SceneInputs(now: now, timeZone: zone, size: size, skyRow: sky ? sceneSkyRow : nil, lang: lang, clawdAsleep: asleep)
+        return engine.step(scene, inputs: inputs) ?? .empty
     }
 }

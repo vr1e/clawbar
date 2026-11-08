@@ -148,4 +148,53 @@ import ClawBarShared
     @Test func hidingTheWidgetPutsTheLightsBack() {
         expectLightsBack { $0.endSecret() }
     }
+
+    // MARK: Cyberpunk's 20:77 secret
+
+    static let cyberpunk = Config(theme: .fixed(.cyberpunk))
+    static let gear = SkinCatalog.builtIn.skin(for: BuiltInSkin.netrunner.rawValue).layers.first?.color
+
+    private func evening() throws -> Date {
+        try #require(Calendar.gregorian(in: Samples.timeZone).date(from: DateComponents(year: 2026, month: 11, day: 2, hour: 21, minute: 17)))
+    }
+
+    private func jacked(_ f: AnimationFrame) -> Bool {
+        f.clawd.ops.contains { if case let .rects(_, c, _) = $0 { c == Self.gear } else { false } }
+    }
+
+    /// An engine on the Cyberpunk theme with Clawd asleep, as no session runs.
+    private func asleepEngine(_ config: Config = cyberpunk) -> AnimationEngine {
+        let e = settled()
+        e.apply(data(sessions: 0), config: config, skins: .builtIn, now: t0, timeZone: Samples.timeZone)
+        return e
+    }
+
+    @Test func at2077ClawdWakesJacksInWavesAndSleepsAgain() throws {
+        let e = asleepEngine()
+        let frames = ticks(e, 400, from: try evening().addingTimeInterval(-5))
+        let start = try #require(frames.firstIndex { $0.scene?.secret != nil })
+        // The wake forces idle, which the developer caption names.
+        #expect(frames[start + 11].clawd.devCaption.isEmpty)
+        #expect(!frames[start + 13].clawd.devCaption.isEmpty)
+        #expect(frames[start + 61 ..< start + 94].allSatisfy(jacked))
+        #expect(frames[start + 56 ..< start + 70].contains { $0.clawd.devCaption.hasSuffix("wave") })
+        // Himself and asleep again once it is over.
+        #expect(frames[start + 111 ..< 400].allSatisfy { !jacked($0) && $0.clawd.devCaption.isEmpty && $0.scene?.secret == nil })
+    }
+
+    @Test func withClawdHiddenTwentySeventySevenNeverStrikes() throws {
+        let e = asleepEngine(Config(theme: .fixed(.cyberpunk), showMascot: false))
+        #expect(ticks(e, 400, from: try evening().addingTimeInterval(-5)).allSatisfy { $0.scene?.secret == nil })
+    }
+
+    @Test func endingTheSecretPutsClawdBack() {
+        let e = asleepEngine()
+        ticks(e, 2)
+        e.play(.relic)
+        let frames = ticks(e, 60, from: t0.addingTimeInterval(1))
+        #expect(jacked(frames[59]) && !frames[59].clawd.devCaption.isEmpty)
+        e.endSecret()
+        let after = ticks(e, 2, from: t0.addingTimeInterval(7))
+        #expect(after.allSatisfy { !jacked($0) && $0.clawd.devCaption.isEmpty && $0.scene?.secret == nil })
+    }
 }

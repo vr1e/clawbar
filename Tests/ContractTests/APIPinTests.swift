@@ -51,6 +51,7 @@ private func pinDiagnostics(_ paths: AppPaths) async {
 private func pinPresenter() {
     let input = PresenterInput(config: Config(), now: Date(), timeZone: .gmt, data: .empty, tickError: false, appVersion: AppInfo.version)
     let _: WidgetViewState = WidgetPresenter.make(input)
+    let _: WidgetViewState = Haywire.scramble(.sample, SceneHaywire(strength: 0.2, seed: 1))
     let _: HistoryHover = HistoryReadout.hover(x: 118, chart: HistoryView(label: ""), input: input)
 }
 
@@ -64,6 +65,10 @@ private func pinClawd() {
     engine.resetHearts()
     engine.startDrain()
     engine.cue(.jump)
+    let _: Bool = engine.asleep
+    engine.wake()
+    engine.letSleep()
+    engine.jack(nil)
     engine.perform(.mood(.work))
     let _: [DevMenuNode] = DevMenu.build(dev: ClawdDevState(), sky: SkyDevState(), skyVisible: true, lang: .de)
 }
@@ -94,7 +99,11 @@ private func pinAnimation() {
     let _: SceneFrame? = scenes.step(.christmas, inputs: SceneInputs(
         now: Date(), timeZone: .gmt, size: CGSize(width: 260, height: 220), skyRow: CGRect(x: 12, y: 30, width: 236, height: 43)
     ))
+    let _: SceneFrame? = scenes.step(.cyberpunk, inputs: SceneInputs(
+        now: Date(), timeZone: .gmt, size: CGSize(width: 260, height: 220), skyRow: nil, lang: .de, clawdAsleep: true
+    ))
     scenes.play(.scare)
+    scenes.play(.relic, at: 60)
     scenes.endSecret()
     engine.play(.scare)
     engine.endSecret()
