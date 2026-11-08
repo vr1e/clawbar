@@ -1,10 +1,10 @@
 import CoreGraphics
 import Foundation
 
-/// A theme's scene, as theme.ps1's `scene` names it. Upstream's Space, Underwater, Halloween and Cyberpunk scenes are
-/// not ported yet.
+/// A theme's scene, as theme.ps1's `scene` names it. Upstream's Underwater, Halloween and Cyberpunk scenes are not
+/// ported yet.
 public enum SceneID: String, Sendable, CaseIterable {
-    case christmas
+    case christmas, space
 }
 
 /// What one scene step sees, in base units.

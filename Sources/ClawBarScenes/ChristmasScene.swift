@@ -41,7 +41,7 @@ final class ChristmasScene: ThemeScene {
         }
     }
 
-    func step(tick t: Int, inputs: SceneInputs, random: any RandomSource) -> SceneFrame {
+    func backdrop(tick t: Int, inputs: SceneInputs, random: any RandomSource) -> [DrawOp] {
         let w = inputs.size.width, h = inputs.size.height
         let time = Double(t)
         if garland?.width != w { garland = Self.garland(width: w) }
@@ -80,13 +80,12 @@ final class ChristmasScene: ThemeScene {
                 backdrop.append(.rects(dots, RGBA(Self.bulbColors[colour]), opacity: colour == litColour ? 1 : 0.55))
             }
         }
-        guard inputs.skyVisible else { return SceneFrame(backdrop: backdrop, sky: []) }
-        return SceneFrame(backdrop: backdrop, sky: sky(time: time, random: random))
+        return backdrop
     }
 
     /// The sky row: the house, the snowman and the tree with the drift in front of them, then the sleigh.
-    private func sky(time t: Double, random: any RandomSource) -> [DrawOp] {
-        let px = Self.px
+    func sky(tick: Int, inputs: SceneInputs, random: any RandomSource) -> [DrawOp] {
+        let t = Double(tick), px = Self.px
         let sw = PlayArea.skySize.width, sh = PlayArea.skySize.height
         let ground = sh - 3 * px
         var ops: [DrawOp] = []

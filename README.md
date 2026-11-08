@@ -206,7 +206,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French; Brazilian Portuguese; Spanish. |
 | The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
 | 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval; the top projects keep folders of the same name apart and weigh each reply at its model's list price; the hover's busiest project is the local hour's, not the UTC hour's. |
-| Themes and skins | ✅ Ported differently | Classic by default, picked from a menu in Settings › Look, as are the skins; Space's model weeks are pink; your own skin under a built-in's name keeps its own name; the pattern is on the widget alone; the scenes keep moving with Clawd hidden, at one pace. Not yet: The Space, Underwater, Halloween and Cyberpunk scenes. |
+| Themes and skins | ✅ Ported differently | Classic by default, picked from a menu in Settings › Look, as are the skins; Space's model weeks are pink; your own skin under a built-in's name keeps its own name; the pattern is on the widget alone; the scenes keep moving with Clawd hidden, at one pace; Space's ship flies in from the left edge. Not yet: The Underwater, Halloween and Cyberpunk scenes. |
 | Settings window | ✅ Ported differently | A native window with Look and Widget tabs, opened from the menu; Look has the language, the theme and Clawd's skin. Not ported: A tab for Claude Code's own settings. |
 | Clawd's panel: chat, reminders, lists and tasks | ➖ Not ported | ClawBar keeps to usage, sessions and Clawd. |
 | PC tips | ➖ Not ported | They look over a Windows PC. |
@@ -227,8 +227,9 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   as `#RRGGBB` or `#AARRGGBB`, where the original also takes colour names and short hex; anything else shows the
   theme's own, where the original keeps the previous theme's. The patterns lie behind the widget alone, where the
   original also puts them behind its Settings window and panel.
-- The Christmas scene keeps moving with Clawd hidden, and at its own pace while he plays a Claude Code animation,
-  where the original's scenes freeze when he hides and play one and a half times as fast while he does.
+- The Christmas and Space scenes keep moving with Clawd hidden, and at their own pace while he plays a Claude Code
+  animation, where the original's scenes freeze when he hides and play one and a half times as fast while he does.
+  Space's ship flies in from the left edge, where the original's appears a quarter of the way across.
 - A skin dresses the widget's Clawd; the menu bar's and Clawd Run's keep his own colours. Your own skin under a
   built-in skin's name shows its own `name:` in Settings, where the original keeps the built-in's translated one.
 - When the widget grows (details, size, more sessions) or Settings switches to a taller tab, the window moves up or

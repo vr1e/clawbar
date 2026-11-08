@@ -72,4 +72,15 @@ import ClawBarShared
         let resumed = ticks(e, 1, from: t0.addingTimeInterval(20)).last.flatMap(sleighX)
         #expect(x != nil && resumed != nil && resumed! > x!)
     }
+
+    @Test func aThemeSwitchShowsTheOtherThemesScene() {
+        let e = christmasEngine()
+        let shipGrey = RGBA("#FF94A3B8")
+        func hasShip(_ f: AnimationFrame) -> Bool {
+            f.scene?.sky.contains { if case let .rects(_, c, _) = $0 { c == shipGrey } else { false } } == true
+        }
+        #expect(ticks(e, 3).allSatisfy { $0.scene != nil && !hasShip($0) })
+        e.apply(data(sessions: 1), config: Config(theme: .fixed(.space)), skins: .builtIn, now: t0, timeZone: Samples.timeZone)
+        #expect(ticks(e, 3, from: t0.addingTimeInterval(1)).allSatisfy(hasShip))
+    }
 }

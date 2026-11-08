@@ -63,6 +63,11 @@ enum DrawOpRenderer {
             return rect.isEmpty || opacity <= 0 || !stops.contains(where: { $0.color.a > 0 }) ? nil : op
         case let .stroke(points, color, width, opacity):
             return points.count < 2 || width <= 0 || color.a == 0 || opacity <= 0 ? nil : op
+        case let .strokedEllipse(rect, color, width, opacity):
+            return rect.isEmpty || width <= 0 || color.a == 0 || opacity <= 0 ? nil : op
+        case let .group(ops, transform, opacity, clip):
+            let children = layers(ops)
+            return children.isEmpty || opacity <= 0 || clip?.isEmpty == true ? nil : .group(children, transform, opacity: opacity, clip: clip)
         }
     }
 
@@ -106,6 +111,21 @@ enum DrawOpRenderer {
                 var path = Path()
                 path.addLines(points)
                 ctx.stroke(path, with: .color(Color(rgba: color).opacity(opacity)), lineWidth: width)
+            case let .strokedEllipse(rect, color, width, opacity):
+                let inset = min(width, rect.width, rect.height) / 2
+                ctx.stroke(Path(ellipseIn: rect.insetBy(dx: inset, dy: inset)), with: .color(Color(rgba: color).opacity(opacity)), lineWidth: width)
+            case let .group(ops, t, opacity, clip):
+                var g = ctx
+                g.concatenate(CGAffineTransform(a: t.a, b: t.b, c: t.c, d: t.d, tx: t.tx, ty: t.ty))
+                // Clipped first, so a faded group's layer covers the clip rather than the whole canvas.
+                if let clip { g.clip(to: Path(clip)) }
+                if opacity >= 1 {
+                    draw(ops, in: &g)
+                } else {
+                    g.opacity *= opacity
+                    // A layer of its own, faded once when it lands, so overlapping children don't blend with each other.
+                    g.drawLayer { draw(ops, in: &$0) }
+                }
             }
         }
     }

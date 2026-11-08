@@ -132,8 +132,10 @@ struct Sprites {
                 }
             case .text:
                 order.append("text")
-            case .stroke:
+            case .stroke, .strokedEllipse:
                 order.append("stroke")
+            case .group:
+                order.append("group")
             }
         }
     }
