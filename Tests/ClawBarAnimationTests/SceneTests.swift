@@ -9,6 +9,7 @@ import ClawBarShared
     static let card = CGSize(width: 260, height: 220)
     static let christmas = Config(theme: .fixed(.christmas))
 
+    @discardableResult
     private func ticks(_ e: AnimationEngine, _ n: Int, every ms: Double = 90, from start: Date = t0) -> [AnimationFrame] {
         (0 ..< n).map { i in e.step(inputs(now: start.addingTimeInterval(Double(i) * ms / 1000), backdrop: Self.card)) }
     }
@@ -38,8 +39,11 @@ import ClawBarShared
     }
 
     @Test func bySeasonFindsTheSceneOnTheDay() throws {
-        // Samples.now is in October: Halloween, whose scene is not ported yet.
-        #expect(ticks(christmasEngine(Config(theme: .bySeason)), 2).allSatisfy { $0.scene == nil })
+        // Samples.now is in October: Halloween, with its bats.
+        let bat = RGBA("#FF7353A0")
+        #expect(ticks(christmasEngine(Config(theme: .bySeason)), 2).allSatisfy {
+            $0.scene?.backdrop.contains { if case let .rects(_, c, _) = $0 { c == bat } else { false } } == true
+        })
         let december = try #require(Calendar.gregorian(in: Samples.timeZone).date(from: DateComponents(year: 2026, month: 12, day: 1, hour: 12)))
         #expect(ticks(christmasEngine(Config(theme: .bySeason)), 2, from: december).allSatisfy { $0.scene != nil })
     }
@@ -82,5 +86,51 @@ import ClawBarShared
         #expect(ticks(e, 3).allSatisfy { $0.scene != nil && !hasShip($0) })
         e.apply(data(sessions: 1), config: Config(theme: .fixed(.space)), skins: .builtIn, now: t0, timeZone: Samples.timeZone)
         #expect(ticks(e, 3, from: t0.addingTimeInterval(1)).allSatisfy(hasShip))
+    }
+
+    // MARK: Halloween's scare
+
+    private func scaredEngine(_ config: Config = Config(theme: .fixed(.halloween))) -> AnimationEngine {
+        let e = christmasEngine(config)
+        ticks(e, 2)
+        e.play(.scare)
+        return e
+    }
+
+    @Test func theScareMakesClawdJumpAsTheLightsComeBack() {
+        let e = scaredEngine()
+        // The developer caption names his act.
+        e.perform(.sweat(true))
+        let frames = ticks(e, 63, from: t0.addingTimeInterval(1))
+        #expect(frames[60].scene?.secret?.cues == [.act(.jump)])
+        #expect(frames[59].clawd.devCaption != "dev · jump")
+        #expect(frames[61].clawd.devCaption == "dev · jump")
+    }
+
+    @Test func withClawdHiddenTheScarePlaysWithoutHisJump() {
+        let e = scaredEngine(Config(theme: .fixed(.halloween), showMascot: false))
+        let frames = ticks(e, 63, from: t0.addingTimeInterval(1))
+        #expect(frames[30].scene?.secret != nil)
+        #expect(frames.allSatisfy { $0.clawd == .empty })
+    }
+
+    /// A scare 20 steps in, ended by `end`: the lights are back at once and stay back.
+    private func expectLightsBack(after end: (AnimationEngine) -> Void) {
+        let e = scaredEngine()
+        #expect(ticks(e, 20, from: t0.addingTimeInterval(1)).last?.scene?.secret != nil)
+        end(e)
+        #expect(e.frame.scene?.secret == nil)
+        #expect(ticks(e, 60, from: t0.addingTimeInterval(4)).allSatisfy { $0.scene?.secret == nil })
+    }
+
+    @Test func aThemeSwitchPutsTheLightsBack() {
+        expectLightsBack { e in
+            e.apply(data(sessions: 1), config: Self.christmas, skins: .builtIn, now: t0, timeZone: Samples.timeZone)
+            e.apply(data(sessions: 1), config: Config(theme: .fixed(.halloween)), skins: .builtIn, now: t0, timeZone: Samples.timeZone)
+        }
+    }
+
+    @Test func hidingTheWidgetPutsTheLightsBack() {
+        expectLightsBack { $0.endSecret() }
     }
 }

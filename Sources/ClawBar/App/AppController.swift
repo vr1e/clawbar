@@ -315,6 +315,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private func hideWidget() {
         panel.orderOut(nil)
         widgetVisible = false
+        engine.endSecret()
+        animation.publish(engine.frame)
         syncAnimation()
     }
 

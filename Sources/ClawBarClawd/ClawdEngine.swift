@@ -121,6 +121,12 @@ public final class ClawdEngine {
         startAct(ClawdTables.clickActs[random.nextInt(ClawdTables.clickActs.count)])
     }
 
+    /// A scene's cue, such as Halloween's scare: ignored while he is busy with an act, lying dead or buried.
+    public func cue(_ a: ClawdAct) {
+        guard act == nil, mood != .dead, cur != .dead, !buried else { return }
+        startAct(a)
+    }
+
     /// The play area was hidden (showMascot off): forget the hearts.
     public func resetHearts() { hearts.forget() }
 

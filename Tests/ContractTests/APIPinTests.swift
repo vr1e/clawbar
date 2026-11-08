@@ -63,6 +63,7 @@ private func pinClawd() {
     let _: ClawdDevState = engine.devState
     engine.resetHearts()
     engine.startDrain()
+    engine.cue(.jump)
     engine.perform(.mood(.work))
     let _: [DevMenuNode] = DevMenu.build(dev: ClawdDevState(), sky: SkyDevState(), skyVisible: true, lang: .de)
 }
@@ -89,7 +90,11 @@ private func pinAnimation() {
         now: Date(), timeZone: .gmt, numberWidth: 32, mouseOverWindow: false, mouseX: nil, backdropSize: CGSize(width: 260, height: 220)
     ))
     let scenes = SceneEngine(random: SeededRandomSource(seed: 1))
-    let _: SceneFrame? = scenes.step(.christmas, inputs: SceneInputs(now: Date(), size: CGSize(width: 260, height: 220), skyVisible: true))
+    let _: SceneFrame? = scenes.step(.christmas, inputs: SceneInputs(now: Date(), timeZone: .gmt, size: CGSize(width: 260, height: 220), skyVisible: true))
+    scenes.play(.scare)
+    scenes.endSecret()
+    engine.play(.scare)
+    engine.endSecret()
     let _: Int = SceneEngine.stepMilliseconds
     let _: SceneID? = Theme.christmas.scene
     let _: AnimationFrame = engine.frame

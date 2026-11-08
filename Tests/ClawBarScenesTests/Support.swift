@@ -24,15 +24,18 @@ func rects(_ ops: [DrawOp], _ color: RGBA) -> [CGRect] {
 struct SceneClock {
     let engine: SceneEngine
     let scene: SceneID
-    var now = Samples.now
+    let zone: TimeZone
+    var now: Date
 
-    init(_ scene: SceneID, seed: UInt64) {
+    init(_ scene: SceneID, seed: UInt64, from start: Date = Samples.now, zone: TimeZone = Samples.timeZone) {
         engine = SceneEngine(random: SeededRandomSource(seed: seed))
         self.scene = scene
+        self.zone = zone
+        now = start
     }
 
-    mutating func step(size: CGSize, sky: Bool = true) -> SceneFrame {
+    mutating func step(size: CGSize = sceneCard, sky: Bool = true) -> SceneFrame {
         defer { now = now.addingTimeInterval(0.09) }
-        return engine.step(scene, inputs: SceneInputs(now: now, size: size, skyVisible: sky)) ?? .empty
+        return engine.step(scene, inputs: SceneInputs(now: now, timeZone: zone, size: size, skyVisible: sky)) ?? .empty
     }
 }

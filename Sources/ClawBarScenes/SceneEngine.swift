@@ -27,13 +27,23 @@ public final class SceneEngine {
     public func step(_ id: SceneID, inputs: SceneInputs) -> SceneFrame? {
         guard due(inputs.now) else { return nil }
         tick += 1
-        let scene = built[id] ?? Self.make(id, random: random)
-        built[id] = scene
+        let scene = scene(id)
         guard inputs.size.width > 0, inputs.size.height > 0 else { return .empty }
         let backdrop = scene.backdrop(tick: tick, inputs: inputs, random: random)
+        let secret = scene.secret(tick: tick, inputs: inputs, random: random)
         // Hidden, the sky layer waits where it was, as upstream's returns early.
         let sky = inputs.skyVisible ? scene.sky(tick: tick, inputs: inputs, random: random) : []
-        return SceneFrame(backdrop: backdrop, sky: sky)
+        return SceneFrame(backdrop: backdrop, sky: sky, secret: secret)
+    }
+
+    /// Starts a secret at `step` on the next scene step, whatever the clock says: for snapshot mode and the tests.
+    public func play(_ secret: SceneSecret, at step: Int = 0) {
+        scene(secret.scene).play(secret, at: step)
+    }
+
+    /// The theme changed or the widget hid: a secret halfway through ends at once, as upstream's IsVisibleChanged ends it.
+    public func endSecret() {
+        for scene in built.values { scene.endSecret() }
     }
 
     /// At most one step a tick, due once half a step has built up, so a timer that fires a little early never skips
@@ -51,11 +61,20 @@ public final class SceneEngine {
         return due
     }
 
+    /// The scene, built the first time it is asked for.
+    private func scene(_ id: SceneID) -> any ThemeScene {
+        if let scene = built[id] { return scene }
+        let scene = Self.make(id, random: random)
+        built[id] = scene
+        return scene
+    }
+
     private static func make(_ id: SceneID, random: any RandomSource) -> any ThemeScene {
         switch id {
         case .christmas: ChristmasScene(random: random)
         case .space: SpaceScene(random: random)
         case .ocean: OceanScene(random: random)
+        case .halloween: HalloweenScene(random: random)
         }
     }
 }
@@ -66,6 +85,17 @@ protocol ThemeScene: AnyObject {
     func backdrop(tick t: Int, inputs: SceneInputs, random: any RandomSource) -> [DrawOp]
     /// The sky row's layer, stepped only while the row shows.
     func sky(tick t: Int, inputs: SceneInputs, random: any RandomSource) -> [DrawOp]
+    /// A secret's layer over the content, stepped after the backdrop and before the sky, as upstream's checks it.
+    func secret(tick t: Int, inputs: SceneInputs, random: any RandomSource) -> SceneSecretFrame?
+    func play(_ secret: SceneSecret, at step: Int)
+    func endSecret()
+}
+
+/// Most scenes have no secret.
+extension ThemeScene {
+    func secret(tick t: Int, inputs: SceneInputs, random: any RandomSource) -> SceneSecretFrame? { nil }
+    func play(_ secret: SceneSecret, at step: Int) {}
+    func endSecret() {}
 }
 
 /// scene.ps1's New-ScenePixels: pixel art, one layer per colour letter, drawn from its top-left.
