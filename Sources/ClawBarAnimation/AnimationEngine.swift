@@ -87,8 +87,14 @@ public final class AnimationEngine {
         }
         if let id = sceneID {
             // The weather's sky waits, its state kept, until the theme has no scene.
-            let scene = SceneInputs(now: inputs.now, size: inputs.backdropSize, skyVisible: skyVisible)
-            if let f = scenes.step(id, inputs: scene) { frame.scene = f }
+            let scene = SceneInputs(now: inputs.now, timeZone: inputs.timeZone, size: inputs.backdropSize, skyVisible: skyVisible)
+            if let f = scenes.step(id, inputs: scene) {
+                frame.scene = f
+                // Hidden, Clawd misses the cue; upstream's scene would have stopped with him.
+                if mascotVisible, let cues = f.secret?.cues {
+                    for case let .act(a) in cues { clawd.cue(a) }
+                }
+            }
         } else if skyVisible {
             frame.sky = sky.step(size: PlayArea.skySize, inputs: skyInputs(now: inputs.now, timeZone: inputs.timeZone))
         }
@@ -97,9 +103,20 @@ public final class AnimationEngine {
 
     /// By season changes the theme at midnight, so the scene follows the clock as the presenter's colours do.
     private func syncScene(now: Date, timeZone: TimeZone) {
-        sceneID = config.theme.theme(at: now, in: timeZone).scene
+        let id = config.theme.theme(at: now, in: timeZone).scene
+        if id != sceneID { endSecret() }
+        sceneID = id
         if sceneID == nil { frame.scene = nil }
     }
+
+    /// The theme changed or the widget hid: a secret halfway through ends at once, its layer gone and the sky lit.
+    public func endSecret() {
+        scenes.endSecret()
+        frame.scene?.secret = nil
+    }
+
+    /// Starts a scene's secret at `step` on the next scene step: for snapshot mode and the tests.
+    public func play(_ secret: SceneSecret, at step: Int = 0) { scenes.play(secret, at: step) }
 
     /// mascot-menu.ps1's developer menu as it opens now, its Sky submenu enabled only while the sky shows.
     public func developerMenu() -> [DevMenuNode] {

@@ -25,6 +25,8 @@ struct SnapshotCase {
     var ticks = 60
     /// What `ticks` was picked to show. A scene's visitors move with every seeded draw before them, so a test checks it.
     var shows: ((SceneFrame) -> Bool)?
+    /// A scene's secret, started so the picture shows this step of it.
+    var secret: (SceneSecret, step: Int)?
 }
 
 /// Every presenter state the data contract can express, all at `Samples.now` in Berlin.
@@ -179,6 +181,23 @@ enum SnapshotCases {
             $0.ticks = 680
             $0.shows = { frame in [RGBA("#FFFACC15"), RGBA("#FFFB7185")].allSatisfy { inSkyRow($0)(frame) } }
         }
+        add("scene-halloween") {
+            $0.everyLanguageAndSize = false
+            $0.config.theme = .fixed(.halloween)
+            // The ghost sets off 80 scene steps in and is at its clearest half way across, 125 steps later.
+            $0.ticks = 205
+            $0.shows = { $0.backdrop.contains { if case let .rects(_, c, o) = $0 { c == RGBA("#FFF5F3FF") && o > 0.4 } else { false } } }
+        }
+        add("scene-halloween-scare") {
+            $0.everyLanguageAndSize = false
+            $0.config.theme = .fixed(.halloween)
+            // The face has loomed out of the dark and holds, eyes open: the dark, the flash, and the face's six layers.
+            $0.secret = (.scare, step: 35)
+            $0.shows = { frame in
+                guard case let .group(face, _, opacity, _)? = frame.secret?.overlay.last else { return false }
+                return face.count == 6 && opacity == 1
+            }
+        }
         add("skin-santa") {
             $0.everyLanguageAndSize = false
             $0.config.skin = BuiltInSkin.santa.rawValue
@@ -291,7 +310,8 @@ enum SnapshotMode {
         if let phase = c.skyDev.phase { engine.perform(.skyPhase(phase)) }
         if let code = c.skyDev.weatherCode { engine.perform(.skyWeather(code)) }
         var now = Samples.now
-        for _ in 0 ..< c.ticks {
+        for i in 0 ..< c.ticks {
+            if let (secret, step) = c.secret, i == c.ticks - 1 { engine.play(secret, at: step) }
             engine.step(AnimationInputs(now: now, timeZone: Samples.timeZone, numberWidth: numberWidth, backdropSize: backdropSize))
             guard let ms = engine.tickMilliseconds else { break }
             now = now.addingTimeInterval(Double(ms) / 1000)

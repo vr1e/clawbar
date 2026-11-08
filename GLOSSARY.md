@@ -53,8 +53,16 @@ A tile of faint pixel sprites a theme repeats over the card under its content, l
 _Avoid_: wallpaper, texture
 
 **Scene**:
-A theme's animation: a backdrop over the pattern and under the card's content, and a layer in the sky row in the weather's place. It moves on the animation tick at its own steady pace, with or without Clawd.
+A theme's animation: a backdrop over the pattern and under the card's content, a layer in the sky row in the weather's place, and for a rare secret such as Halloween's midnight scare, a layer over all the content. It moves on the animation tick at its own steady pace, with or without Clawd.
 _Avoid_: animated theme (upstream's name for the feature), backdrop (one of its layers)
+
+**Secret**:
+A scene's rare event at a set local time, such as Halloween's midnight scare, drawn on a layer over all the card's content; it ends at once when the theme changes or the widget hides.
+_Avoid_: easter egg, event
+
+**Cue**:
+What a scene asks of Clawd on one of its steps, such as the scare's jump; the animation engine carries it out behind his own guards, and a hidden Clawd misses it.
+_Avoid_: command (that is the data engine's word), trigger
 
 **Skin**:
 Clawd's body and eye colours and the pixel accessories drawn over him, such as a hat or glasses: Classic, a built-in one or the user's own from the skins folder (`skin`). It dresses the widget's Clawd only.

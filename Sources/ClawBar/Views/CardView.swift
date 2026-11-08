@@ -68,18 +68,29 @@ struct CardView: View {
                 if let pattern = v.pattern {
                     // theme.ps1's layer: inside the border, with the card's own radius.
                     PatternLayer(pattern: pattern)
-                        .clipShape(outer)
-                        .padding(Self.border * k)
+                        .insideBorder(k)
                 }
                 // scene.ps1's backdrop: between the pattern and the content, clipped like the pattern.
-                SceneBackdropView(animation: animation)
-                    .clipShape(outer)
-                    .padding(Self.border * k)
+                SceneLayerView(animation: animation) { $0.backdrop }
+                    .insideBorder(k)
                 outer.strokeBorder(Color(rgba: Palette.border), lineWidth: Self.border * k)
             }
         }
+        .overlay {
+            // A scene's secret: above the content, Clawd included, clipped like the backdrop.
+            SceneLayerView(animation: animation) { $0.secret?.overlay }
+                .insideBorder(k)
+        }
         .coordinateSpace(.named(CardSpace.name))
         .onGeometryChange(for: CGSize.self) { $0.size } action: { layout.setCardSize($0) }
+    }
+}
+
+private extension View {
+    /// A layer inside the card's rim, clipped to the card's corners as WPF clips its border's child.
+    func insideBorder(_ k: Double) -> some View {
+        clipShape(RoundedRectangle(cornerRadius: 10 * k))
+            .padding(CardView.border * k)
     }
 }
 

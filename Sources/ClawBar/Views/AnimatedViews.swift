@@ -60,22 +60,24 @@ struct SkyRowView: View {
     let animation: AnimationModel
 
     var body: some View {
-        if let ops = animation.scene?.sky {
+        if let scene = animation.scene {
             // No gradient, so the backdrop shows through, and not faded like the weather's sprites.
-            OpsCanvas(ops: ops)
+            OpsCanvas(ops: scene.sky)
                 .skyRowEdges()
+                .opacity(scene.secret?.skyOpacity ?? 1)
         } else {
             SkyView(animation: animation)
         }
     }
 }
 
-/// A scene's backdrop over the whole card, from its top-left inside the border.
-struct SceneBackdropView: View {
+/// One of a scene's card-wide layers, the backdrop or a secret's, from the card's top-left inside the border.
+struct SceneLayerView: View {
     let animation: AnimationModel
+    let layer: (SceneFrame) -> [DrawOp]?
 
     var body: some View {
-        if let ops = animation.scene?.backdrop {
+        if let ops = animation.scene.flatMap(layer), !ops.isEmpty {
             OpsCanvas(ops: ops)
                 .allowsHitTesting(false)
         }
