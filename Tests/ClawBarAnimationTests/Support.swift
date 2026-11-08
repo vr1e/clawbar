@@ -24,9 +24,12 @@ func skyMenu(_ engine: AnimationEngine) -> DevMenuNode? {
 }
 
 func inputs(
-    now: Date = t0, over: Bool = false, mouseX: Double? = nil, zone: TimeZone = Samples.timeZone, backdrop: CGSize = .zero
+    now: Date = t0, over: Bool = false, mouseX: Double? = nil, zone: TimeZone = Samples.timeZone, backdrop: CGSize = .zero,
+    skyOrigin: CGPoint = .zero
 ) -> AnimationInputs {
-    AnimationInputs(now: now, timeZone: zone, numberWidth: 32, mouseOverWindow: over, mouseX: mouseX, backdropSize: backdrop)
+    AnimationInputs(
+        now: now, timeZone: zone, numberWidth: 32, mouseOverWindow: over, mouseX: mouseX, backdropSize: backdrop, skyOrigin: skyOrigin
+    )
 }
 
 /// Fake data: `sessions` of them idle, plus the busy and waiting ones; `read` is the registry's first read.

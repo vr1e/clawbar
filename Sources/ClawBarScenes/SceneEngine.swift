@@ -32,7 +32,7 @@ public final class SceneEngine {
         let backdrop = scene.backdrop(tick: tick, inputs: inputs, random: random)
         let secret = scene.secret(tick: tick, inputs: inputs, random: random)
         // Hidden, the sky layer waits where it was, as upstream's returns early.
-        let sky = inputs.skyVisible ? scene.sky(tick: tick, inputs: inputs, random: random) : []
+        let sky = inputs.skyRow != nil ? scene.sky(tick: tick, inputs: inputs, random: random) : []
         return SceneFrame(backdrop: backdrop, sky: sky, secret: secret)
     }
 
@@ -75,6 +75,7 @@ public final class SceneEngine {
         case .space: SpaceScene(random: random)
         case .ocean: OceanScene(random: random)
         case .halloween: HalloweenScene(random: random)
+        case .cyberpunk: CyberpunkScene(random: random)
         }
     }
 }

@@ -1,10 +1,9 @@
 import CoreGraphics
 import Foundation
 
-/// A theme's scene, as theme.ps1's `scene` names it; `ocean` is the Underwater theme's. Upstream's Cyberpunk scene is
-/// not ported yet.
+/// A theme's scene, as theme.ps1's `scene` names it; `ocean` is the Underwater theme's.
 public enum SceneID: String, Sendable, CaseIterable {
-    case christmas, space, ocean, halloween
+    case christmas, space, ocean, halloween, cyberpunk
 }
 
 /// A scene's rare secret, which snapshot mode and the tests start through `AnimationEngine.play(_:)`.
@@ -33,14 +32,15 @@ public struct SceneInputs: Sendable, Hashable {
     public var timeZone: TimeZone
     /// The card inside its border: the backdrop's size.
     public var size: CGSize
-    /// The sky row shows; hidden, the scene's sky layer waits where it was, as upstream's returns early.
-    public var skyVisible: Bool
+    /// The sky row in the backdrop, or nil while it is hidden, when the scene's sky layer waits where it was, as
+    /// upstream's returns early.
+    public var skyRow: CGRect?
 
-    public init(now: Date, timeZone: TimeZone, size: CGSize, skyVisible: Bool) {
+    public init(now: Date, timeZone: TimeZone, size: CGSize, skyRow: CGRect?) {
         self.now = now
         self.timeZone = timeZone
         self.size = size
-        self.skyVisible = skyVisible
+        self.skyRow = skyRow
     }
 }
 

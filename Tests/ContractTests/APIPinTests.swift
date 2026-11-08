@@ -87,10 +87,13 @@ private func pinAnimation() {
     engine.click(now: Date())
     engine.perform(.skyPhase(.night))
     let _: AnimationFrame = engine.step(AnimationInputs(
-        now: Date(), timeZone: .gmt, numberWidth: 32, mouseOverWindow: false, mouseX: nil, backdropSize: CGSize(width: 260, height: 220)
+        now: Date(), timeZone: .gmt, numberWidth: 32, mouseOverWindow: false, mouseX: nil, backdropSize: CGSize(width: 260, height: 220),
+        skyOrigin: CGPoint(x: 12, y: 30)
     ))
     let scenes = SceneEngine(random: SeededRandomSource(seed: 1))
-    let _: SceneFrame? = scenes.step(.christmas, inputs: SceneInputs(now: Date(), timeZone: .gmt, size: CGSize(width: 260, height: 220), skyVisible: true))
+    let _: SceneFrame? = scenes.step(.christmas, inputs: SceneInputs(
+        now: Date(), timeZone: .gmt, size: CGSize(width: 260, height: 220), skyRow: CGRect(x: 12, y: 30, width: 236, height: 43)
+    ))
     scenes.play(.scare)
     scenes.endSecret()
     engine.play(.scare)

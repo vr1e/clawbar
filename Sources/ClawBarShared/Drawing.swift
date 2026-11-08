@@ -44,6 +44,8 @@ public enum DrawOp: Sendable, Hashable {
     case stroke([CGPoint], RGBA, width: Double, opacity: Double)
     /// An ellipse's outline, stroked inside the rect as WPF's Ellipse, then faded by `opacity`.
     case strokedEllipse(CGRect, RGBA, width: Double, opacity: Double)
+    /// A closed polygon filled with a top-to-bottom gradient across its bounding box.
+    case polygon([CGPoint], stops: [GradientStop], opacity: Double)
     /// Ops drawn as one layer: placed by the transform, clipped to `clip` in their own space, then faded as a whole,
     /// as WPF fades a canvas, so overlapping children don't show through each other.
     case group([DrawOp], Transform2D, opacity: Double, clip: CGRect?)

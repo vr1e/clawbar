@@ -44,7 +44,7 @@ import ClawBarShared
 
     @Test func eachSceneIsCaughtWithWhatItsTicksWerePickedToShow() throws {
         let cases = SnapshotCases.all().filter { $0.shows != nil }
-        #expect(cases.map(\.name) == ["scene-christmas", "scene-space", "scene-space-expanded", "scene-ocean", "scene-halloween", "scene-halloween-scare"])
+        #expect(cases.map(\.name) == ["scene-christmas", "scene-space", "scene-space-expanded", "scene-ocean", "scene-halloween", "scene-halloween-scare", "scene-cyberpunk"])
         for c in cases {
             let scene = try #require(SnapshotMode.settledCard(c, lang: .en, scale: Config().scale).0.animation.scene, "\(c.name)")
             #expect(c.shows?(scene) == true, "\(c.name)")

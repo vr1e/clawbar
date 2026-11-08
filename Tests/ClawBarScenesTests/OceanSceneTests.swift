@@ -15,14 +15,6 @@ import ClawBarShared
         runScene(.ocean, steps, size: size, sky: sky)
     }
 
-    /// The transforms of the groups with a layer drawn in `color`.
-    private func groups(_ ops: [DrawOp], _ color: RGBA) -> [Transform2D] {
-        ops.compactMap {
-            guard case let .group(children, t, _, _) = $0, !rects(children, color).isEmpty else { return nil }
-            return t
-        }
-    }
-
     private func bubbles(_ f: SceneFrame) -> [CGRect] {
         f.backdrop.compactMap { if case let .strokedEllipse(r, _, _, _) = $0 { r } else { nil } }
     }
@@ -63,7 +55,7 @@ import ClawBarShared
     }
 
     @Test func kelpSwaysAboutItsFootInTheSand() {
-        let kelp = run(40).map { groups($0.sky, Self.kelp) }
+        let kelp = run(40).map { groups($0.sky, Self.kelp).map(\.transform) }
         let floor = PlayArea.skySize.height - 3 * 1.6
         for strands in kelp {
             #expect(strands.count == 4)
@@ -80,7 +72,7 @@ import ClawBarShared
 
     @Test func theJellyfishPulsesAndWavesItsTentacles() {
         let frames = run(16)
-        let bells = frames.map { groups($0.sky, Self.bell)[0] }
+        let bells = frames.map { groups($0.sky, Self.bell)[0].transform }
         #expect(bells.allSatisfy { (1 ... 1.08 + 1e-9).contains($0.a) && (0.85 - 1e-9 ... 1).contains($0.d) })
         #expect(bells.contains { $0.a > 1.05 } && bells.contains { $0.a == 1 })
         // Two poses of tentacles, four steps each: in the second the tips start a pixel right of the row above them.

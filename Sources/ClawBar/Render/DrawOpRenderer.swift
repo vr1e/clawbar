@@ -53,8 +53,11 @@ enum DrawOpRenderer {
     private static func visible(_ op: DrawOp) -> DrawOp? {
         switch op {
         case let .rects(rects, color, opacity):
+            guard color.a > 0, opacity > 0 else { return nil }
+            // A static picture's array stays shared rather than copied on every frame.
+            if rects.allSatisfy({ $0.width > 0 && $0.height > 0 }) { return rects.isEmpty ? nil : op }
             let kept = rects.filter { $0.width > 0 && $0.height > 0 }
-            return kept.isEmpty || color.a == 0 || opacity <= 0 ? nil : .rects(kept, color, opacity: opacity)
+            return kept.isEmpty ? nil : .rects(kept, color, opacity: opacity)
         case let .text(s, _, size, _, color, opacity, _):
             return s.isEmpty || size <= 0 || color.a == 0 || opacity <= 0 ? nil : op
         case let .radialGlow(rect, inner, outer, opacity):
@@ -65,6 +68,8 @@ enum DrawOpRenderer {
             return points.count < 2 || width <= 0 || color.a == 0 || opacity <= 0 ? nil : op
         case let .strokedEllipse(rect, color, width, opacity):
             return rect.isEmpty || width <= 0 || color.a == 0 || opacity <= 0 ? nil : op
+        case let .polygon(points, stops, opacity):
+            return points.count < 3 || opacity <= 0 || !stops.contains(where: { $0.color.a > 0 }) ? nil : op
         case let .group(ops, transform, opacity, clip):
             let children = layers(ops)
             return children.isEmpty || opacity <= 0 || clip?.isEmpty == true ? nil : .group(children, transform, opacity: opacity, clip: clip)
@@ -100,9 +105,9 @@ enum DrawOpRenderer {
                     )
                 )
             case let .hGradient(rect, stops, opacity):
-                fill(rect, stops: stops, from: CGPoint(x: rect.minX, y: rect.midY), to: CGPoint(x: rect.maxX, y: rect.midY), opacity: opacity, in: ctx)
+                fill(Path(rect), stops: stops, from: CGPoint(x: rect.minX, y: rect.midY), to: CGPoint(x: rect.maxX, y: rect.midY), opacity: opacity, in: ctx)
             case let .vGradient(rect, stops, opacity):
-                fill(rect, stops: stops, from: CGPoint(x: rect.midX, y: rect.minY), to: CGPoint(x: rect.midX, y: rect.maxY), opacity: opacity, in: ctx)
+                fill(Path(rect), stops: stops, from: CGPoint(x: rect.midX, y: rect.minY), to: CGPoint(x: rect.midX, y: rect.maxY), opacity: opacity, in: ctx)
             case let .stroke(points, color, width, opacity):
                 var path = Path()
                 path.addLines(points)
@@ -110,6 +115,13 @@ enum DrawOpRenderer {
             case let .strokedEllipse(rect, color, width, opacity):
                 let inset = min(width, rect.width, rect.height) / 2
                 ctx.stroke(Path(ellipseIn: rect.insetBy(dx: inset, dy: inset)), with: .color(Color(rgba: color).opacity(opacity)), lineWidth: width)
+            case let .polygon(points, stops, opacity):
+                var path = Path()
+                path.addLines(points)
+                path.closeSubpath()
+                // Across the bounding box, as WPF's brush on a Polygon.
+                let box = path.boundingRect
+                fill(path, stops: stops, from: CGPoint(x: box.midX, y: box.minY), to: CGPoint(x: box.midX, y: box.maxY), opacity: opacity, in: ctx)
             case let .group(ops, t, opacity, clip):
                 var g = ctx
                 g.concatenate(CGAffineTransform(a: t.a, b: t.b, c: t.c, d: t.d, tx: t.tx, ty: t.ty))
@@ -126,11 +138,11 @@ enum DrawOpRenderer {
         }
     }
 
-    private static func fill(_ rect: CGRect, stops: [GradientStop], from start: CGPoint, to end: CGPoint, opacity: Double, in ctx: GraphicsContext) {
+    private static func fill(_ path: Path, stops: [GradientStop], from start: CGPoint, to end: CGPoint, opacity: Double, in ctx: GraphicsContext) {
         var g = ctx
         g.opacity *= opacity
         let gradient = Gradient(stops: stops.map { .init(color: Color(rgba: $0.color), location: $0.location) })
-        g.fill(Path(rect), with: .linearGradient(gradient, startPoint: start, endPoint: end))
+        g.fill(path, with: .linearGradient(gradient, startPoint: start, endPoint: end))
     }
 
     /// Places SF so its baseline sits where Segoe UI's would in the same WPF line box.

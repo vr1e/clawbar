@@ -222,7 +222,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         let heartsVisibleBefore = animation.hearts.visible
         animation.publish(engine.step(AnimationInputs(
             now: Date(), timeZone: zone, numberWidth: layout.numberWidth, mouseOverWindow: over, mouseX: mouseX,
-            backdropSize: layout.backdropSize(scale: k)
+            backdropSize: layout.backdropSize(scale: k), skyOrigin: layout.skyOrigin(scale: k)
         )))
         if animation.hearts.visible != heartsVisibleBefore { scheduleRegionRefresh() }
         if engine.tickMilliseconds != animationInterval { syncAnimation() }

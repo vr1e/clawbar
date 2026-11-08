@@ -198,6 +198,19 @@ enum SnapshotCases {
                 return face.count == 6 && opacity == 1
             }
         }
+        add("scene-cyberpunk") {
+            $0.everyLanguageAndSize = false
+            $0.config.theme = .fixed(.cyberpunk)
+            // Both seeded cars are between the towers from tick 534, passing each other near tick 600.
+            $0.ticks = 570
+            $0.shows = { frame in
+                let cars = frame.sky.filter { op in
+                    guard case let .group(art, t, _, _) = op, (0 ... PlayArea.skySize.width).contains(t.tx) else { return false }
+                    return art.contains { if case let .rects(_, c, _) = $0 { c == RGBA("#FF3B3656") } else { false } }
+                }
+                return cars.count == 2
+            }
+        }
         add("skin-santa") {
             $0.everyLanguageAndSize = false
             $0.config.skin = BuiltInSkin.santa.rawValue
@@ -300,19 +313,25 @@ enum SnapshotMode {
         }
         // A first pass measures the number, which sets the play area Clawd walks in, and the card a scene covers.
         _ = CardRenderer.render(card, scale: k, layout: layout)
-        card.animation = settle(engine, c, numberWidth: layout.numberWidth, backdropSize: layout.backdropSize(scale: k))
+        card.animation = settle(
+            engine, c, numberWidth: layout.numberWidth, backdropSize: layout.backdropSize(scale: k), skyOrigin: layout.skyOrigin(scale: k)
+        )
         return (card, layout)
     }
 
     /// Clawd and the sky or the scene after the case's ticks from `Samples.now`, its sky overrides set as the
     /// developer menu would.
-    static func settle(_ engine: AnimationEngine, _ c: SnapshotCase, numberWidth: Double, backdropSize: CGSize) -> AnimationFrame {
+    static func settle(
+        _ engine: AnimationEngine, _ c: SnapshotCase, numberWidth: Double, backdropSize: CGSize, skyOrigin: CGPoint
+    ) -> AnimationFrame {
         if let phase = c.skyDev.phase { engine.perform(.skyPhase(phase)) }
         if let code = c.skyDev.weatherCode { engine.perform(.skyWeather(code)) }
         var now = Samples.now
         for i in 0 ..< c.ticks {
             if let (secret, step) = c.secret, i == c.ticks - 1 { engine.play(secret, at: step) }
-            engine.step(AnimationInputs(now: now, timeZone: Samples.timeZone, numberWidth: numberWidth, backdropSize: backdropSize))
+            engine.step(AnimationInputs(
+                now: now, timeZone: Samples.timeZone, numberWidth: numberWidth, backdropSize: backdropSize, skyOrigin: skyOrigin
+            ))
             guard let ms = engine.tickMilliseconds else { break }
             now = now.addingTimeInterval(Double(ms) / 1000)
         }

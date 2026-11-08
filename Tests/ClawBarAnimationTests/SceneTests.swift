@@ -88,6 +88,21 @@ import ClawBarShared
         #expect(ticks(e, 3, from: t0.addingTimeInterval(1)).allSatisfy(hasShip))
     }
 
+    @Test func theSearchlightsRiseFromWhereTheCardPutsTheSkyRow() {
+        let e = christmasEngine(Config(theme: .fixed(.cyberpunk)))
+        // Each cone's tip is its picture's origin, so the group's move is where it lands on the card.
+        func tips(_ origin: CGPoint, at i: Int) -> [CGPoint] {
+            let f = e.step(inputs(now: t0.addingTimeInterval(Double(i) * 0.09), backdrop: Self.card, skyOrigin: origin))
+            return f.scene?.backdrop.compactMap { op -> CGPoint? in
+                guard case let .group(c, t, _, _) = op, case .polygon = c.first else { return nil }
+                return CGPoint(x: t.tx, y: t.ty)
+            } ?? []
+        }
+        let high = tips(CGPoint(x: 12, y: 30), at: 0), low = tips(CGPoint(x: 12, y: 60), at: 1)
+        #expect(high.count == 2 && low.count == 2)
+        #expect(zip(high, low).allSatisfy { abs($1.y - $0.y - 30) < 1e-9 && abs($1.x - $0.x) < 1e-9 })
+    }
+
     // MARK: Halloween's scare
 
     private func scaredEngine(_ config: Config = Config(theme: .fixed(.halloween))) -> AnimationEngine {

@@ -60,6 +60,9 @@ final class LaidOutCard {
         // Origins snap to the pixel grid, so 13 × 1.2 = 15.6 may land on 16.
         #expect(abs(try card.rect(.percentRow).minX - 13 * k) <= 0.5)
         #expect(card.layout.numberWidth > 20)
+        // A scene's sky row sits where the percent row does, inside the rim.
+        let origin = card.layout.skyOrigin(scale: k), row = try card.rect(.percentRow)
+        #expect(abs(origin.x - 12) <= 0.5 / k && abs(origin.y - (row.minY / k - 1)) < 1e-9)
     }
 
     /// What ties the card to the parts: it publishes a rect for every part it shows, and for no other.

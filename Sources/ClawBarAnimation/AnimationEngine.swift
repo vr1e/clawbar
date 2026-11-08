@@ -87,7 +87,8 @@ public final class AnimationEngine {
         }
         if let id = sceneID {
             // The weather's sky waits, its state kept, until the theme has no scene.
-            let scene = SceneInputs(now: inputs.now, timeZone: inputs.timeZone, size: inputs.backdropSize, skyVisible: skyVisible)
+            let row = skyVisible ? CGRect(origin: inputs.skyOrigin, size: PlayArea.skySize) : nil
+            let scene = SceneInputs(now: inputs.now, timeZone: inputs.timeZone, size: inputs.backdropSize, skyRow: row)
             if let f = scenes.step(id, inputs: scene) {
                 frame.scene = f
                 // Hidden, Clawd misses the cue; upstream's scene would have stopped with him.
