@@ -30,7 +30,10 @@ public final class SceneEngine {
         let scene = built[id] ?? Self.make(id, random: random)
         built[id] = scene
         guard inputs.size.width > 0, inputs.size.height > 0 else { return .empty }
-        return scene.step(tick: tick, inputs: inputs, random: random)
+        let backdrop = scene.backdrop(tick: tick, inputs: inputs, random: random)
+        // Hidden, the sky layer waits where it was, as upstream's returns early.
+        let sky = inputs.skyVisible ? scene.sky(tick: tick, inputs: inputs, random: random) : []
+        return SceneFrame(backdrop: backdrop, sky: sky)
     }
 
     /// At most one step a tick, due once half a step has built up, so a timer that fires a little early never skips
@@ -51,13 +54,17 @@ public final class SceneEngine {
     private static func make(_ id: SceneID, random: any RandomSource) -> any ThemeScene {
         switch id {
         case .christmas: ChristmasScene(random: random)
+        case .space: SpaceScene(random: random)
         }
     }
 }
 
-/// One scene's state and its step; a class, so stepping never copies its arrays.
+/// One scene's state and its two layers' steps; a class, so stepping never copies its arrays.
 protocol ThemeScene: AnyObject {
-    func step(tick t: Int, inputs: SceneInputs, random: any RandomSource) -> SceneFrame
+    /// The layer over the card, which always moves.
+    func backdrop(tick t: Int, inputs: SceneInputs, random: any RandomSource) -> [DrawOp]
+    /// The sky row's layer, stepped only while the row shows.
+    func sky(tick t: Int, inputs: SceneInputs, random: any RandomSource) -> [DrawOp]
 }
 
 /// scene.ps1's New-ScenePixels: pixel art, one layer per colour letter, drawn from its top-left.
@@ -68,6 +75,10 @@ struct ScenePixels: Sendable {
     }
 
     let layers: [Layer]
+
+    init(layers: [Layer]) {
+        self.layers = layers
+    }
 
     /// '.' and letters missing from `colors` are empty; layers in letter order, as no two pixels overlap.
     init(_ art: [String], px: Double, colors: [Character: String]) {
@@ -84,6 +95,9 @@ struct ScenePixels: Sendable {
 
 /// scene.ps1's New-Glow in an ellipse of `rect`: the colour at alpha `a` in the middle, fading out to its edge.
 func glow(_ hex: String, _ a: Double, in rect: CGRect, opacity: Double = 1) -> DrawOp {
-    let c = RGBA(hex)
-    return .radialGlow(rect, inner: c.withAlpha(RGBA.byte(255 * a)), outer: c.withAlpha(0), opacity: opacity)
+    glow(RGBA(hex), a, in: rect, opacity: opacity)
+}
+
+func glow(_ c: RGBA, _ a: Double, in rect: CGRect, opacity: Double = 1) -> DrawOp {
+    .radialGlow(rect, inner: c.withAlpha(RGBA.byte(255 * a)), outer: c.withAlpha(0), opacity: opacity)
 }

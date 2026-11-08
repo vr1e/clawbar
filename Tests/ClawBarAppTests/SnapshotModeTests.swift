@@ -42,6 +42,18 @@ import ClawBarShared
         }
     }
 
+    @Test func theSpaceSceneIsCaughtWithItsShootingStarInFlight() throws {
+        // Its seeded flight moves with every random draw before it, so a change to the scene can lose it from the PNG.
+        for name in ["scene-space", "scene-space-expanded"] {
+            let c = try #require(SnapshotCases.all().first { $0.name == name })
+            let backdrop = try #require(SnapshotMode.settledCard(c, lang: .en, scale: Config().scale).0.animation.scene?.backdrop)
+            let shooting = backdrop.contains {
+                if case let .group(children, _, opacity, _) = $0, case .group = children.first { opacity > 0.5 } else { false }
+            }
+            #expect(shooting, "\(name)")
+        }
+    }
+
     @Test func expandingTheDetailsMakesTheCardTaller() throws {
         let all = SnapshotCases.all()
         let sample = try #require(all.first { $0.name == "sample" })

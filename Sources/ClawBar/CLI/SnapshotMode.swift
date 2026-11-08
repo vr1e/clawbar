@@ -154,6 +154,16 @@ enum SnapshotCases {
             // The sleigh launches 120 scene steps in and is a third of the way across by now.
             $0.ticks = 330
         }
+        // Opening the details uncovers more of the starfield.
+        for (name, expanded) in [("scene-space", false), ("scene-space-expanded", true)] {
+            add(name) {
+                $0.everyLanguageAndSize = false
+                $0.config.theme = .fixed(.space)
+                $0.config.expanded = expanded
+                // The seeded shooting star flies from tick 21 to 35.
+                $0.ticks = 24
+            }
+        }
         add("skin-santa") {
             $0.everyLanguageAndSize = false
             $0.config.skin = BuiltInSkin.santa.rawValue
@@ -238,6 +248,12 @@ enum SnapshotMode {
 
     /// The card at 2 pixels per point, with Clawd and the sky after a few seeded ticks.
     static func renderCard(_ c: SnapshotCase, lang: Lang, scale k: Double) -> CGImage? {
+        let (card, layout) = settledCard(c, lang: lang, scale: k)
+        return CardRenderer.render(card, scale: k, layout: layout)
+    }
+
+    /// The card's input with its animation settled, and the layout its first pass measured.
+    static func settledCard(_ c: SnapshotCase, lang: Lang, scale k: Double) -> (CardRenderer.Input, LayoutModel) {
         let input = input(for: c, lang: lang)
         let engine = AnimationEngine(random: SeededRandomSource(seed: 7), config: input.config, skins: .builtIn, now: Samples.now)
         engine.apply(c.data, config: input.config, skins: .builtIn, now: Samples.now, timeZone: Samples.timeZone)
@@ -251,7 +267,7 @@ enum SnapshotMode {
         // A first pass measures the number, which sets the play area Clawd walks in, and the card a scene covers.
         _ = CardRenderer.render(card, scale: k, layout: layout)
         card.animation = settle(engine, c, numberWidth: layout.numberWidth, backdropSize: layout.backdropSize(scale: k))
-        return CardRenderer.render(card, scale: k, layout: layout)
+        return (card, layout)
     }
 
     /// Clawd and the sky or the scene after the case's ticks from `Samples.now`, its sky overrides set as the

@@ -49,8 +49,18 @@ import ClawBarShared
             .hGradient(a, stops: [], opacity: 1),
             .stroke([CGPoint(x: 1, y: 1)], red, width: 1, opacity: 1),
             .stroke([.zero, CGPoint(x: 4, y: 0)], red, width: 0, opacity: 1),
+            .strokedEllipse(a, red, width: 0, opacity: 1),
+            .strokedEllipse(.zero, red, width: 1, opacity: 1),
+            .group([.rects([], red, opacity: 1)], .translation(0, 0), opacity: 1, clip: nil),
+            .group([.rects([a], red, opacity: 1)], .translation(0, 0), opacity: 0, clip: nil),
+            .group([.rects([a], red, opacity: 1)], .translation(0, 0), opacity: 1, clip: .zero),
         ])
         #expect(layers.isEmpty)
+    }
+
+    @Test func aGroupsChildrenAreLayeredToo() {
+        let layers = DrawOpRenderer.layers([.group([.rects([a], red, opacity: 1), .rects([b], red, opacity: 1), .rects([], blue, opacity: 1)], .translation(0, 0), opacity: 0.5, clip: nil)])
+        #expect(layers == [.group([.rects([a, b], red, opacity: 1)], .translation(0, 0), opacity: 0.5, clip: nil)])
     }
 }
 
@@ -118,6 +128,34 @@ import ClawBarShared
         #expect(r.color(atPoint: 10, 4).r > 200)
         #expect(r.color(atPoint: 20, 12).r > 200)
         #expect(r.color(atPoint: 10, 10).r < 5)
+    }
+
+    @Test func anEllipseIsStrokedInsideItsRect() {
+        let r = paint([.strokedEllipse(CGRect(x: 0, y: 0, width: 20, height: 10), Palette.white, width: 2, opacity: 1)], k: 2)
+        // The outline's left and top edges lie just inside the rect; its middle stays empty.
+        #expect(r.color(atPoint: 1, 10).r > 200)
+        #expect(r.color(atPoint: 20, 1).r > 200)
+        #expect(r.color(atPoint: 20, 10).r < 5)
+    }
+
+    @Test func aGroupFadesAsOnePictureSoOverlapsDontAddUp() {
+        let square = CGRect(x: 0, y: 0, width: 10, height: 10)
+        let r = paint([.group([.rects([square], Palette.white, opacity: 1), .rects([square], Palette.white, opacity: 1)], .translation(0, 0), opacity: 0.5, clip: nil)], k: 1)
+        // Faded one by one, the two would reach 75%; faded together, half.
+        #expect(abs(Int(r.color(atPoint: 5, 5).r) - 128) <= 3)
+    }
+
+    @Test func aGroupIsPlacedByItsTransformAndClippedInItsOwnSpace() {
+        let bar = DrawOp.rects([CGRect(x: 0, y: 0, width: 4, height: 6)], Palette.white, opacity: 1)
+        let r = paint([.group([bar], .translation(10, 2), opacity: 1, clip: CGRect(x: 0, y: 0, width: 4, height: 3))], k: 2)
+        #expect(r.color(atPoint: 24, 6).r > 200)
+        #expect(r.color(atPoint: 24, 14).r < 5)
+        #expect(r.color(atPoint: 4, 6).r < 5)
+        // A quarter turn lays a bar along x down along y.
+        let bar8 = DrawOp.rects([CGRect(x: 0, y: -1, width: 8, height: 2)], Palette.white, opacity: 1)
+        let turned = paint([.group([.group([bar8], .rotation(.pi / 2), opacity: 1, clip: nil)], .translation(5, 1), opacity: 1, clip: nil)], k: 2)
+        #expect(turned.color(atPoint: 10, 14).r > 200)
+        #expect(turned.color(atPoint: 18, 4).r < 5)
     }
 }
 
