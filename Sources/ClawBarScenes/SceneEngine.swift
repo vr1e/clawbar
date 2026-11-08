@@ -55,6 +55,7 @@ public final class SceneEngine {
         switch id {
         case .christmas: ChristmasScene(random: random)
         case .space: SpaceScene(random: random)
+        case .ocean: OceanScene(random: random)
         }
     }
 }
@@ -100,4 +101,20 @@ func glow(_ hex: String, _ a: Double, in rect: CGRect, opacity: Double = 1) -> D
 
 func glow(_ c: RGBA, _ a: Double, in rect: CGRect, opacity: Double = 1) -> DrawOp {
     .radialGlow(rect, inner: c.withAlpha(RGBA.byte(255 * a)), outer: c.withAlpha(0), opacity: opacity)
+}
+
+/// scene.ps1's New-Fade over `rect`: the colour at alpha `a` along the top, fading out to the bottom.
+func fade(_ c: RGBA, _ a: Double, in rect: CGRect, opacity: Double = 1) -> DrawOp {
+    let stops = [GradientStop(location: 0, color: c.withAlpha(RGBA.byte(255 * a))), GradientStop(location: 1, color: c.withAlpha(0))]
+    return .vGradient(rect, stops: stops, opacity: opacity)
+}
+
+extension RandomSource {
+    /// A sway's or twinkle's starting point: upstream's `NextDouble() * 6.28`, just short of a full turn.
+    func phase() -> Double { nextDouble() * 6.28 }
+}
+
+/// Set-At after upstream's `[math]::Round` of both coordinates.
+func pixelPoint(_ x: Double, _ y: Double) -> CGPoint {
+    CGPoint(x: x.rounded(.toNearestOrEven), y: y.rounded(.toNearestOrEven))
 }

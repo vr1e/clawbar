@@ -47,6 +47,7 @@ import ClawBarShared
             .text("", at: .zero, size: 9, weight: .regular, color: red, opacity: 1, anchor: .topLeading),
             .radialGlow(a, inner: red, outer: blue, opacity: 0),
             .hGradient(a, stops: [], opacity: 1),
+            .vGradient(a, stops: [GradientStop(location: 0, color: red.withAlpha(0))], opacity: 1),
             .stroke([CGPoint(x: 1, y: 1)], red, width: 1, opacity: 1),
             .stroke([.zero, CGPoint(x: 4, y: 0)], red, width: 0, opacity: 1),
             .strokedEllipse(a, red, width: 0, opacity: 1),
@@ -121,6 +122,31 @@ import ClawBarShared
         let r = paint([.hGradient(CGRect(x: 0, y: 0, width: 20, height: 10), stops: stops, opacity: 1)], k: 1)
         #expect(r.color(atPoint: 1, 5).r < 40)
         #expect(r.color(atPoint: 18.5, 5).r > 215)
+    }
+
+    @Test func aVerticalGradientRunsTopToBottom() {
+        let stops = [GradientStop(location: 0, color: Palette.white), GradientStop(location: 1, color: Palette.black)]
+        let r = paint([.vGradient(CGRect(x: 0, y: 0, width: 20, height: 10), stops: stops, opacity: 1)], k: 1)
+        #expect(r.color(atPoint: 10, 0.5).r > 215)
+        #expect(r.color(atPoint: 10, 9.5).r < 40)
+    }
+
+    @Test func aSkewSlidesRowsByTheirDistanceFromItsAnchor() {
+        // 45° about y = 8: the bottom row stays put and the top row, 8 above it, slides 8 to the left.
+        let column = DrawOp.rects([CGRect(x: 10, y: 0, width: 2, height: 8)], Palette.white, opacity: 1)
+        let r = paint([.group([column], .skewX(degrees: 45).about(CGPoint(x: 0, y: 8)), opacity: 1, clip: nil)], k: 2)
+        #expect(r.color(atPoint: 21, 15).r > 200)
+        #expect(r.color(atPoint: 7, 1).r > 200)
+        #expect(r.color(atPoint: 21, 1).r < 5)
+    }
+
+    @Test func aScaleKeepsItsCentreWhereItIs() {
+        let square = DrawOp.rects([CGRect(x: 6, y: 1, width: 8, height: 8)], Palette.white, opacity: 1)
+        let r = paint([.group([square], .scale(0.5, 0.5).about(CGPoint(x: 10, y: 5)).concatenating(.translation(2, 0)), opacity: 1, clip: nil)], k: 2)
+        // Halved about (10, 5) to 8...12 × 3...7, then moved 2 to the right.
+        #expect(r.color(atPoint: 24, 10).r > 200)
+        #expect(r.color(atPoint: 18, 10).r < 5)
+        #expect(r.color(atPoint: 24, 4).r < 5)
     }
 
     @Test func aStrokeFollowsItsPointsAtItsWidth() {

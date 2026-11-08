@@ -23,6 +23,8 @@ struct SnapshotCase {
     var hoverX: Double?
     /// Animation ticks from `Samples.now` before the picture: enough for a scene's visitor to be in frame.
     var ticks = 60
+    /// What `ticks` was picked to show. A scene's visitors move with every seeded draw before them, so a test checks it.
+    var shows: ((SceneFrame) -> Bool)?
 }
 
 /// Every presenter state the data contract can express, all at `Samples.now` in Berlin.
@@ -148,11 +150,16 @@ enum SnapshotCases {
                 $0.config.theme = .fixed(theme)
             }
         }
+        /// A layer in `color` wholly inside the sky row.
+        func inSkyRow(_ color: RGBA) -> (SceneFrame) -> Bool {
+            { $0.sky.contains { if case let .rects(r, c, _) = $0, c == color { r.allSatisfy { $0.minX >= 0 && $0.maxX <= PlayArea.skySize.width } } else { false } } }
+        }
         add("scene-christmas") {
             $0.everyLanguageAndSize = false
             $0.config.theme = .fixed(.christmas)
             // The sleigh launches 120 scene steps in and is a third of the way across by now.
             $0.ticks = 330
+            $0.shows = inSkyRow(RGBA("#FFEF4444"))
         }
         // Opening the details uncovers more of the starfield.
         for (name, expanded) in [("scene-space", false), ("scene-space-expanded", true)] {
@@ -160,9 +167,17 @@ enum SnapshotCases {
                 $0.everyLanguageAndSize = false
                 $0.config.theme = .fixed(.space)
                 $0.config.expanded = expanded
-                // The seeded shooting star flies from tick 21 to 35.
+                // The seeded shooting star flies from tick 21 to 35: a faded group led by its rotated tail.
                 $0.ticks = 24
+                $0.shows = { $0.backdrop.contains { if case let .group(c, _, o, _) = $0, case .group = c.first { o > 0.5 } else { false } } }
             }
+        }
+        add("scene-ocean") {
+            $0.everyLanguageAndSize = false
+            $0.config.theme = .fixed(.ocean)
+            // Both seeded fish are in the sky row from tick 608 to past 750.
+            $0.ticks = 680
+            $0.shows = { frame in [RGBA("#FFFACC15"), RGBA("#FFFB7185")].allSatisfy { inSkyRow($0)(frame) } }
         }
         add("skin-santa") {
             $0.everyLanguageAndSize = false

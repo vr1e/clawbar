@@ -18,7 +18,7 @@ final class SpaceScene: ThemeScene {
         var phase, speed: Double
 
         init(random: any RandomSource) {
-            phase = random.nextDouble() * 6.28
+            phase = random.phase()
             speed = 0.05 + 0.15 * random.nextDouble()
         }
 
@@ -119,7 +119,7 @@ final class SpaceScene: ThemeScene {
         for (i, p) in Self.planets.enumerated() {
             let centre = CGPoint(x: sw * (p.fx + p.amp * sin(t / 250 + p.seed)), y: sh * p.fy + 2 * sin(t / 45 + p.seed))
             let d = p.side
-            let at = CGPoint(x: (centre.x - d / 2).rounded(.toNearestOrEven), y: (centre.y - d / 2).rounded(.toNearestOrEven))
+            let at = pixelPoint(centre.x - d / 2, centre.y - d / 2)
             ops.append(glow(p.colors[2], 0.28, in: CGRect(x: centre.x - d, y: centre.y - d, width: d * 2, height: d * 2)))
             if p.ring { ops.append(Self.ringHalf(p, centre: centre, back: true)) }
             ops += Self.turns[i][Int((t * p.spin).rounded(.down)) % Self.turnFrames].ops(at: at)
@@ -131,7 +131,7 @@ final class SpaceScene: ThemeScene {
         ship += 0.002
         if ship > 1.4 { ship = -Self.shipWidth / sw }
         let px = Self.px
-        let at = CGPoint(x: (ship * sw).rounded(.toNearestOrEven), y: (3 + 2 * sin(t / 12)).rounded(.toNearestOrEven))
+        let at = pixelPoint(ship * sw, 3 + 2 * sin(t / 12))
         let flame = Double(2 + tick % 4) * px
         ops += Self.ship.ops(at: at)
         ops.append(.rects([CGRect(x: at.x - flame, y: at.y + 3 * px, width: flame, height: px)], Self.flameColor, opacity: 1))
