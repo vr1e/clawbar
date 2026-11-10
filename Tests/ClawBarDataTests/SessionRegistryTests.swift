@@ -80,7 +80,7 @@ struct FakeTable: ProcessTable {
         session(4242, ["status": "waiting", "waitingFor": "permission", "name": "clawbar", "cwd": "/Users/example/Dev/clawbar"])
         let s = registry(table(4242)).read(excluding: [], now: started)
         #expect(s == [SessionInfo(
-            pid: 4242, sessionId: "00000000-0000-4000-8000-000000000002", name: "clawbar", cwd: "/Users/example/Dev/clawbar",
+            pid: 4242, sessionId: "00000000-0000-4000-8000-000000000002", name: "clawbar", named: true, cwd: "/Users/example/Dev/clawbar",
             state: .waiting, waitingFor: "permission", kind: "interactive", startedAt: Date(timeIntervalSince1970: 1_792_186_204.842)
         )])
     }

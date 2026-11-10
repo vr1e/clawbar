@@ -47,6 +47,8 @@ struct CommandRecipes: Sendable {
     private let updateLog: URL
     /// Keeps each transcript's read position and the week's replies between scans.
     private let scanner = TranscriptScanner()
+    /// Keeps what each transcript's tail said, so an unchanged one is not read again.
+    private let recentScanner = RecentSessionScanner()
 
     /// The status page and the latest version; the changelog is a bigger file.
     static let httpTimeout: TimeInterval = 15
@@ -115,6 +117,9 @@ struct CommandRecipes: Sendable {
             let scanner = scanner
             // A first pass reads every transcript of the week, so it yields to everything else.
             return .later(priority: .utility) { .projects(await scanner.scan(root: root, now: clock())) }
+        case .scanRecent(let root):
+            let scanner = recentScanner
+            return .later(priority: .utility) { .recentScanned(await scanner.scan(root: root, now: clock())) }
         case .log, .cancelAll:
             return nil
         }

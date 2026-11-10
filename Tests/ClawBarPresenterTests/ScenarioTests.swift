@@ -253,8 +253,8 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
                 config: Config(), now: Samples.now, timeZone: Samples.timeZone, data: .sample, homeDirectory: home
             )).tooltip(.sessions) ?? ""
         }
-        #expect(tooltip(home: "/Users/example/") == "▶ clawbar — ~/Dev/clawbar\n? notes [permission] — ~/notes")
-        #expect(tooltip(home: "") == "▶ clawbar — /Users/example/Dev/clawbar\n? notes [permission] — /Users/example/notes")
+        #expect(tooltip(home: "/Users/example/") == "▶ Menu bar tooltip wording — ~/Dev/clawbar\n? Reading list [permission] — ~/notes")
+        #expect(tooltip(home: "") == "▶ Menu bar tooltip wording — /Users/example/Dev/clawbar\n? Reading list [permission] — /Users/example/notes")
     }
 
     @Test func noSessionsMeansNoTooltip() {

@@ -14,6 +14,9 @@ later releases.
   the Claude Code sessions running right now with a hover list, Anthropic's service status, your last 24 hours and
   7 days in detail, the Claude Code version with a one-click update, and your plan and account. **Week as the main
   limit** in Settings swaps the session and the week, for when the week is the one you run into.
+- **Recent sessions:** the menu lists the Claude Code sessions of the last 7 days by what they were about, running
+  or ended, newest first, so a closed tab or a restart no longer loses the thread. Hover one for your last prompt;
+  click one to resume it in a new Ghostty tab, or to bring a running one's tab forward.
 - **Clawd** lives by your numbers. He works while a session is busy, hops up with a "?" when one waits for you,
   wanders and dozes when things are quiet, and burrows in to sleep when nothing runs. Near the limit he sweats; at
   100% he lies belly-up. Three hearts show how much of the main limit is left, and a click gets you a trick.
@@ -48,10 +51,17 @@ To update, pull and run the last two commands again. `config.json` and ClawBar's
 ## Use
 
 - **Left-click** the menu bar item to show or hide the widget; **right-click** (or ctrl-click) it for the menu:
-  Refresh now, Settings…, Quit.
+  Recent sessions, Refresh now, Settings…, Quit.
+- **Recent sessions** holds up to 15 sessions of the last 7 days as `● title · folder · time since its last
+  activity`: ● runs now, ○ has ended. The title is the one you gave with `/rename` or `claude -n`, else Claude
+  Code's own summary, else the folder's name. Hovering an item shows your last prompt in it. Clicking an ended one
+  opens a Ghostty tab in its folder and types `claude -r <id>`; without Ghostty the click copies
+  `cd '<folder>' && claude -r <id>`. Clicking a running one brings its Ghostty tab forward instead, since a second
+  process on the same conversation would fork it. The first click makes macOS ask whether ClawBar may control
+  Ghostty.
 - **Settings…** opens beside the widget, and every change shows at once. Look picks the language, the colour
-  theme and Clawd's skin; Widget sets the size, opacity and always on top, which blocks the widget shows, launch at login and Clawd in
-  menu bar (untick Clawd there and in the widget for the numbers alone). The rest is in `config.json`, which its
+  theme and Clawd's skin; Widget sets the size, opacity and always on top, which blocks the widget shows, launch at login, Clawd in
+  menu bar (untick Clawd there and in the widget for the numbers alone) and Recent sessions in the menu. The rest is in `config.json`, which its
   button opens.
 - **Drag** the widget by anything but Clawd and the buttons. ▾ opens the details, – hides the widget, ✕ quits.
 - **Click** the status line to open status.claude.com, the version line to run `claude update` when one is out
@@ -96,6 +106,7 @@ the file is not valid JSON, ClawBar runs on the defaults and the widget's last-u
 | `claudePath` | unset | a `claude` executable to use first |
 | `launchAtLogin` | `true` | open at login |
 | `menuBarMascot` | `true` | Clawd beside the % in the menu bar |
+| `showRecentSessions` | `true` | Recent sessions in the menu, and with it reading titles and last prompts from the transcripts; also in **Settings › Widget** |
 
 ### Your own skins
 
@@ -148,7 +159,15 @@ Everything ClawBar touches, so you know there is nothing else:
   Claude Code's folder, or `CLAUDE_CONFIG_DIR` when that is set. With `showHistory` on and the details open, it reads
   the week's transcripts in `~/.claude/projects` every 15 minutes, taking only each reply's model, fast-mode flag,
   token counts, time, message or request id and working folder to weigh this week's projects; `--diagnose` reads them
-  once and prints only counts. It keeps none of what was said, and nothing leaves the Mac.
+  once and prints only counts. With `showRecentSessions` on, it reads the end of each session transcript of the week
+  every minute, and only those that changed, taking the session's title, your last prompt cut to 300 characters, its
+  folder and the time of its last line. The titles show in the menu and in the widget's sessions hover list, so they
+  say on screen what a session was about; the prompt shows only in a menu item's hover popup. Both stay in memory:
+  `error.log`, `state.json`, `--dump-state` and `--diagnose` get counts, never the text. Beyond that it keeps none
+  of what was said, and nothing leaves the Mac.
+- **Ghostty:** a click on a recent session runs `osascript` to ask Ghostty for a new tab in the session's folder
+  with `claude -r <id>` typed in, or to bring forward the tab a running session's process is in. Without Ghostty
+  the command goes to the clipboard instead.
 - **Your login shell:** run once at start (`$SHELL -ilc`) to learn claude's path, `PATH` and `CLAUDE_CONFIG_DIR`,
   which a GUI app does not inherit. If it gives no answer within 5 seconds and claude is nowhere to be found,
   ClawBar asks again every usage interval, at most three more times.
@@ -281,6 +300,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   shows its folder under `~`, and the label's tooltip counts the replies whose model the price table lacks, priced
   as the closest one listed.
 - Clawd Run, the game for a used-up session limit, is ClawBar's own; the original has nothing like it.
+- Recent sessions in the menu are ClawBar's own too, and the widget's sessions hover list names a session by its
+  title where the original shows the registry's name.
 
 ## Development
 

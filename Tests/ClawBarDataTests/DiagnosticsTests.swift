@@ -49,7 +49,8 @@ import ClawBarShared
         h.session(4242, in: h.home + "/.claude")
         h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
         let text = await h.diagnose()
-        let lines = ["status: none", "account: Team", "sessions: 1 · p4242 (busy)", "projects: 0 transcripts"]
+        h.config.showRecentSessions = false
+        let lines = ["status: none", "account: Team", "sessions: 1 · p4242 (busy)", "projects: 0 transcripts", "recent sessions: 0 transcripts"]
         for line in lines { #expect(text.contains(line)) }
     }
 
@@ -61,6 +62,18 @@ import ClawBarShared
         let text = await h.diagnose()
         #expect(text.contains("projects: 1 transcripts · 0 MB · 1 projects · "))
         #expect(text.contains(" s · 1 replies without a list price (claude-opus-6)\n"))
+        #expect(!text.contains("secret"))
+    }
+
+    @Test func theRecentSessionsAreCountedButNeverQuoted() async {
+        let h = Harness()
+        h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
+        let lines = TranscriptLine.user(at: Harness.t0, cwd: "/Users/example/secret") + TranscriptLine.aiTitle("A secret title")
+            + TranscriptLine.lastPrompt("a secret prompt")
+        h.dir.write("home/.claude/projects/-Users-example-secret/\(sessionID(1)).jsonl", lines)
+        h.dir.write("home/.claude/projects/-Users-example-secret/\(sessionID(2)).jsonl", TranscriptLine.lastPrompt(""))
+        let text = await h.diagnose()
+        #expect(text.contains("recent sessions: 2 transcripts · 2 read · 1 sessions · "))
         #expect(!text.contains("secret"))
     }
 

@@ -13,6 +13,8 @@ import ClawBarShared
 
     func engine(latch: UsageLatch? = nil, history: [UsageSample] = [], _ edit: (inout Config) -> Void = { _ in }) -> DataEngine {
         var config = Config()
+        // The recent sessions have their own tests below; elsewhere their pass would sit in every command list.
+        config.showRecentSessions = false
         edit(&config)
         return DataEngine(config: config, environment: inherited, home: home, latch: latch, history: history)
     }
@@ -545,12 +547,132 @@ import ClawBarShared
         #expect(current.handle(.version(local: "2.1.303", latest: "2.1.303"), now: t0).isEmpty)
     }
 
+    // MARK: - Recent sessions
+
+    func transcript(
+        _ n: Int, custom: String? = nil, ai: String? = nil, prompt: String = "", cwd: String? = "/Users/example/api",
+        ago: TimeInterval = 600
+    ) -> TranscriptSummary {
+        TranscriptSummary(
+            sessionId: sessionID(n), customTitle: custom, aiTitle: ai, lastPrompt: prompt, cwd: cwd, lastActivity: t0 - ago
+        )
+    }
+
+    func recentEngine(_ edit: @escaping (inout Config) -> Void = { _ in }) -> DataEngine {
+        engine {
+            $0.showRecentSessions = true
+            edit(&$0)
+        }
+    }
+
+    @Test func theTranscriptsAreReadEveryMinuteWhateverTheWidgetShows() {
+        var e = recentEngine {
+            $0.showSessions = false
+            $0.showMascot = false
+            $0.showHistory = false
+        }
+        // Before the login shell answered, the config dir is unknown.
+        #expect(!kinds(e.handle(.tick, now: t0)).contains("scanRecent"))
+        let asked = e.handle(.loginShell(LoginEnvironment()), now: t0)
+        // The sessions are read too: only the registry knows which of them still run.
+        #expect(kinds(asked).contains("readSessions"))
+        #expect(e.handle(.located(nil, installHint: nil), now: t0).contains(.scanRecent(root: "/Users/example/.claude/projects")))
+        #expect(!kinds(e.handle(.tick, now: t0 + 600)).contains("scanRecent"))
+        _ = e.handle(.recentScanned(RecentScan()), now: t0 + 2)
+        #expect(!kinds(e.handle(.tick, now: t0 + 59)).contains("scanRecent"))
+        #expect(kinds(e.handle(.tick, now: t0 + 60)).contains("scanRecent"))
+        var off = engine()
+        #expect(!kinds(start(&off, now: t0)).contains("scanRecent"))
+    }
+
+    @Test func anotherConfigDirectoryIsReadAtOnce() {
+        var e = recentEngine()
+        start(&e, now: t0)
+        _ = e.handle(.recentScanned(RecentScan()), now: t0 + 1)
+        _ = e.handle(.account(AccountInfo(loggedIn: true, configDirectory: "/Users/example/.claude-work")), now: t0 + 2)
+        #expect(e.handle(.tick, now: t0 + 3).contains(.scanRecent(root: "/Users/example/.claude-work/projects")))
+    }
+
+    @Test func theTitleFallsBackFromRenameToSummaryToAGivenNameToTheFolder() {
+        var e = recentEngine()
+        start(&e, now: t0)
+        _ = e.handle(.sessionsRead([
+            SessionInfo(pid: 13, sessionId: sessionID(3), name: "amp", named: true, cwd: "/Users/example/sonos", state: .busy),
+            SessionInfo(pid: 14, sessionId: sessionID(4), name: "dev-dc", cwd: "/Users/example/Dev", state: .waiting),
+        ]), now: t0)
+        _ = e.handle(.recentScanned(RecentScan(sessions: [
+            transcript(1, custom: "Mine", ai: "Summary", prompt: "p1", ago: 100),
+            transcript(2, ai: "Summary", prompt: "p2", ago: 200),
+            transcript(3, prompt: "p3", cwd: nil, ago: 300),
+            transcript(4, prompt: "p4", cwd: "/Users/example/Dev", ago: 400),
+            transcript(5, prompt: "p5", cwd: nil, ago: 500),
+        ])), now: t0)
+        let recent = e.snapshot.recentSessions
+        #expect(recent.map(\.title) == ["Mine", "Summary", "amp", "Dev", "00000000"])
+        #expect(recent.map(\.titleSource) == [.custom, .ai, .registry, .folder, .folder])
+        // A transcript that names no folder takes the live session's.
+        #expect(recent.map(\.cwd) == ["/Users/example/api", "/Users/example/api", "/Users/example/sonos", "/Users/example/Dev", ""])
+        #expect(recent.map(\.lastPrompt) == ["p1", "p2", "p3", "p4", "p5"])
+    }
+
+    @Test func liveSessionsAreJoinedOnEveryRegistryReadNewestFirst() {
+        var e = recentEngine()
+        start(&e, now: t0)
+        _ = e.handle(.recentScanned(RecentScan(sessions: [
+            transcript(1, ai: "Older", ago: 3600), transcript(2, ai: "Newer", ago: 60), transcript(3, ai: "Same time", ago: 60),
+        ])), now: t0)
+        #expect(e.snapshot.recentSessions.map(\.title) == ["Newer", "Same time", "Older"])
+        #expect(e.snapshot.recentSessions.allSatisfy { !$0.isLive && $0.pid == nil })
+        _ = e.handle(.sessionsRead([
+            SessionInfo(pid: 11, sessionId: sessionID(1), name: "api-07", cwd: "/Users/example/api", state: .waiting),
+            // No transcript yet: not a recent session.
+            SessionInfo(pid: 19, sessionId: sessionID(9), name: "new-01", state: .idle),
+        ]), now: t0 + 2)
+        let older = e.snapshot.recentSessions[2]
+        #expect(older.isLive && older.pid == 11 && older.state == .waiting && older.title == "Older")
+        #expect(e.snapshot.recentSessions.count == 3)
+        // It ended: the next read says so without another pass over the transcripts.
+        _ = e.handle(.sessionsRead([]), now: t0 + 4)
+        #expect(e.snapshot.recentSessions.allSatisfy { !$0.isLive })
+    }
+
+    @Test func switchingItOffForgetsWhatWasReadAndOnReadsAtOnce() {
+        var e = recentEngine()
+        start(&e, now: t0)
+        _ = e.handle(.recentScanned(RecentScan(sessions: [transcript(1, ai: "Title", prompt: "secret")])), now: t0 + 1)
+        #expect(e.snapshot.recentSessions.count == 1)
+        var config = e.config
+        config.showRecentSessions = false
+        _ = e.handle(.configChanged(config), now: t0 + 2)
+        #expect(e.snapshot.recentSessions.isEmpty)
+        #expect(!kinds(e.handle(.tick, now: t0 + 120)).contains("scanRecent"))
+        // The registry's next read brings nothing back.
+        _ = e.handle(.sessionsRead([SessionInfo(pid: 11, sessionId: sessionID(1), name: "x")]), now: t0 + 121)
+        #expect(e.snapshot.recentSessions.isEmpty)
+        config.showRecentSessions = true
+        _ = e.handle(.configChanged(config), now: t0 + 122)
+        #expect(kinds(e.handle(.tick, now: t0 + 123)).contains("scanRecent"))
+        // A pass that was running while it was switched off is dropped.
+        config.showRecentSessions = false
+        _ = e.handle(.configChanged(config), now: t0 + 124)
+        _ = e.handle(.recentScanned(RecentScan(sessions: [transcript(1, ai: "Title", prompt: "secret")])), now: t0 + 125)
+        #expect(e.snapshot.recentSessions.isEmpty)
+    }
+
+    @Test func theLogCountsUnreadableTranscriptsAndQuotesNothing() {
+        var e = recentEngine()
+        start(&e, now: t0)
+        let scan = RecentScan(sessions: [transcript(1, ai: "A private title", prompt: "a private prompt")], files: 3, read: 2, unreadable: 2)
+        #expect(logs(e.handle(.recentScanned(scan), now: t0 + 1)) == ["recent: unreadable transcripts: 2"])
+        #expect(logs(e.handle(.recentScanned(scan), now: t0 + 61)).isEmpty)
+    }
+
     // MARK: - One instant
 
     /// What `--diagnose` relies on: at one instant every slot starts once and the next tick asks for nothing.
     @Test func atOneInstantEverySlotStartsOnceAndThenNothingIsDue() {
         var e = engine { $0 = $0.everyBlockOn() }
-        #expect(kinds(start(&e, now: t0)) == ["probeStatus", "runLoginShell", "readSessions", "locate", "scanProjects", "probeVersion", "probeUsage", "probeAccount"])
+        #expect(kinds(start(&e, now: t0)) == ["probeStatus", "runLoginShell", "readSessions", "locate", "scanProjects", "scanRecent", "probeVersion", "probeUsage", "probeAccount"])
         #expect(e.handle(.version(local: "2.1.301", latest: "2.1.303"), now: t0) == [.fetchChangelog])
         _ = e.handle(.changelog(nil), now: t0)
         _ = e.handle(usage(50), now: t0)
@@ -558,10 +680,13 @@ import ClawBarShared
         _ = e.handle(.status(ServiceStatus(indicator: "none")), now: t0)
         _ = e.handle(.sessionsRead([]), now: t0)
         _ = e.handle(.projects(ProjectScan()), now: t0)
+        _ = e.handle(.recentScanned(RecentScan()), now: t0)
         // The account moved the transcripts once; the poll always reads, so it is not a reason to go on.
-        #expect(e.handle(.tick, now: t0) == [.scanProjects(root: "/Users/example/.claude-work/projects")])
+        let work = "/Users/example/.claude-work/projects"
+        #expect(e.handle(.tick, now: t0) == [.scanProjects(root: work), .scanRecent(root: work)])
         #expect(kinds(e.handle(.pollSessions, now: t0)) == ["readSessions"])
         _ = e.handle(.projects(ProjectScan()), now: t0)
+        _ = e.handle(.recentScanned(RecentScan()), now: t0)
         #expect(e.handle(.tick, now: t0).isEmpty)
         // A latch lifted by the version re-arms the usage probe once.
         var latched = engine(latch: UsageLatch(version: "2.1.301", issue: .flagRejected("--x")))

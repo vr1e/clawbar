@@ -111,6 +111,7 @@ public final class ConfigStore {
         c.claudePath = j["claudePath"] as? String
         c.launchAtLogin = Lenient.bool(j["launchAtLogin"]) ?? d.launchAtLogin
         c.menuBarMascot = Lenient.bool(j["menuBarMascot"]) ?? d.menuBarMascot
+        c.showRecentSessions = Lenient.bool(j["showRecentSessions"]) ?? d.showRecentSessions
         return c.clamped()
     }
 
@@ -156,6 +157,7 @@ public final class ConfigStore {
         case .claudePath: c.claudePath.map(AnyHashable.init)
         case .launchAtLogin: c.launchAtLogin
         case .menuBarMascot: c.menuBarMascot
+        case .showRecentSessions: c.showRecentSessions
         }
     }
 

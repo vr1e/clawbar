@@ -401,7 +401,11 @@ final class AppController: NSObject, WidgetPanelDelegate {
     // MARK: Menu bar
 
     private func statusMenu() -> NSMenu {
-        let entries = StatusMenu.entries(config: config, widgetVisible: widgetVisible, limitReached: app.view.limitReached)
+        let recent = config.showRecentSessions
+            ? RecentSessionsMenu.items(presenterInput(now: Date()), terminal: SessionTerminal.ghosttyInstalled) : nil
+        let entries = StatusMenu.entries(
+            config: config, widgetVisible: widgetVisible, limitReached: app.view.limitReached, recent: recent
+        )
         return MenuBuilder.menu(entries) { [unowned self] in perform($0) }
     }
 
@@ -413,8 +417,38 @@ final class AppController: NSObject, WidgetPanelDelegate {
             if reloadSkins() { recompute() }
             settings.show(beside: panel.frame, on: (panel.screen ?? NSScreen.main)?.visibleFrame)
         case .play: game.show()
+        case .resume(let id): resume(id)
+        case .focus(let id): focus(id)
         case .quit: NSApp.terminate(nil)
         }
+    }
+
+    /// `claude -r` in the session's folder: typed into a new Ghostty tab, else put on the clipboard.
+    private func resume(_ sessionId: String) {
+        guard let session = data.snapshot.recentSessions.first(where: { $0.sessionId == sessionId }),
+              let command = SessionTerminal.resumeCommand(sessionId: sessionId),
+              let line = SessionTerminal.shellLine(cwd: session.cwd, sessionId: sessionId)
+        else { return }
+        // It started again since the menu opened: a second process on the conversation would fork it.
+        guard !session.isLive else { return focus(sessionId) }
+        guard SessionTerminal.ghosttyInstalled else { return copy(line) }
+        SessionTerminal.run(SessionTerminal.newTab(cwd: session.cwd, command: command)) { [weak self] opened in
+            guard let self, !opened else { return }
+            // Automation was refused, or Ghostty could not open the tab.
+            errorLog.append("recent: Ghostty opened no tab; the resume command is on the clipboard")
+            copy(line)
+        }
+    }
+
+    /// Brings a live session's Ghostty tab forward; one that runs elsewhere stays where it is.
+    private func focus(_ sessionId: String) {
+        guard let pid = data.snapshot.recentSessions.first(where: { $0.sessionId == sessionId })?.pid else { return }
+        SessionTerminal.run(SessionTerminal.focus(pid: pid)) { _ in }
+    }
+
+    private func copy(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 
     private func perform(_ action: SettingsAction) {
@@ -424,6 +458,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .toggleMainWeek: change { $0.mainLimit = $0.mainLimit.other }
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
+        case .toggleRecentSessions: change { $0.showRecentSessions.toggle() }
         case .language(let l): change { $0.language = l.rawValue }
         case .theme(let t): change { $0.theme = t }
         case .skin(let id): change { $0.skin = id }

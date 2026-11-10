@@ -4,7 +4,7 @@ import ClawBarShared
 /// A change asked for in the Settings window.
 enum SettingsAction: Hashable {
     case step(SteppedSetting, up: Bool)
-    case toggleTopmost, toggleMainWeek, toggleLaunchAtLogin, toggleMenuBarMascot
+    case toggleTopmost, toggleMainWeek, toggleLaunchAtLogin, toggleMenuBarMascot, toggleRecentSessions
     case language(Lang)
     case theme(ThemeChoice)
     /// A skin's id, as config.json's `skin` takes it.
@@ -159,6 +159,7 @@ enum SettingsPage {
                 SettingsSection(header: t(.setSystem), rows: [
                     toggle(.setLogin, config.launchAtLogin, .toggleLaunchAtLogin),
                     toggle(.setMenuBarMascot, config.menuBarMascot, .toggleMenuBarMascot),
+                    toggle(.setRecentSessions, config.showRecentSessions, .toggleRecentSessions, detail: .setRecentSessionsTip),
                 ]),
                 more,
             ]

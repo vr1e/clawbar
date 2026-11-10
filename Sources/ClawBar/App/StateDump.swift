@@ -54,6 +54,7 @@ struct StateDump {
         add("config.showHistory", config.showHistory)
         add("config.launchAtLogin", config.launchAtLogin)
         add("config.menuBarMascot", config.menuBarMascot)
+        add("config.showRecentSessions", config.showRecentSessions)
         add("loginItem.status", loginItemStatus)
         add("loginItem.installedApp", installedApp)
         let u = snapshot.usage
@@ -73,6 +74,9 @@ struct StateDump {
         add("projects", snapshot.projects.map { "\($0.projects.count), scanned \(Self.iso(snapshot.projectsAt))" } ?? "none")
         let busy = snapshot.count(of: .busy), waiting = snapshot.count(of: .waiting)
         add("sessions", "\(snapshot.sessions.count) (busy \(busy), waiting \(waiting)), read: \(snapshot.sessionsRead)")
+        // Counts only: titles, folders and prompts stay out of the dump.
+        let recent = snapshot.recentSessions
+        add("recentSessions", "\(recent.count) (live \(recent.count { $0.isLive }), titled \(recent.count { $0.titleSource != .folder }))")
         add("status.indicator", snapshot.status?.indicator ?? "none")
         add("status.at", Self.iso(snapshot.statusAt))
         if let a = snapshot.account {

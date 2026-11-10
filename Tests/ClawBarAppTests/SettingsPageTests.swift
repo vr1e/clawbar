@@ -99,18 +99,19 @@ import ClawBarShared
         let s = widget()
         #expect(s.map(\.header) == [nil, "In the widget", "System", nil])
         #expect(toggles(s).map(\.action) == [.toggleTopmost, .toggleMainWeek] + WidgetBlock.allCases.map { .toggleBlock($0) } + [
-            .toggleLaunchAtLogin, .toggleMenuBarMascot,
+            .toggleLaunchAtLogin, .toggleMenuBarMascot, .toggleRecentSessions,
         ])
         #expect(toggles(s).map(\.title) == [
             "Always on top", "Week as the main limit", "Clawd", "Sky and weather behind him", "Anthropic status", "Running sessions", "Plan and account",
             "Last 24 hours and 7 days (details)", "7-day chart and top projects (details)", "Launch at login", "Clawd in menu bar",
+            "Recent sessions in the menu",
         ])
     }
 
     @Test func switchesFollowTheConfigAndTheSkyNeedsClawd() {
         var config = Config(topmost: true, launchAtLogin: false)
         config.showStats = false
-        #expect(toggles(widget(config)).map(\.on) == [true, false, true, true, true, true, true, false, false, false, true])
+        #expect(toggles(widget(config)).map(\.on) == [true, false, true, true, true, true, true, false, false, false, true, true])
         #expect(toggles(widget(config)).allSatisfy { $0.enabled })
         config.showMascot = false
         let sky = toggles(widget(config))[3]
@@ -121,7 +122,9 @@ import ClawBarShared
         let week = toggles(widget(Config(mainLimit: .week)))[1]
         #expect(week.on && week.action == .toggleMainWeek)
         #expect(week.detail == L10n.t(.setMainWeekTip, .en))
-        #expect(toggles(widget()).filter { $0.detail != nil }.count == 1)
+        // The other switch with a line under it says what it reads.
+        #expect(toggles(widget()).compactMap(\.detail) == [L10n.t(.setMainWeekTip, .en), L10n.t(.setRecentSessionsTip, .en)])
+        #expect(!toggles(widget(Config(showRecentSessions: false))).last!.on)
     }
 
     @Test func eachBlockTogglesItsOwnConfigKey() {
@@ -153,7 +156,7 @@ import ClawBarShared
         let de = Config(language: "de")
         #expect(widget(de).map(\.header) == [nil, "Im Widget", "System", nil])
         #expect(SettingsTab.allCases.map { L10n.t($0.title, .de) } == ["Darstellung", "Widget"])
-        #expect(toggles(widget(de)).last?.title == L10n.t(.setMenuBarMascot, .de))
+        #expect(toggles(widget(de)).last?.title == L10n.t(.setRecentSessions, .de))
     }
 
     @Test func theTextDumpShowsEveryControl() {
@@ -165,7 +168,7 @@ import ClawBarShared
         #expect(dump.contains("    [x] Always on top\n    [ ] Week as the main limit\n        The big number"))
         #expect(dump.contains("    IN THE WIDGET\n      [ ] Clawd\n      [x] Sky and weather behind him  (disabled)"))
         // The footer stands apart from the System section above it.
-        #expect(dump.contains("      [x] Clawd in menu bar\n    The rest"))
+        #expect(dump.contains("      [x] Recent sessions in the menu\n        Reads each session's title and last prompt from the Claude Code transcripts on this Mac.\n    The rest"))
         #expect(dump.contains("    [Open config.json]"))
     }
 }

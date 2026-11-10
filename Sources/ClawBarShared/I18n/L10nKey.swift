@@ -125,6 +125,20 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case menuHide = "menu.hide"
     case menuRefresh = "menu.refresh"
     case menuSettings = "menu.settings"
+    /// The submenu of the last 7 days' sessions, and its one line while there are none.
+    case menuRecent = "menu.recent"
+    case recentNone = "recent.none"
+    /// What a click on a recent session does, under its last prompt in the item's tooltip.
+    case recentResume = "recent.resume"
+    case recentCopy = "recent.copy"
+    /// A live session; {0} is its folder.
+    case recentRunning = "recent.running"
+    case recentFocus = "recent.focus"
+    /// The time since a recent session's last activity; minutes are `span.m`.
+    case agoNow = "ago.now"
+    case agoH = "ago.h"
+    case agoYesterday = "ago.yesterday"
+    case agoD = "ago.d"
 
     // Settings window
     case setTabLook = "set.tabLook"
@@ -183,6 +197,9 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case setLogin = "set.login"
     /// Clawd beside the % in the menu bar.
     case setMenuBarMascot = "set.menuBarMascot"
+    /// The menu's Recent sessions, and what switching it on reads.
+    case setRecentSessions = "set.recentSessions"
+    case setRecentSessionsTip = "set.recentSessionsTip"
     /// The footer: what is left to config.json, and the button that opens it.
     case setMore = "set.more"
     case setConfig = "set.config"

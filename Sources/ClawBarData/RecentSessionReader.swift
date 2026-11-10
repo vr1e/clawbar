@@ -1,0 +1,275 @@
+import Foundation
+import ClawBarShared
+
+/// What one transcript says about its session. Of what was said only the last prompt is kept, cut short.
+struct TranscriptSummary: Sendable, Hashable {
+    var sessionId: String
+    /// Set by `/rename` or `claude -n`.
+    var customTitle: String?
+    var aiTitle: String?
+    var lastPrompt = ""
+    /// The folder the session was started in, else the last one a line named.
+    var cwd: String?
+    /// The newest line's time, else the file's.
+    var lastActivity: Date
+    /// `cli`, `claude-desktop`, or `sdk-cli` for a `claude -p` run.
+    var entrypoint: String?
+    /// Claude answered at least once.
+    var replied = false
+
+    /// Something was asked, by a person: a `/clear` alone leaves no title, prompt or reply, and a `claude -p` run
+    /// belongs to another tool. A transcript without title lines still counts once Claude replied.
+    var isSession: Bool {
+        entrypoint != "sdk-cli" && (customTitle != nil || aiTitle != nil || !lastPrompt.isEmpty || replied)
+    }
+}
+
+/// Reads a transcript's lines that title its session, backwards from the end, where Claude Code appends them again as
+/// the conversation goes on. The lines are Claude Code's internal format, so every field is optional and a missing or
+/// malformed one is no error.
+struct RecentSessionReader: Sendable {
+    /// One backward step, and the most a transcript is read back from its end.
+    static let step = 64 << 10
+    static let cap = 1 << 20
+    /// How far past the title and the prompt the read goes on: a `custom-title` is written just before its `ai-title`.
+    static let margin = 4 << 10
+    static let promptLimit = 300
+    static let titleLimit = 120
+
+    private var customTitle: String?
+    private var aiTitle: String?
+    /// Empty once a `last-prompt` line was seen without text.
+    private var lastPrompt: String?
+    private var lastCwd: String?
+    private var firstCwd: String?
+    private var entrypoint: String?
+    private var lastActivity: Date?
+    private var replied = false
+    /// What came before the earliest whole line read: the end of a line that starts in a chunk not read yet.
+    private var carry = Data()
+    /// The bytes taken so far; of them, those from the file's end back to the earliest whole line read, and back to
+    /// the line that settled title and prompt.
+    private var taken = 0
+    private var scanned = 0
+    private var settledAt: Int?
+
+    private static let customNeedle = Data(#""type":"custom-title""#.utf8)
+    private static let aiNeedle = Data(#""type":"ai-title""#.utf8)
+    private static let promptNeedle = Data(#""type":"last-prompt""#.utf8)
+    private static let stampNeedle = Data(#""timestamp":""#.utf8)
+    private static let cwdNeedle = Data(#""cwd":""#.utf8)
+    private static let originNeedle = Data(#""entrypoint":""#.utf8)
+    /// As `TranscriptScanner`'s marker: every assistant line carries it at the top level.
+    private static let replyNeedle = Data(#""type":"assistant""#.utf8)
+    private static let stamp = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+    private static let wholeSeconds = Date.ISO8601FormatStyle()
+
+    /// The title and the last prompt are both read, with the margin behind them.
+    var isComplete: Bool { settledAt.map { scanned - $0 >= Self.margin } ?? false }
+
+    /// Takes the chunk that ends where the last one began; `atStart` when it begins the file.
+    mutating func add(earlier chunk: Data, atStart: Bool) {
+        let data = chunk + carry
+        taken += chunk.count
+        var end = data.endIndex, earliest = data.endIndex
+        // Lines from the last to the first, so the first one found of a kind is the file's current one.
+        while end > data.startIndex {
+            let newline = data[data.startIndex ..< end].lastIndex(of: 0x0A)
+            guard newline != nil || atStart else { break }
+            let start = newline.map { $0 + 1 } ?? data.startIndex
+            if start < end { read(data[start ..< end]) }
+            earliest = start
+            scanned = taken - (start - data.startIndex)
+            if settledAt == nil, customTitle != nil || aiTitle != nil, lastPrompt != nil { settledAt = scanned }
+            end = newline ?? data.startIndex
+        }
+        carry = atStart ? Data() : Data(data[data.startIndex ..< earliest])
+    }
+
+    /// The file's first bytes, for what only its start tells: the folder it was started in, and a name given with
+    /// `claude -n`. `whole` when they are the whole file, so the last line counts without its newline.
+    mutating func addHead(_ data: Data, whole: Bool) {
+        var start = data.startIndex
+        var custom: String?
+        while start < data.endIndex {
+            let newline = data[start...].firstIndex(of: 0x0A)
+            guard newline != nil || whole else { break }
+            let end = newline ?? data.endIndex
+            let line = data[start ..< end]
+            if firstCwd == nil, line.range(of: Self.cwdNeedle) != nil, let j = Self.object(line) {
+                firstCwd = Self.text(j["cwd"])
+            }
+            if line.range(of: Self.customNeedle) != nil, let j = Self.object(line), j["type"] as? String == "custom-title" {
+                custom = Self.clean(j["customTitle"], limit: Self.titleLimit) ?? custom
+            }
+            start = end + 1
+        }
+        // A later rename sits in the tail and outranks it.
+        customTitle = customTitle ?? custom
+    }
+
+    /// What was read, for the transcript `sessionId` last modified at `modified`.
+    func summary(sessionId: String, modified: Date) -> TranscriptSummary {
+        TranscriptSummary(
+            sessionId: sessionId, customTitle: customTitle, aiTitle: aiTitle, lastPrompt: lastPrompt ?? "",
+            cwd: firstCwd ?? lastCwd, lastActivity: lastActivity ?? modified, entrypoint: entrypoint, replied: replied
+        )
+    }
+
+    /// A whole transcript in memory, as the scanner reads one from disk.
+    static func summary(of data: Data, sessionId: String, modified: Date) -> TranscriptSummary {
+        var reader = RecentSessionReader()
+        var end = data.count
+        while end > 0, !reader.isComplete, data.count - end < cap {
+            let start = max(0, end - step)
+            reader.add(earlier: data.subdata(in: start ..< end), atStart: start == 0)
+            end = start
+        }
+        reader.addHead(data.prefix(step), whole: data.count <= step)
+        return reader.summary(sessionId: sessionId, modified: modified)
+    }
+
+    /// One whole line, parsed only when it can still tell something.
+    private mutating func read(_ line: Data) {
+        if !replied, line.range(of: Self.replyNeedle) != nil { replied = true }
+        let wantsCustom = customTitle == nil && line.range(of: Self.customNeedle) != nil
+        let wantsAI = aiTitle == nil && line.range(of: Self.aiNeedle) != nil
+        let wantsPrompt = lastPrompt == nil && line.range(of: Self.promptNeedle) != nil
+        let wantsStamp = lastActivity == nil && line.range(of: Self.stampNeedle) != nil
+        let wantsOrigin = entrypoint == nil && line.range(of: Self.originNeedle) != nil
+        guard wantsCustom || wantsAI || wantsPrompt || wantsStamp || wantsOrigin, let j = Self.object(line) else { return }
+        switch j["type"] as? String {
+        case "custom-title":
+            if wantsCustom { customTitle = Self.clean(j["customTitle"], limit: Self.titleLimit) }
+        case "ai-title":
+            if wantsAI { aiTitle = Self.clean(j["aiTitle"], limit: Self.titleLimit) }
+        case "last-prompt":
+            if wantsPrompt { lastPrompt = Self.clean(j["lastPrompt"], limit: Self.promptLimit) ?? "" }
+        default:
+            // Most lines carry a time; only the conversation's own say how the session was started, and where it is.
+            if wantsStamp, let text = j["timestamp"] as? String {
+                lastActivity = (try? Self.stamp.parse(text)) ?? (try? Self.wholeSeconds.parse(text))
+            }
+            if wantsOrigin, let origin = Self.text(j["entrypoint"]) {
+                entrypoint = origin
+                lastCwd = Self.text(j["cwd"])
+            }
+        }
+    }
+
+    private static func object(_ line: Data) -> NSDictionary? {
+        (try? JSONSerialization.jsonObject(with: line)) as? NSDictionary
+    }
+
+    private static func text(_ value: Any?) -> String? {
+        (value as? String).flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    /// One line of text: whitespace runs become a space, and past `limit` characters it ends in `…`. nil when empty.
+    static func clean(_ value: Any?, limit: Int) -> String? {
+        guard let s = value as? String else { return nil }
+        let words = s.split(whereSeparator: \.isWhitespace)
+        guard !words.isEmpty else { return nil }
+        let line = words.joined(separator: " ")
+        return line.count > limit ? line.prefix(limit).trimmingCharacters(in: .whitespaces) + "…" : line
+    }
+}
+
+/// One pass over the recent transcripts.
+struct RecentScan: Sendable, Hashable {
+    /// The sessions that asked something, in no order.
+    var sessions: [TranscriptSummary] = []
+    /// Session transcripts changed this week, and those read this pass because they were new or had changed.
+    var files = 0
+    var read = 0
+    /// Transcripts that could not be opened.
+    var unreadable = 0
+}
+
+/// Finds the week's session transcripts, `<config dir>/projects/<folder>/<session id>.jsonl`, and reads each one's
+/// tail. An unchanged file is never read twice.
+actor RecentSessionScanner {
+    private struct Cached {
+        var inode: UInt64
+        var size: UInt64
+        var reader: RecentSessionReader
+    }
+
+    private var root: String?
+    private var cache: [String: Cached] = [:]
+
+    /// A session's own transcript is named by its id; subagent transcripts sit in subfolders under other names.
+    private static let fileName = Rx.make(#"^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\.jsonl\z"#)
+
+    func scan(root: String, now: Date) -> RecentScan {
+        // Another config dir is another set of transcripts.
+        if root != self.root {
+            self.root = root
+            cache = [:]
+        }
+        let cutoff = now.addingTimeInterval(-TranscriptScanner.window).timeIntervalSince1970
+        var scan = RecentScan()
+        var seen: Set<String> = []
+        let fm = FileManager.default
+        for folder in (try? fm.contentsOfDirectory(atPath: root)) ?? [] {
+            let dir = root + "/" + folder
+            for name in (try? fm.contentsOfDirectory(atPath: dir)) ?? [] where Rx.matches(Self.fileName, name) {
+                guard !Task.isCancelled else { break }
+                let path = dir + "/" + name
+                var st = stat()
+                guard stat(path, &st) == 0, st.st_mode & S_IFMT == S_IFREG else { continue }
+                let modified = TimeInterval(st.st_mtimespec.tv_sec) + TimeInterval(st.st_mtimespec.tv_nsec) / 1e9
+                guard modified >= cutoff else { continue }
+                seen.insert(path)
+                scan.files += 1
+                let inode = UInt64(st.st_ino), size = UInt64(st.st_size)
+                // A grown or replaced file is read again; one that cannot be opened is tried again next pass.
+                if cache[path]?.inode != inode || cache[path]?.size != size {
+                    cache[path] = Self.read(path, size: size).map { Cached(inode: inode, size: size, reader: $0) }
+                    scan.read += 1
+                }
+                guard let reader = cache[path]?.reader else {
+                    scan.unreadable += 1
+                    continue
+                }
+                let summary = reader.summary(
+                    sessionId: String(name.dropLast(".jsonl".count)), modified: Date(timeIntervalSince1970: modified)
+                )
+                if summary.isSession { scan.sessions.append(summary) }
+            }
+        }
+        // Transcripts that left the week are forgotten.
+        cache = cache.filter { seen.contains($0.key) }
+        return scan
+    }
+
+    /// Reads one file backwards from its end, then its first bytes; nil when it cannot be opened.
+    private static func read(_ path: String, size: UInt64) -> RecentSessionReader? {
+        guard let handle = FileHandle(forReadingAtPath: path) else { return nil }
+        defer { try? handle.close() }
+        var reader = RecentSessionReader()
+        let step = UInt64(RecentSessionReader.step)
+        func bytes(_ range: Range<UInt64>) -> Data? {
+            guard (try? handle.seek(toOffset: range.lowerBound)) != nil else { return nil }
+            let data = try? handle.read(upToCount: Int(range.upperBound - range.lowerBound))
+            // Short when the file was cut meanwhile: the next pass sees its new size.
+            return data.flatMap { $0.count == range.count ? $0 : nil }
+        }
+        var end = size
+        while end > 0, !reader.isComplete, size - end < UInt64(RecentSessionReader.cap), !Task.isCancelled {
+            let start = end > step ? end - step : 0
+            // The chunks and JSON temporaries are autoreleased; without a pool a first pass holds every byte it read.
+            let more = autoreleasepool { () -> Bool in
+                guard let chunk = bytes(start ..< end) else { return false }
+                reader.add(earlier: chunk, atStart: start == 0)
+                return true
+            }
+            guard more else { break }
+            end = start
+        }
+        autoreleasepool {
+            if let head = bytes(0 ..< min(step, size)) { reader.addHead(head, whole: size <= step) }
+        }
+        return reader
+    }
+}

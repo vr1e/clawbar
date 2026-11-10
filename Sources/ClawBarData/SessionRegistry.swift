@@ -74,6 +74,8 @@ struct SessionRegistry: Sendable {
             }
             let cwd = Lenient.string(j["cwd"]) ?? ""
             var name = Lenient.string(j["name"]) ?? ""
+            // `derived` is Claude Code's own name from the cwd, e.g. `dev-dc`.
+            let named = !name.isEmpty && Lenient.string(j["nameSource"]) != "derived"
             if name.isEmpty, !cwd.isEmpty { name = (cwd as NSString).lastPathComponent }
             let waitingFor = Lenient.string(j["waitingFor"]).flatMap { $0.isEmpty ? nil : $0 }
             let startedAt = Lenient.double(j["startedAt"]).map { Date(timeIntervalSince1970: $0 / 1000) }
@@ -82,7 +84,7 @@ struct SessionRegistry: Sendable {
                 continue
             }
             out.append(SessionInfo(
-                pid: pid, sessionId: Lenient.string(j["sessionId"]) ?? "", name: name, cwd: cwd,
+                pid: pid, sessionId: Lenient.string(j["sessionId"]) ?? "", name: name, named: named, cwd: cwd,
                 state: Self.state(Lenient.string(j["status"])), waitingFor: waitingFor, kind: kind, startedAt: startedAt
             ))
         }

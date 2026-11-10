@@ -34,6 +34,7 @@ import ClawBarShared
         #expect(way(h, .fetchChangelog) == .later)
         #expect(way(h, .runUpdate(claude: "claude", environment: env)) == .later)
         #expect(way(h, .scanProjects(root: h.home)) == .later)
+        #expect(way(h, .scanRecent(root: h.home)) == .later)
         #expect(way(h, .log("x")) == .none)
         #expect(way(h, .cancelAll) == .none)
     }
@@ -186,6 +187,29 @@ import ClawBarShared
         }
         #expect(scan.files == 1)
         #expect(scan.usage.projects == [ProjectWeight(path: "/Users/example/api", quarters: [UsageSample.minute(of: t0): 0.02])])
+    }
+
+    @Test func theRecentScanReadsTheSessionsTitlesAtUtilityPriority() async {
+        let h = Harness()
+        let lines = TranscriptLine.user(at: t0 - 60) + TranscriptLine.aiTitle("Rate limiter") + TranscriptLine.lastPrompt("add a test")
+        h.dir.write("home/.claude/projects/-Users-example-api/\(sessionID(1)).jsonl", lines)
+        let r = h.recipes()
+        let command = DataCommand.scanRecent(root: TranscriptScanner.root(configDir: h.home + "/.claude"))
+        guard case .later(let priority, _)? = r.recipe(for: command, now: t0) else {
+            Issue.record("the scan should run later")
+            return
+        }
+        #expect(priority == .utility)
+        guard case .recentScanned(let scan)? = await r.answer(command), case .recentScanned(let again)? = await r.answer(command) else {
+            Issue.record("no scan answer")
+            return
+        }
+        #expect(scan.sessions == [TranscriptSummary(
+            sessionId: sessionID(1), aiTitle: "Rate limiter", lastPrompt: "add a test", cwd: "/Users/example/api",
+            lastActivity: t0 - 60, entrypoint: "cli"
+        )])
+        // The recipes keep one scanner, so the second pass reads nothing.
+        #expect(scan.read == 1 && again.read == 0 && again.sessions == scan.sessions)
     }
 
     @Test func aSaveAnswersWithWhatWentWrong() async throws {

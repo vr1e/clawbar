@@ -47,6 +47,19 @@ import ClawBarShared
         #expect(!text.contains("secret"))
     }
 
+    @Test func theRecentSessionsAreCountedAndNeverQuoted() {
+        let text = dump().render()
+        #expect(text.contains("\nrecentSessions: 5 (live 2, titled 4)\n"))
+        #expect(text.contains("\nconfig.showRecentSessions: true\n"))
+        for session in DataSnapshot.sample.recentSessions {
+            #expect(!text.contains(session.title) && !text.contains(session.lastPrompt), "\(session.title)")
+        }
+        var d = dump()
+        d.snapshot.recentSessions = []
+        d.config.showRecentSessions = false
+        #expect(d.render().contains("\nrecentSessions: 0 (live 0, titled 0)\n"))
+    }
+
     @Test func theAppLineEndsInThePidThatBuildAppWaitsOn() {
         // scripts/build-app.sh --install reads the running copy's pid from this line.
         #expect(dump().render().contains("\napp: \(AppInfo.title) (pid 4242)\n"))
