@@ -120,6 +120,12 @@ struct CommandRecipes: Sendable {
         case .scanRecent(let root):
             let scanner = recentScanner
             return .later(priority: .utility) { .recentScanned(await scanner.scan(root: root, now: clock())) }
+        case .forgetRecent:
+            let scanner = recentScanner
+            return .later {
+                await scanner.forget()
+                return .recentForgotten
+            }
         case .log, .cancelAll:
             return nil
         }

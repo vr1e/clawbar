@@ -30,6 +30,8 @@ enum DataEvent: Sendable {
     case latchSaved(failure: String?)
     case projects(ProjectScan)
     case recentScanned(RecentScan)
+    /// The scanner dropped what it had read.
+    case recentForgotten
 }
 
 /// What the engine asks the controller to do. Each probe, lookup and save answers with its event.
@@ -47,6 +49,8 @@ enum DataCommand: Sendable, Hashable {
     case saveHistory([UsageSample])
     case scanProjects(root: String)
     case scanRecent(root: String)
+    /// Drops what the scanner keeps of the transcripts it read.
+    case forgetRecent
     case log(String)
     case cancelAll
 }
@@ -211,6 +215,8 @@ struct DataEngine: Sendable {
             projectsAnswered(scan, now: now)
         case .recentScanned(let scan):
             recentAnswered(scan)
+        case .recentForgotten:
+            break
         }
         return commands
     }
@@ -454,8 +460,8 @@ struct DataEngine: Sendable {
     /// Counts only: the log never quotes a title or a prompt.
     private mutating func recentAnswered(_ scan: RecentScan) {
         recent.running = false
-        // Switched off while the pass ran: what it read is dropped.
-        guard config.showRecentSessions else { return }
+        // Switched off while the pass ran: what it read is dropped, also from the scanner it filled again.
+        guard config.showRecentSessions else { return emit(.forgetRecent) }
         transcripts = scan.sessions
         joinRecent()
         if scan.unreadable > 0 { fail("recent", "unreadable transcripts: \(scan.unreadable)") } else { succeed("recent") }
@@ -466,7 +472,7 @@ struct DataEngine: Sendable {
         transcripts = []
         snapshot.recentSessions = []
         recent.lastTry = nil
-        recentRoot = nil
+        emit(.forgetRecent)
     }
 
     /// The transcripts' sessions with the registry's live ones, newest activity first.

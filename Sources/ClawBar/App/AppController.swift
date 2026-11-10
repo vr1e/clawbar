@@ -425,7 +425,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     /// `claude -r` in the session's folder: typed into a new Ghostty tab, else put on the clipboard.
     private func resume(_ sessionId: String) {
-        guard let session = data.snapshot.recentSessions.first(where: { $0.sessionId == sessionId }),
+        guard let session = recentSession(sessionId),
               let command = SessionTerminal.resumeCommand(sessionId: sessionId),
               let line = SessionTerminal.shellLine(cwd: session.cwd, sessionId: sessionId)
         else { return }
@@ -442,8 +442,12 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     /// Brings a live session's Ghostty tab forward; one that runs elsewhere stays where it is.
     private func focus(_ sessionId: String) {
-        guard let pid = data.snapshot.recentSessions.first(where: { $0.sessionId == sessionId })?.pid else { return }
+        guard let pid = recentSession(sessionId)?.pid else { return }
         SessionTerminal.run(SessionTerminal.focus(pid: pid)) { _ in }
+    }
+
+    private func recentSession(_ sessionId: String) -> RecentSession? {
+        data.snapshot.recentSessions.first { $0.sessionId == sessionId }
     }
 
     private func copy(_ text: String) {

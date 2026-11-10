@@ -3,7 +3,7 @@ import ClawBarShared
 
 /// The menu bar item's Recent sessions submenu: each session's item and its tooltip.
 public enum RecentSessionsMenu {
-    public static let limit = 15
+    static let limit = 15
     /// A `/rename` can be any length; the menu stays narrow.
     static let titleLimit = 60
 

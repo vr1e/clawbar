@@ -643,7 +643,8 @@ import ClawBarShared
         #expect(e.snapshot.recentSessions.count == 1)
         var config = e.config
         config.showRecentSessions = false
-        _ = e.handle(.configChanged(config), now: t0 + 2)
+        // The scanner's copy goes too.
+        #expect(e.handle(.configChanged(config), now: t0 + 2) == [.forgetRecent])
         #expect(e.snapshot.recentSessions.isEmpty)
         #expect(!kinds(e.handle(.tick, now: t0 + 120)).contains("scanRecent"))
         // The registry's next read brings nothing back.
@@ -652,11 +653,13 @@ import ClawBarShared
         config.showRecentSessions = true
         _ = e.handle(.configChanged(config), now: t0 + 122)
         #expect(kinds(e.handle(.tick, now: t0 + 123)).contains("scanRecent"))
-        // A pass that was running while it was switched off is dropped.
+        // A pass that was running while it was switched off is dropped, and the scanner it filled forgets again.
         config.showRecentSessions = false
         _ = e.handle(.configChanged(config), now: t0 + 124)
-        _ = e.handle(.recentScanned(RecentScan(sessions: [transcript(1, ai: "Title", prompt: "secret")])), now: t0 + 125)
+        let late = e.handle(.recentScanned(RecentScan(sessions: [transcript(1, ai: "Title", prompt: "secret")])), now: t0 + 125)
+        #expect(late == [.forgetRecent])
         #expect(e.snapshot.recentSessions.isEmpty)
+        #expect(e.handle(.recentForgotten, now: t0 + 126).isEmpty)
     }
 
     @Test func theLogCountsUnreadableTranscriptsAndQuotesNothing() {

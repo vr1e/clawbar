@@ -12,7 +12,7 @@ enum SessionTerminal {
 
     /// `claude -r <id>`; nil unless the id is a UUID, since the line is typed into a shell.
     nonisolated static func resumeCommand(sessionId: String) -> String? {
-        Rx.matches(uuid, sessionId) ? "claude -r \(sessionId)" : nil
+        RecentSession.isSessionId(sessionId) ? "claude -r \(sessionId)" : nil
     }
 
     /// The command with its folder, for the clipboard: `cd '<cwd>' && claude -r <id>`.
@@ -57,8 +57,6 @@ enum SessionTerminal {
     private nonisolated static func typeable(_ cwd: String) -> String {
         cwd.hasPrefix("/") && !cwd.unicodeScalars.contains { $0.properties.generalCategory == .control } ? cwd : ""
     }
-
-    private nonisolated static let uuid = Rx.make(#"^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\z"#)
 
     private nonisolated static let newTabScript = """
     on run argv

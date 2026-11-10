@@ -28,8 +28,9 @@ struct TranscriptSummary: Sendable, Hashable {
 /// the conversation goes on. The lines are Claude Code's internal format, so every field is optional and a missing or
 /// malformed one is no error.
 struct RecentSessionReader: Sendable {
-    /// One backward step, and the most a transcript is read back from its end.
+    /// One backward step.
     static let step = 64 << 10
+    /// The most a transcript is read back from its end.
     static let cap = 1 << 20
     /// How far past the title and the prompt the read goes on: a `custom-title` is written just before its `ai-title`.
     static let margin = 4 << 10
@@ -45,13 +46,10 @@ struct RecentSessionReader: Sendable {
     private var entrypoint: String?
     private var lastActivity: Date?
     private var replied = false
-    /// What came before the earliest whole line read: the end of a line that starts in a chunk not read yet.
+    /// The end of a line that starts in a chunk not read yet; it holds no newline.
     private var carry = Data()
-    /// The bytes taken so far; of them, those from the file's end back to the earliest whole line read, and back to
-    /// the line that settled title and prompt.
-    private var taken = 0
-    private var scanned = 0
-    private var settledAt: Int?
+    /// The bytes read past the line that settled title and prompt; nil until one did.
+    private var pastSettled: Int?
 
     private static let customNeedle = Data(#""type":"custom-title""#.utf8)
     private static let aiNeedle = Data(#""type":"ai-title""#.utf8)
@@ -59,31 +57,30 @@ struct RecentSessionReader: Sendable {
     private static let stampNeedle = Data(#""timestamp":""#.utf8)
     private static let cwdNeedle = Data(#""cwd":""#.utf8)
     private static let originNeedle = Data(#""entrypoint":""#.utf8)
-    /// As `TranscriptScanner`'s marker: every assistant line carries it at the top level.
-    private static let replyNeedle = Data(#""type":"assistant""#.utf8)
-    private static let stamp = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
-    private static let wholeSeconds = Date.ISO8601FormatStyle()
+    private static let replyNeedle = Data(TranscriptScanner.marker)
 
     /// The title and the last prompt are both read, with the margin behind them.
-    var isComplete: Bool { settledAt.map { scanned - $0 >= Self.margin } ?? false }
+    var isComplete: Bool { pastSettled.map { $0 >= Self.margin } ?? false }
 
     /// Takes the chunk that ends where the last one began; `atStart` when it begins the file.
     mutating func add(earlier chunk: Data, atStart: Bool) {
         let data = chunk + carry
-        taken += chunk.count
-        var end = data.endIndex, earliest = data.endIndex
+        var end = data.endIndex
         // Lines from the last to the first, so the first one found of a kind is the file's current one.
         while end > data.startIndex {
-            let newline = data[data.startIndex ..< end].lastIndex(of: 0x0A)
+            // Only the chunk is searched: a long line's carry is not gone through again at every step.
+            let newline = data[..<min(end, chunk.count)].lastIndex(of: 0x0A)
             guard newline != nil || atStart else { break }
             let start = newline.map { $0 + 1 } ?? data.startIndex
             if start < end { read(data[start ..< end]) }
-            earliest = start
-            scanned = taken - (start - data.startIndex)
-            if settledAt == nil, customTitle != nil || aiTitle != nil, lastPrompt != nil { settledAt = scanned }
+            if let past = pastSettled {
+                pastSettled = past + end - start + 1
+            } else if customTitle != nil || aiTitle != nil, lastPrompt != nil {
+                pastSettled = 0
+            }
             end = newline ?? data.startIndex
         }
-        carry = atStart ? Data() : Data(data[data.startIndex ..< earliest])
+        carry = Data(data[..<end])
     }
 
     /// The file's first bytes, for what only its start tells: the folder it was started in, and a name given with
@@ -116,17 +113,33 @@ struct RecentSessionReader: Sendable {
         )
     }
 
-    /// A whole transcript in memory, as the scanner reads one from disk.
-    static func summary(of data: Data, sessionId: String, modified: Date) -> TranscriptSummary {
+    /// Reads a transcript of `size` bytes backwards from its end, then its first bytes. `bytes` gives a range of it,
+    /// or nil when it cannot, which ends the read.
+    static func read(size: Int, bytes: (Range<Int>) -> Data?) -> RecentSessionReader {
         var reader = RecentSessionReader()
-        var end = data.count
-        while end > 0, !reader.isComplete, data.count - end < cap {
+        var end = size
+        while end > 0, !reader.isComplete, size - end < cap {
             let start = max(0, end - step)
-            reader.add(earlier: data.subdata(in: start ..< end), atStart: start == 0)
+            // The chunks and JSON temporaries are autoreleased; without a pool a first pass holds every byte it read.
+            let more = autoreleasepool { () -> Bool in
+                guard let chunk = bytes(start ..< end) else { return false }
+                reader.add(earlier: chunk, atStart: start == 0)
+                return true
+            }
+            guard more else { break }
             end = start
         }
-        reader.addHead(data.prefix(step), whole: data.count <= step)
-        return reader.summary(sessionId: sessionId, modified: modified)
+        autoreleasepool {
+            if let head = bytes(0 ..< min(step, size)) { reader.addHead(head, whole: size <= step) }
+        }
+        // The scanner keeps the reader for the week; an unfinished line's bytes are of no more use.
+        reader.carry = Data()
+        return reader
+    }
+
+    /// A whole transcript in memory, as the scanner reads one from disk.
+    static func summary(of data: Data, sessionId: String, modified: Date) -> TranscriptSummary {
+        read(size: data.count) { data.subdata(in: $0) }.summary(sessionId: sessionId, modified: modified)
     }
 
     /// One whole line, parsed only when it can still tell something.
@@ -148,7 +161,7 @@ struct RecentSessionReader: Sendable {
         default:
             // Most lines carry a time; only the conversation's own say how the session was started, and where it is.
             if wantsStamp, let text = j["timestamp"] as? String {
-                lastActivity = (try? Self.stamp.parse(text)) ?? (try? Self.wholeSeconds.parse(text))
+                lastActivity = TranscriptReply.date(text)
             }
             if wantsOrigin, let origin = Self.text(j["entrypoint"]) {
                 entrypoint = origin
@@ -198,9 +211,6 @@ actor RecentSessionScanner {
     private var root: String?
     private var cache: [String: Cached] = [:]
 
-    /// A session's own transcript is named by its id; subagent transcripts sit in subfolders under other names.
-    private static let fileName = Rx.make(#"^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\.jsonl\z"#)
-
     func scan(root: String, now: Date) -> RecentScan {
         // Another config dir is another set of transcripts.
         if root != self.root {
@@ -213,7 +223,10 @@ actor RecentSessionScanner {
         let fm = FileManager.default
         for folder in (try? fm.contentsOfDirectory(atPath: root)) ?? [] {
             let dir = root + "/" + folder
-            for name in (try? fm.contentsOfDirectory(atPath: dir)) ?? [] where Rx.matches(Self.fileName, name) {
+            for name in (try? fm.contentsOfDirectory(atPath: dir)) ?? [] where name.hasSuffix(".jsonl") {
+                // A session's own transcript is named by its id; subagent transcripts sit in subfolders under other names.
+                let sessionId = String(name.dropLast(".jsonl".count))
+                guard RecentSession.isSessionId(sessionId) else { continue }
                 guard !Task.isCancelled else { break }
                 let path = dir + "/" + name
                 var st = stat()
@@ -225,16 +238,14 @@ actor RecentSessionScanner {
                 let inode = UInt64(st.st_ino), size = UInt64(st.st_size)
                 // A grown or replaced file is read again; one that cannot be opened is tried again next pass.
                 if cache[path]?.inode != inode || cache[path]?.size != size {
-                    cache[path] = Self.read(path, size: size).map { Cached(inode: inode, size: size, reader: $0) }
+                    cache[path] = Self.read(path, size: Int(st.st_size)).map { Cached(inode: inode, size: size, reader: $0) }
                     scan.read += 1
                 }
                 guard let reader = cache[path]?.reader else {
                     scan.unreadable += 1
                     continue
                 }
-                let summary = reader.summary(
-                    sessionId: String(name.dropLast(".jsonl".count)), modified: Date(timeIntervalSince1970: modified)
-                )
+                let summary = reader.summary(sessionId: sessionId, modified: Date(timeIntervalSince1970: modified))
                 if summary.isSession { scan.sessions.append(summary) }
             }
         }
@@ -243,33 +254,21 @@ actor RecentSessionScanner {
         return scan
     }
 
-    /// Reads one file backwards from its end, then its first bytes; nil when it cannot be opened.
-    private static func read(_ path: String, size: UInt64) -> RecentSessionReader? {
+    /// Switched off: the titles and prompts leave memory.
+    func forget() {
+        root = nil
+        cache = [:]
+    }
+
+    /// One file's reader; nil when it cannot be opened.
+    private static func read(_ path: String, size: Int) -> RecentSessionReader? {
         guard let handle = FileHandle(forReadingAtPath: path) else { return nil }
         defer { try? handle.close() }
-        var reader = RecentSessionReader()
-        let step = UInt64(RecentSessionReader.step)
-        func bytes(_ range: Range<UInt64>) -> Data? {
-            guard (try? handle.seek(toOffset: range.lowerBound)) != nil else { return nil }
-            let data = try? handle.read(upToCount: Int(range.upperBound - range.lowerBound))
+        return RecentSessionReader.read(size: size) { range in
+            guard !Task.isCancelled, (try? handle.seek(toOffset: UInt64(range.lowerBound))) != nil else { return nil }
+            let data = try? handle.read(upToCount: range.count)
             // Short when the file was cut meanwhile: the next pass sees its new size.
             return data.flatMap { $0.count == range.count ? $0 : nil }
         }
-        var end = size
-        while end > 0, !reader.isComplete, size - end < UInt64(RecentSessionReader.cap), !Task.isCancelled {
-            let start = end > step ? end - step : 0
-            // The chunks and JSON temporaries are autoreleased; without a pool a first pass holds every byte it read.
-            let more = autoreleasepool { () -> Bool in
-                guard let chunk = bytes(start ..< end) else { return false }
-                reader.add(earlier: chunk, atStart: start == 0)
-                return true
-            }
-            guard more else { break }
-            end = start
-        }
-        autoreleasepool {
-            if let head = bytes(0 ..< min(step, size)) { reader.addHead(head, whole: size <= step) }
-        }
-        return reader
     }
 }

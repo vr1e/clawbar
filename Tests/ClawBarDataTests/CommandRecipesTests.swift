@@ -35,6 +35,7 @@ import ClawBarShared
         #expect(way(h, .runUpdate(claude: "claude", environment: env)) == .later)
         #expect(way(h, .scanProjects(root: h.home)) == .later)
         #expect(way(h, .scanRecent(root: h.home)) == .later)
+        #expect(way(h, .forgetRecent) == .later)
         #expect(way(h, .log("x")) == .none)
         #expect(way(h, .cancelAll) == .none)
     }
@@ -210,6 +211,12 @@ import ClawBarShared
         )])
         // The recipes keep one scanner, so the second pass reads nothing.
         #expect(scan.read == 1 && again.read == 0 && again.sessions == scan.sessions)
+        // Forgetting drops what the scanner kept, so the next pass reads the file again.
+        guard case .recentForgotten? = await r.answer(.forgetRecent), case .recentScanned(let fresh)? = await r.answer(command) else {
+            Issue.record("no answer after forgetting")
+            return
+        }
+        #expect(fresh.read == 1 && fresh.sessions == scan.sessions)
     }
 
     @Test func aSaveAnswersWithWhatWentWrong() async throws {

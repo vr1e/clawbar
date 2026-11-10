@@ -1,7 +1,7 @@
 import Foundation
 
 /// Where a recent session's title came from, best first.
-public enum SessionTitleSource: String, Sendable, CaseIterable {
+public enum SessionTitleSource: Sendable {
     /// `/rename` or `claude -n`.
     case custom
     /// Claude Code's own summary of the conversation.
@@ -41,6 +41,11 @@ public struct RecentSession: Sendable, Hashable {
     }
 
     public var isLive: Bool { state != nil }
+
+    /// A session id is a UUID: it names the transcript, and it is typed into a shell.
+    public static func isSessionId(_ text: String) -> Bool { Rx.matches(uuid, text) }
+
+    private static let uuid = Rx.make(#"^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\z"#)
 }
 
 /// What a click on a recent session's menu item does.

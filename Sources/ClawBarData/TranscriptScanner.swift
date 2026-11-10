@@ -28,7 +28,7 @@ actor TranscriptScanner {
     static let window: TimeInterval = 7 * 86400
     static let chunk = 1 << 20
     /// Every assistant line carries it at the top level; anything else is not parsed.
-    private static let marker = Array(#""type":"assistant""#.utf8)
+    static let marker = Array(#""type":"assistant""#.utf8)
     /// Where the marker's `y` sits: `"` is on every other byte of JSON, `y` is not.
     private static let anchor = 2
 
