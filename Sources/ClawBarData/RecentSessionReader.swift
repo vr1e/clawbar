@@ -59,8 +59,8 @@ struct RecentSessionReader: Sendable {
     private static let originNeedle = Data(#""entrypoint":""#.utf8)
     private static let replyNeedle = Data(TranscriptScanner.marker)
 
-    /// The title and the last prompt are both read, with the margin behind them.
-    var isComplete: Bool { pastSettled.map { $0 >= Self.margin } ?? false }
+    /// The title and the last prompt are both read, with the margin behind them; a long line's read part counts too.
+    var isComplete: Bool { pastSettled.map { $0 + carry.count >= Self.margin } ?? false }
 
     /// Takes the chunk that ends where the last one began; `atStart` when it begins the file.
     mutating func add(earlier chunk: Data, atStart: Bool) {

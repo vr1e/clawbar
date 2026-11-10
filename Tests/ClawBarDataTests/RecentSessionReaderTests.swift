@@ -88,6 +88,18 @@ import ClawBarShared
         #expect(s.aiTitle == "Far back" && s.lastPrompt == "asked long ago" && s.lastActivity == now - 60)
     }
 
+    @Test func aLongLineBeforeTheTitleDoesNotHoldTheReadOpen() {
+        // A pasted image is one line of megabytes; the read does not follow it back to its start.
+        let image = L.user(at: now - 900, text: String(repeating: "x", count: 3 * RecentSessionReader.step))
+        let data = Data((image + L.aiTitle("After the image") + L.lastPrompt("p") + L.user(at: now - 60)).utf8)
+        var tailReads = 0
+        let reader = RecentSessionReader.read(size: data.count) { range in
+            if range.lowerBound > 0 { tailReads += 1 }
+            return data.subdata(in: range)
+        }
+        #expect(tailReads == 1 && reader.summary(sessionId: "s", modified: modified).aiTitle == "After the image")
+    }
+
     @Test func pastTheCapTheSessionShowsWithoutItsTitle() {
         let text = L.user(at: now - 900, cwd: "/Users/example/launch") + L.aiTitle("Out of reach") + L.lastPrompt("p")
             + assistantLine("msg_1", at: now - 800) + "\n" + filler(RecentSessionReader.cap + 5000, cwd: "/Users/example/later")
