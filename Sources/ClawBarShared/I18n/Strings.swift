@@ -34,6 +34,7 @@ extension L10nKey {
             en: "{0} priced as the closest model listed",
             de: "{0} zum Preis des nächsten bekannten Modells geschätzt"
         )
+        case .uiReadAt: .text(en: "Usage last read at {0}", de: "Nutzung zuletzt gelesen um {0}")
         case .uiPortOf: .text(
             en: "macOS port of clawd-usage-winwidget {0}, with some features of later releases (MIT)",
             de: "macOS-Portierung von clawd-usage-winwidget {0}, mit einigen Funktionen späterer Versionen (MIT)"
@@ -150,6 +151,16 @@ extension L10nKey {
         case .menuHide: .text(en: "Hide widget", de: "Widget ausblenden")
         case .menuRefresh: .text(en: "Refresh now", de: "Jetzt aktualisieren")
         case .menuSettings: .text(en: "Settings…", de: "Einstellungen …")
+        case .menuRecent: .text(en: "Recent sessions", de: "Letzte Sitzungen")
+        case .recentNone: .text(en: "none in the last 7 days", de: "keine in den letzten 7 Tagen")
+        case .recentResume: .text(en: "Click to resume in a new Ghostty tab", de: "Klicken, um in einem neuen Ghostty-Tab fortzusetzen")
+        case .recentCopy: .text(en: "Click to copy the command that resumes it", de: "Klicken, um den Befehl zum Fortsetzen zu kopieren")
+        case .recentRunning: .text(en: "Running in {0}", de: "Läuft in {0}")
+        case .recentFocus: .text(en: "Click to bring its Ghostty tab forward", de: "Klicken, um den Ghostty-Tab nach vorn zu holen")
+        case .agoNow: .text(en: "now", de: "jetzt")
+        case .agoH: .text(en: "{0}h", de: "{0}h")
+        case .agoYesterday: .text(en: "yesterday", de: "gestern")
+        case .agoD: .text(en: "{0}d", de: "{0}d")
 
         case .setTabLook: .text(en: "Look", de: "Darstellung")
         case .setTabWidget: .text(en: "Widget", de: "Widget")
@@ -212,6 +223,11 @@ extension L10nKey {
         case .setSystem: .text(en: "System", de: "System")
         case .setLogin: .text(en: "Launch at login", de: "Beim Anmelden öffnen")
         case .setMenuBarMascot: .text(en: "Clawd in menu bar", de: "Clawd in der Menüleiste")
+        case .setRecentSessions: .text(en: "Recent sessions in the menu", de: "Letzte Sitzungen im Menü")
+        case .setRecentSessionsTip: .text(
+            en: "Reads each session's title and last prompt from the Claude Code transcripts on this Mac.",
+            de: "Liest Titel und letzte Eingabe jeder Sitzung aus den Claude-Code-Transkripten auf diesem Mac."
+        )
         // The original's footer, less its models, which ClawBar does not set.
         case .setMore: .text(
             en: "The rest (intervals, thresholds) is in config.json",

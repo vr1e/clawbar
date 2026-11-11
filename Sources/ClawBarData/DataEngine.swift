@@ -29,6 +29,9 @@ enum DataEvent: Sendable {
     /// nil once the latch is in state.json.
     case latchSaved(failure: String?)
     case projects(ProjectScan)
+    case recentScanned(RecentScan)
+    /// The scanner dropped what it had read.
+    case recentForgotten
 }
 
 /// What the engine asks the controller to do. Each probe, lookup and save answers with its event.
@@ -45,6 +48,9 @@ enum DataCommand: Sendable, Hashable {
     case saveLatch(UsageLatch?)
     case saveHistory([UsageSample])
     case scanProjects(root: String)
+    case scanRecent(root: String)
+    /// Drops what the scanner keeps of the transcripts it read.
+    case forgetRecent
     case log(String)
     case cancelAll
 }
@@ -94,6 +100,11 @@ struct DataEngine: Sendable {
     private var projects = Slot()
     /// The transcripts the last scan was started on; another root is due at once.
     private var scannedRoot: String?
+    private var recent = Slot()
+    /// As `scannedRoot`, for the recent sessions.
+    private var recentRoot: String?
+    /// The week's sessions as their transcripts tell them; the registry's live ones are joined in on every read.
+    private var transcripts: [TranscriptSummary] = []
     /// After a clean `claude update`: the version it started from and the log's last lines, for the next look to judge.
     private var pendingVerify: (from: String, tail: String)?
     /// Taken from `pendingVerify` when a look starts: a look already running saw the old version.
@@ -108,6 +119,8 @@ struct DataEngine: Sendable {
     static let changelogRetry = 600
     /// Upstream's 15 minutes: the transcripts change by the minute, a week's shares do not.
     static let projectsInterval = 900
+    /// A session's end brings a pass of its own; in between only titles and prompts move.
+    static let recentInterval = 300
     /// Each run sources the user's rc files again, so a shell that never answers is not asked forever.
     static let loginRunLimit = 4
 
@@ -137,6 +150,7 @@ struct DataEngine: Sendable {
             let old = config
             config = new.clamped()
             if config.claudePath != old.claudePath, resolved { locate(now: now) }
+            if old.showRecentSessions, !config.showRecentSessions { forgetRecent() }
         case .shutdown:
             stopped = true
             emit(.cancelAll)
@@ -145,8 +159,16 @@ struct DataEngine: Sendable {
         case .located(let found, let hint):
             located(found, installHint: hint, now: now)
         case .sessionsRead(let sessions):
+            let ended = !Set(snapshot.sessions.map(\.sessionId)).isSubset(of: sessions.map(\.sessionId))
             snapshot.sessions = sessions
             snapshot.sessionsRead = true
+            joinRecent()
+            // A session ended: its last title and prompt are read now, or on the tick after the pass that is running.
+            // One that started has no transcript yet.
+            if ended {
+                recent.lastTry = nil
+                startRecentIfDue(now: now)
+            }
         case .loginShell(let login):
             locating.running = false
             loginRuns += 1
@@ -198,6 +220,10 @@ struct DataEngine: Sendable {
             if let failure { fail("latch", failure) } else { succeed("latch") }
         case .projects(let scan):
             projectsAnswered(scan, now: now)
+        case .recentScanned(let scan):
+            recentAnswered(scan)
+        case .recentForgotten:
+            break
         }
         return commands
     }
@@ -216,6 +242,7 @@ struct DataEngine: Sendable {
            projects.due(Self.projectsInterval, now) || !projects.running && scannedRoot != projectsRoot {
             startProjects(now: now)
         }
+        startRecentIfDue(now: now)
         guard resolved, claude != nil else { return }
         if version.due(config.versionIntervalSeconds, now) { startVersion(now: now) }
         if latch == nil, usage.due(config.usageIntervalSeconds, now) { startUsage(now: now) }
@@ -257,7 +284,8 @@ struct DataEngine: Sendable {
     }
 
     private mutating func readSessions() {
-        guard config.showSessions || config.showMascot else { return }
+        // The recent sessions need to know which of them still run: resuming a live one would fork it.
+        guard config.showSessions || config.showMascot || config.showRecentSessions else { return }
         emit(.readSessions(directory: SessionRegistry.directory(configDir: configDirectory, home: home)))
     }
 
@@ -425,6 +453,50 @@ struct DataEngine: Sendable {
         }
     }
 
+    // MARK: - Recent sessions
+
+    private mutating func startRecentIfDue(now: Date) {
+        guard resolved, config.showRecentSessions,
+              recent.due(Self.recentInterval, now) || !recent.running && recentRoot != projectsRoot
+        else { return }
+        recent.start(now)
+        recentRoot = projectsRoot
+        emit(.scanRecent(root: projectsRoot))
+    }
+
+    /// Counts only: the log never quotes a title or a prompt.
+    private mutating func recentAnswered(_ scan: RecentScan) {
+        recent.running = false
+        // Switched off while the pass ran: what it read is dropped, also from the scanner it filled again.
+        guard config.showRecentSessions else { return emit(.forgetRecent) }
+        transcripts = scan.sessions
+        joinRecent()
+        if scan.unreadable > 0 { fail("recent", "unreadable transcripts: \(scan.unreadable)") } else { succeed("recent") }
+    }
+
+    /// Switched off: the titles and prompts leave memory, and switching it on again reads at once.
+    private mutating func forgetRecent() {
+        transcripts = []
+        snapshot.recentSessions = []
+        recent.lastTry = nil
+        emit(.forgetRecent)
+    }
+
+    /// The transcripts' sessions with the registry's live ones, newest activity first.
+    private mutating func joinRecent() {
+        let live = Dictionary(snapshot.sessions.map { ($0.sessionId, $0) }) { first, _ in first }
+        let joined = transcripts.map { t in
+            let s = live[t.sessionId]
+            return RecentSession(
+                sessionId: t.sessionId, title: t.customTitle ?? t.aiTitle ?? s.flatMap { $0.named ? $0.name : nil },
+                cwd: t.cwd ?? s?.cwd ?? "", lastActivity: t.lastActivity, lastPrompt: t.lastPrompt, pid: s?.pid
+            )
+        }
+        snapshot.recentSessions = joined.sorted {
+            $0.lastActivity != $1.lastActivity ? $0.lastActivity > $1.lastActivity : $0.sessionId < $1.sessionId
+        }
+    }
+
     // MARK: - The update
 
     private mutating func startUpdate() {
@@ -463,7 +535,7 @@ struct DataEngine: Sendable {
         ClaudeConfigDir.resolve(account: snapshot.account, login: login, environment: environment, home: home)
     }
 
-    private var projectsRoot: String { TranscriptScanner.root(configDir: configDirectory) }
+    private var projectsRoot: String { TranscriptFiles.root(configDir: configDirectory) }
 
     private var childEnvironment: [String: String] {
         ChildEnv.make(inherited: environment, login: login, claude: claude?.path)

@@ -145,7 +145,7 @@ import ClawBarShared
         var view = WidgetViewState.sample
         let constant: [(CardPart.ID, CardClick?)] = [
             (.details, .toggleDetails), (.hide, .hide), (.exit, .quit), (.play, .play),
-            (.status, .open(AppInfo.statusPage)), (.appVersion, .open(AppInfo.originalRepo)),
+            (.status, .open(AppInfo.statusPage)), (.appVersion, .open(AppInfo.releasePage)),
             (.reset, nil), (.sessions, nil), (.projectsLabel, nil), (.project(0), nil), (.account, nil),
         ]
         for (id, click) in constant { #expect(CardClick.on(id, in: view) == click, "\(id)") }

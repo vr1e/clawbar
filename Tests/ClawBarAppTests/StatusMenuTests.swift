@@ -8,8 +8,10 @@ import ClawBarShared
         entries.map { $0.isSeparator ? "---" : $0.title }
     }
 
-    private func entries(_ config: Config = Config(), widgetVisible: Bool = true, limitReached: Bool = false) -> [StatusMenu.Entry] {
-        StatusMenu.entries(config: config, widgetVisible: widgetVisible, limitReached: limitReached)
+    private func entries(
+        _ config: Config = Config(), widgetVisible: Bool = true, limitReached: Bool = false, recent: [RecentSessionItem]? = nil
+    ) -> [StatusMenu.Entry] {
+        StatusMenu.entries(config: config, widgetVisible: widgetVisible, limitReached: limitReached, recent: recent)
     }
 
     @Test func theOriginalsShortMenuSince1_10() {
@@ -58,6 +60,66 @@ import ClawBarShared
         click(menu.items[4])
         click(menu.items[6])
         #expect(got == [.refresh, .settings, .quit])
+    }
+
+    // MARK: Recent sessions
+
+    static let live = "00000000-0000-4000-8000-000000000001", done = "00000000-0000-4000-8000-000000000003"
+    let recent = [
+        RecentSessionItem(sessionId: live, title: "● Menu bar tooltip wording · ~/Dev/clawbar · now", tooltip: "Shorten it\n\nRunning in ~/Dev/clawbar", clickable: true),
+        RecentSessionItem(sessionId: done, title: "○ Rate limiter for the API · ~/code/api · 2h", tooltip: "Add a test\n\nClick to resume in a new Ghostty tab", clickable: true),
+        RecentSessionItem(sessionId: "00000000-0000-4000-8000-000000000002", title: "● Reading list · ~/notes · 12m", tooltip: "Running in ~/notes"),
+    ]
+
+    @Test func recentSessionsAreASubmenuAfterTheWidgetToggle() {
+        let e = entries(limitReached: true, recent: recent)
+        #expect(titles(e) == ["ClawBar v\(AppInfo.version)", "---", "Hide widget", "Play Clawd Run…", "Recent sessions", "Refresh now", "Settings…", "---", "Quit ClawBar"])
+        let sub = e[4]
+        #expect(sub.enabled && sub.action == nil && sub.tooltip.isEmpty)
+        #expect(sub.children.map(\.title) == recent.map(\.title))
+        #expect(sub.children.map(\.tooltip) == recent.map(\.tooltip))
+        #expect(sub.children.map(\.action) == [.recent(Self.live), .recent(Self.done), nil])
+        // An item with nothing to do on a click only informs.
+        #expect(sub.children.map(\.enabled) == [true, true, false])
+        #expect(entries(Config(language: "de"), recent: recent)[3].title == L10n.t(.menuRecent, .de))
+    }
+
+    @Test func switchedOffThereIsNoSubmenuAndWithoutSessionsItSaysSo() {
+        #expect(entries().allSatisfy { $0.children.isEmpty })
+        let empty = entries(recent: [])[3]
+        #expect(empty.title == "Recent sessions" && empty.children == [MenuEntry(title: "none in the last 7 days", enabled: false)])
+        let de = entries(Config(language: "de"), recent: [])[3]
+        #expect(de.children.map(\.title) == [L10n.t(.recentNone, .de)])
+    }
+
+    @Test func theSubmenusItemsCarryTheirTooltipsAndRouteTheirClicks() throws {
+        var got: [StatusMenuAction] = []
+        let menu = MenuBuilder.menu(entries(recent: recent)) { got.append($0) }
+        let sub = try #require(menu.items[3].submenu)
+        #expect(menu.items[3].isEnabled && menu.items[3].toolTip == nil)
+        #expect(sub.items.map(\.title) == recent.map(\.title))
+        #expect(sub.items.map(\.toolTip) == recent.map(\.tooltip))
+        #expect(sub.items.map(\.isEnabled) == [true, true, false] && !sub.autoenablesItems)
+        click(sub.items[1])
+        click(sub.items[0])
+        #expect(got == [.recent(Self.done), .recent(Self.live)])
+        #expect(sub.items[2].action == nil)
+    }
+
+    @Test func theTextDumpShowsTheSubmenuWithItsTooltips() {
+        let dump = MenuEntry.dump(entries(recent: recent))
+        #expect(dump.contains("""
+              Recent sessions ▸
+                  ● Menu bar tooltip wording · ~/Dev/clawbar · now
+                      Shorten it
+                      Running in ~/Dev/clawbar
+                  ○ Rate limiter for the API · ~/code/api · 2h
+                      Add a test
+                      Click to resume in a new Ghostty tab
+                  ● Reading list · ~/notes · 12m  (disabled)
+                      Running in ~/notes
+              Refresh now
+            """))
     }
 
     @Test func theTextDumpShowsTheDisabledHeader() {

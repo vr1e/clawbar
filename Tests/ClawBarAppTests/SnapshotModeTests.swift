@@ -80,6 +80,8 @@ import ClawBarShared
         #expect(menus.contains("Quit ClawBar"))
         #expect(menus.contains("[x] Clawd in menu bar") && menus.contains("[ ] Clawd in menu bar"))
         #expect(menus.contains("Play Clawd Run…"))
+        #expect(menus.contains("Recent sessions ▸\n      ● Menu bar tooltip wording · ~/Dev/clawbar · now"))
+        #expect(menus.contains("Click to copy the command that resumes it") && menus.contains("none in the last 7 days  (disabled)"))
         #expect(menus.contains("Developer menu"))
         #expect(names.contains("menu-bar-en.txt") && names.contains("menu-bar-de.txt"))
         let bar = try String(contentsOf: tmp.url.appendingPathComponent("menu-bar-en.txt"), encoding: .utf8)

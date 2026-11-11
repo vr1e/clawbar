@@ -452,6 +452,10 @@ enum SnapshotMode {
 
     static func menuDump(lang: Lang) -> String {
         let forced = ClawdDevState(forcedMood: .work, forceCrit: true, forceHearts: 4)
+        let sample = input(for: SnapshotCase(name: "sample"), lang: lang)
+        func recent(_ items: [RecentSessionItem]) -> String {
+            MenuEntry.dump(StatusMenu.entries(config: sample.config, widgetVisible: true, recent: items))
+        }
         let sections: [(String, String)] = [
             (
                 "Status menu, widget shown",
@@ -465,6 +469,9 @@ enum SnapshotMode {
                 "Status menu, main limit used up",
                 MenuEntry.dump(StatusMenu.entries(config: Config(language: lang.rawValue), widgetVisible: true, limitReached: true))
             ),
+            ("Status menu, recent sessions", recent(RecentSessionsMenu.items(sample, terminal: true))),
+            ("Status menu, recent sessions without Ghostty", recent(RecentSessionsMenu.items(sample, terminal: false))),
+            ("Status menu, no recent sessions", recent([])),
             ("Settings window", SettingsPage.dump(config: Config(language: lang.rawValue), skins: .builtIn)),
             (
                 "Settings window, smallest and most transparent, always on top, no Clawd in the menu bar or the widget, no stats",

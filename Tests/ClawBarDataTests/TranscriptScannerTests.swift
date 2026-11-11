@@ -95,7 +95,7 @@ import ClawBarShared
         // Half past an hour, so a cutoff to the minute would leave out the reply at the hour's start.
         let m = UsageSample.minute(of: now)
         let at = UsageSample(minute: m - m % 60 + 30).date
-        let hour = at - TranscriptScanner.window - 30 * 60
+        let hour = at - TranscriptFiles.window - 30 * 60
         write(
             "-Users-example-api/s1.jsonl",
             assistantLine("msg_1", at: hour - 60, output: 4000) + "\n" + assistantLine("msg_2", at: hour, output: 1000) + "\n"

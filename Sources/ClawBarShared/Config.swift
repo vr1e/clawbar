@@ -46,7 +46,7 @@ public enum ConfigKey: String, CaseIterable, Sendable {
     case weatherLat, weatherLon
     case refreshSeconds, usageIntervalSeconds, versionIntervalSeconds, statusIntervalSeconds
     case accountIntervalSeconds, weatherIntervalSeconds
-    case left, top, claudePath, launchAtLogin, menuBarMascot
+    case left, top, claudePath, launchAtLogin, menuBarMascot, showRecentSessions
 }
 
 /// config.json in memory. Values may be out of range until `clamped()`.
@@ -91,6 +91,8 @@ public struct Config: Sendable, Hashable {
     public var launchAtLogin: Bool
     /// Clawd beside the session % in the menu bar; off leaves the pill alone.
     public var menuBarMascot: Bool
+    /// The menu's Recent sessions, and with it reading titles and last prompts from the transcripts.
+    public var showRecentSessions: Bool
 
     public init(
         language: String = "en",
@@ -123,7 +125,8 @@ public struct Config: Sendable, Hashable {
         top: Double? = nil,
         claudePath: String? = nil,
         launchAtLogin: Bool = true,
-        menuBarMascot: Bool = true
+        menuBarMascot: Bool = true,
+        showRecentSessions: Bool = true
     ) {
         self.language = language
         self.theme = theme
@@ -156,6 +159,7 @@ public struct Config: Sendable, Hashable {
         self.claudePath = claudePath
         self.launchAtLogin = launchAtLogin
         self.menuBarMascot = menuBarMascot
+        self.showRecentSessions = showRecentSessions
     }
 
     public var lang: Lang { Lang(configValue: language) }

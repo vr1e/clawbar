@@ -158,3 +158,27 @@ final class Harness {
         try? JSONSerialization.data(withJSONObject: j).write(to: url)
     }
 }
+
+/// The transcript lines the recent sessions are read from, as Claude Code writes them, each with its newline.
+enum TranscriptLine {
+    static func json(_ object: [String: Any]) -> String {
+        let data = (try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys, .withoutEscapingSlashes])) ?? Data()
+        return String(decoding: data, as: UTF8.self) + "\n"
+    }
+
+    static func aiTitle(_ title: String) -> String { json(["type": "ai-title", "aiTitle": title, "sessionId": "s"]) }
+    static func customTitle(_ title: String) -> String { json(["type": "custom-title", "customTitle": title, "sessionId": "s"]) }
+    static func lastPrompt(_ prompt: String) -> String { json(["type": "last-prompt", "lastPrompt": prompt, "sessionId": "s"]) }
+
+    /// A prompt line of the conversation, with a stand-in for what was said.
+    static func user(at date: Date, cwd: String = "/Users/example/api", entrypoint: String = "cli", text: String = "…") -> String {
+        json([
+            "type": "user", "cwd": cwd, "entrypoint": entrypoint, "sessionId": "s",
+            "timestamp": Date.ISO8601FormatStyle(includingFractionalSeconds: true).format(date),
+            "message": ["role": "user", "content": text],
+        ])
+    }
+}
+
+/// A session id as transcripts are named: a UUID ending in `n`.
+func sessionID(_ n: Int) -> String { String(format: "00000000-0000-4000-8000-%012d", n) }

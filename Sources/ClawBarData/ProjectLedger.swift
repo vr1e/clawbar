@@ -13,8 +13,16 @@ struct TranscriptReply: Sendable, Hashable {
     var minute: Int
     var cwd: String?
 
+    /// Every assistant line carries it at the top level; a scanner parses no other line.
+    static let marker = Array(#""type":"assistant""#.utf8)
+
     private static let stamp = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
     private static let wholeSeconds = Date.ISO8601FormatStyle()
+
+    /// A transcript line's `timestamp`, with or without fractional seconds.
+    static func date(_ text: String) -> Date? {
+        (try? stamp.parse(text)) ?? (try? wholeSeconds.parse(text))
+    }
 
     /// nil for any other line, a synthetic reply (Claude Code's own error notes), or a line without usage or time.
     init?(line: Data) {
@@ -24,7 +32,7 @@ struct TranscriptReply: Sendable, Hashable {
               let model = message["model"] as? String, model != "<synthetic>",
               let id = (message["id"] as? String) ?? (j["requestId"] as? String),
               let text = j["timestamp"] as? String,
-              let at = (try? Self.stamp.parse(text)) ?? (try? Self.wholeSeconds.parse(text))
+              let at = Self.date(text)
         else { return nil }
         self.id = id
         self.model = model

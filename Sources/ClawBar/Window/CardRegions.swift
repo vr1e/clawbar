@@ -19,14 +19,14 @@ enum CardClick: Equatable {
         case .exit: .quit
         case .play: .play
         case .status: .open(AppInfo.statusPage)
-        case .appVersion: .open(AppInfo.originalRepo)
+        case .appVersion: .open(AppInfo.releasePage)
         case .version:
             switch view.versionAction {
             case .runUpdate: .runUpdate
             case .open(let url): .open(url)
             case .none: .nothing
             }
-        case .reset, .sessions, .projectsLabel, .project, .account: nil
+        case .reset, .sessions, .projectsLabel, .project, .account, .stamp: nil
         }
     }
 }

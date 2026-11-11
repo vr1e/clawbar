@@ -128,6 +128,14 @@ public enum Diagnostics {
                 }
                 if scan.unreadable > 0 { parts.append("\(scan.unreadable) unreadable") }
                 say("projects: " + parts.joined(separator: " · "))
+            case .recentScanned(let scan):
+                // Counts only: no title, folder or prompt.
+                var parts = [
+                    "\(scan.files) transcripts", "\(scan.read) read", "\(scan.sessions.count) sessions",
+                    String(format: "%.1f s", took / .seconds(1)),
+                ]
+                if scan.unreadable > 0 { parts.append("\(scan.unreadable) unreadable") }
+                say("recent sessions: " + parts.joined(separator: " · "))
             default:
                 break
             }
@@ -183,6 +191,7 @@ extension Config {
         c.showMascot = true
         c.showSky = true
         c.showHistory = true
+        c.showRecentSessions = true
         c.expanded = true
         return c
     }

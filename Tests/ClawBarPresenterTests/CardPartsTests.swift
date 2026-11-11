@@ -7,14 +7,14 @@ import ClawBarShared
 @Suite struct CardPartsTests {
     @Test func aReachedLimitShowsThePlayButton() {
         let v = render(sample { $0.sessionPercent = 100 })
-        #expect(v.parts.map(\.id) == [.details, .hide, .exit, .reset, .play, .sessions, .status, .account])
+        #expect(v.parts.map(\.id) == [.details, .hide, .exit, .reset, .play, .sessions, .status, .account, .stamp])
         #expect(v.tooltip(.play) == L10n.t(.uiPlayTip, .en))
     }
 
     @Test func theVersionLinesShowWithTheDetails() {
         #expect(!render().shows(.version) && !render().shows(.appVersion))
         let v = render(config: Config(expanded: true))
-        #expect(v.parts.map(\.id).suffix(3) == [.version, .appVersion, .account])
+        #expect(v.parts.map(\.id).suffix(4) == [.version, .appVersion, .account, .stamp])
         // No local version: the ClawBar line stays, alone.
         let unknown = render(sample(data: { $0.version = VersionState(latest: "2.1.302") }), config: Config(expanded: true))
         #expect(!unknown.shows(.version) && unknown.shows(.appVersion))
@@ -25,12 +25,20 @@ import ClawBarShared
         #expect(!render(sample(data: { $0.account = AccountInfo(loggedIn: true) })).shows(.account))
     }
 
+    /// The footer's time says what it is, also behind "stale" and "error"; before the first reading there is none.
+    @Test func theStampSaysWhenTheUsageWasLastRead() {
+        #expect(render().tooltip(.stamp) == "Usage last read at 14:04:35")
+        #expect(render(lang: .de).tooltip(.stamp) == "Nutzung zuletzt gelesen um 14:04:35")
+        #expect(render(tickError: true).tooltip(.stamp) == "Usage last read at 14:04:35")
+        #expect(!render(sample(data: { $0.usageAt = nil })).shows(.stamp))
+    }
+
     @Test func rowsTurnedOffLeaveTheirPartsOut() {
         var config = Config()
         config.showSessions = false
         config.showStatus = false
         config.showAccount = false
-        #expect(render(config: config).parts.map(\.id) == [.details, .hide, .exit, .reset])
+        #expect(render(config: config).parts.map(\.id) == [.details, .hide, .exit, .reset, .stamp])
     }
 
     @Test func theProjectsShowTheLabelThenARowEach() {
@@ -40,7 +48,7 @@ import ClawBarShared
         let v = render(sample(data: { $0.projects = Samples.projects }), config: chart)
         #expect(v.parts.map(\.id) == [
             .details, .hide, .exit, .reset, .sessions, .status, .projectsLabel,
-            .project(0), .project(1), .project(2), .project(3), .version, .appVersion, .account,
+            .project(0), .project(1), .project(2), .project(3), .version, .appVersion, .account, .stamp,
         ])
         // A week without usage hides the block, label and all.
         #expect(!render(sample(data: { $0.projects = ProjectUsage() }), config: chart).shows(.projectsLabel))

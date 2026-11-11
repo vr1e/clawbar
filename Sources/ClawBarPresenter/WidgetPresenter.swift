@@ -186,7 +186,10 @@ private struct Render {
     private func sessions(_ v: inout WidgetViewState) {
         v.sessionsLabel = t(.uiSessions)
         v.sessionsText = sessionCounts()?.joined(separator: "  ·  ") ?? t(.sessNone)
-        if cfg.showSessions { v.show(.sessions, tooltip: data.sessions.map(sessionLine).joined(separator: "\n")) }
+        guard cfg.showSessions else { return }
+        // What a session is about says more than its registry name.
+        let titles = Dictionary(data.recentSessions.compactMap { s in s.title.map { (s.sessionId, $0) } }) { first, _ in first }
+        v.show(.sessions, tooltip: data.sessions.map { sessionLine($0, title: titles[$0.sessionId]) }.joined(separator: "\n"))
     }
 
     /// How many sessions, then how many work and wait; nil without any.
@@ -200,14 +203,14 @@ private struct Render {
         return counts
     }
 
-    /// `▶ name — ~/cwd`, with ` [what]` for a session that waits for something.
-    private func sessionLine(_ s: SessionInfo) -> String {
+    /// `▶ title — ~/cwd`, with ` [what]` for a session that waits for something; the registry's name without a title.
+    private func sessionLine(_ s: SessionInfo, title: String?) -> String {
         let mark = switch s.state {
         case .busy: "▶"
         case .waiting: "?"
         case .idle: "○"
         }
-        var line = "\(mark) \(s.name)"
+        var line = "\(mark) \(title ?? s.name)"
         if s.state == .waiting, let what = s.waitingFor, !what.isEmpty { line += " [\(what)]" }
         if !s.cwd.isEmpty { line += " — " + HomePath.relative(s.cwd, home: input.homeDirectory) }
         return line
@@ -349,6 +352,8 @@ private struct Render {
         } else if let at = data.usageAt {
             v.stampText = staleStamp(at) ?? clockText(at)
         }
+        // ClawBar's own: the original leaves the time unexplained.
+        if let at = data.usageAt { v.show(.stamp, tooltip: t(.uiReadAt, clockText(at))) }
     }
 
     /// "stale · time" once the numbers from `at` are stale, else nil; the footer and the menu bar item share it.

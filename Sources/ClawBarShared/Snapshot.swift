@@ -14,6 +14,8 @@ public struct SessionInfo: Sendable, Hashable {
     public var sessionId: String
     /// The session's name, else the leaf of its cwd.
     public var name: String
+    /// The name was given (`/rename`, `claude -n`), not derived from the cwd.
+    public var named: Bool
     public var cwd: String
     public var state: SessionState
     /// What a waiting session waits for, e.g. "permission".
@@ -23,12 +25,13 @@ public struct SessionInfo: Sendable, Hashable {
     public var startedAt: Date?
 
     public init(
-        pid: Int32, sessionId: String = "", name: String, cwd: String = "", state: SessionState = .idle,
+        pid: Int32, sessionId: String = "", name: String, named: Bool = false, cwd: String = "", state: SessionState = .idle,
         waitingFor: String? = nil, kind: String? = nil, startedAt: Date? = nil
     ) {
         self.pid = pid
         self.sessionId = sessionId
         self.name = name
+        self.named = named
         self.cwd = cwd
         self.state = state
         self.waitingFor = waitingFor
@@ -424,13 +427,15 @@ public struct DataSnapshot: Sendable, Hashable {
     /// nil until the first scan of the transcripts has finished.
     public var projects: ProjectUsage?
     public var projectsAt: Date?
+    /// Every session of the last 7 days that asked something, newest activity first; empty while `showRecentSessions` is off.
+    public var recentSessions: [RecentSession]
 
     public init(
         usage: UsageSnapshot? = nil, usageAt: Date? = nil, usageProbeCompleted: Bool = false,
         usageIssue: UsageIssue? = nil, history: [UsageSample] = [], sessions: [SessionInfo] = [], sessionsRead: Bool = false,
         status: ServiceStatus? = nil, statusAt: Date? = nil, account: AccountInfo? = nil,
         version: VersionState = VersionState(), weather: WeatherSnapshot? = nil, place: Place? = nil,
-        projects: ProjectUsage? = nil, projectsAt: Date? = nil
+        projects: ProjectUsage? = nil, projectsAt: Date? = nil, recentSessions: [RecentSession] = []
     ) {
         self.usage = usage
         self.usageAt = usageAt
@@ -447,6 +452,7 @@ public struct DataSnapshot: Sendable, Hashable {
         self.place = place
         self.projects = projects
         self.projectsAt = projectsAt
+        self.recentSessions = recentSessions
     }
 
     public static let empty = DataSnapshot()

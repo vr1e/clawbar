@@ -24,6 +24,11 @@ import ClawBarShared
         #expect(p["CFBundlePackageType"] as? String == "APPL")
     }
 
+    // Without it macOS refuses the Apple events to Ghostty without asking.
+    @Test func itSaysWhyItControlsGhostty() {
+        #expect((Self.plist["NSAppleEventsUsageDescription"] as? String)?.contains("Ghostty") == true)
+    }
+
     // A plist minimum below the package's lets Launch Services open a binary that cannot load.
     @Test func itIsAMenuBarAppForThePackagesMacOS() {
         let package = (try? String(contentsOf: Self.root.appendingPathComponent("Package.swift"), encoding: .utf8)) ?? ""

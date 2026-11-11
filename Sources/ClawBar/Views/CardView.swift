@@ -562,7 +562,9 @@ private struct FooterRow: View {
             } else {
                 Spacer(minLength: 0)
             }
-            if !v.stampText.isEmpty {
+            if v.shows(.stamp) {
+                WText(v.stampText, 9, color: v.stampColor).publish(.part(.stamp), to: layout)
+            } else if !v.stampText.isEmpty {
                 WText(v.stampText, 9, color: v.stampColor)
             }
         }

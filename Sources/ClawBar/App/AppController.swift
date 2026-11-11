@@ -401,7 +401,11 @@ final class AppController: NSObject, WidgetPanelDelegate {
     // MARK: Menu bar
 
     private func statusMenu() -> NSMenu {
-        let entries = StatusMenu.entries(config: config, widgetVisible: widgetVisible, limitReached: app.view.limitReached)
+        let recent = config.showRecentSessions
+            ? RecentSessionsMenu.items(presenterInput(now: Date()), terminal: SessionTerminal.ghosttyInstalled) : nil
+        let entries = StatusMenu.entries(
+            config: config, widgetVisible: widgetVisible, limitReached: app.view.limitReached, recent: recent
+        )
         return MenuBuilder.menu(entries) { [unowned self] in perform($0) }
     }
 
@@ -413,7 +417,19 @@ final class AppController: NSObject, WidgetPanelDelegate {
             if reloadSkins() { recompute() }
             settings.show(beside: panel.frame, on: (panel.screen ?? NSScreen.main)?.visibleFrame)
         case .play: game.show()
+        case .recent(let id): clickedRecent(id)
         case .quit: NSApp.terminate(nil)
+        }
+    }
+
+    /// What the click does is asked now, not when the menu opened: the session may have started or ended since.
+    private func clickedRecent(_ sessionId: String) {
+        guard let session = data.snapshot.recentSessions.first(where: { $0.sessionId == sessionId }),
+              let click = RecentSessionsMenu.click(for: session, terminal: SessionTerminal.ghosttyInstalled)
+        else { return }
+        SessionTerminal.perform(click, on: session) { [weak self] in
+            // Automation was refused, or Ghostty could not open the tab.
+            self?.errorLog.append("recent: Ghostty opened no tab; the resume command is on the clipboard")
         }
     }
 
@@ -424,6 +440,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         case .toggleMainWeek: change { $0.mainLimit = $0.mainLimit.other }
         case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
         case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
+        case .toggleRecentSessions: change { $0.showRecentSessions.toggle() }
         case .language(let l): change { $0.language = l.rawValue }
         case .theme(let t): change { $0.theme = t }
         case .skin(let id): change { $0.skin = id }

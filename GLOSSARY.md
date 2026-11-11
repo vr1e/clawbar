@@ -16,6 +16,10 @@ _Avoid_: state, model, snapshot (alone)
 The decisions of the data side: which probe runs when, and what each answer does to the data snapshot. It takes an event and the time, and returns the work it wants done.
 _Avoid_: scheduler, policy, controller
 
+**Recent session**:
+A session of the last 7 days, live or ended, as its transcript and the session registry describe it: its title, its folder, its last activity and the user's last prompt.
+_Avoid_: history (the usage history), past session
+
 **Main limit**:
 The limit the big number, its bar, the reset line, the menu bar item and Clawd follow: the session by default, or the all-models week (`mainLimit`). The other one takes the row under it.
 _Avoid_: primary limit, big limit

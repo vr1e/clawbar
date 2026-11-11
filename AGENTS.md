@@ -49,8 +49,11 @@ to `main` by PR; it leaves the version alone. Releases are cut from `main` by th
 
 Tests run against fake executables, fixtures and a temporary `AppPaths(root:)`, and drive the login item through a
 fake `LoginItemService`, so `SMAppService` never runs in a test. `claude update` runs only against the fake `claude`
-in tests, since a real run updates the user's Claude Code. Sessions are read from `<pid>.json` alone; the `*.key`
-files beside them in `~/.claude/sessions/` are secrets and stay unopened.
+in tests, since a real run updates the user's Claude Code. Live sessions are read from `<pid>.json` alone; the `*.key`
+files beside them in `~/.claude/sessions/` are secrets and stay unopened. Recent sessions also take a title and the
+last prompt from each transcript's end and its first 64 KB: that text lives in the data snapshot only and is never logged, dumped
+(`--dump-state`, `--diagnose` print counts) or written to disk. A session id or a folder from a transcript reaches a
+shell or AppleScript only as `SessionTerminal` passes it: the id checked as a UUID, the folder as an argument.
 
 ## Checking a change
 

@@ -18,9 +18,10 @@ import ClawBarShared
             parts: [
                 CardPart(.details, tooltip: "Details ein-/ausblenden"), CardPart(.hide, tooltip: "Ausblenden"),
                 CardPart(.exit, tooltip: "Beenden"), CardPart(.reset),
-                CardPart(.sessions, tooltip: "▶ clawbar — ~/Dev/clawbar\n? notes [permission] — ~/notes"),
+                CardPart(.sessions, tooltip: "▶ Menu bar tooltip wording — ~/Dev/clawbar\n? Reading list [permission] — ~/notes"),
                 CardPart(.status, tooltip: "status.claude.com öffnen"),
                 CardPart(.account, tooltip: "Max  ·  user@example.com"),
+                CardPart(.stamp, tooltip: "Nutzung zuletzt gelesen um 14:04:35"),
             ],
             pctText: "34", pctColor: Palette.ok, mainFraction: 0.34, mainBarColor: Palette.ok,
             resetText: "wird in 2h 05min zurückgesetzt",

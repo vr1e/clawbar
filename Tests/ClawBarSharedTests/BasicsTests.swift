@@ -125,6 +125,10 @@ import ClawBarShared
         #expect(!AppInfo.userAgent.contains(AppInfo.originalRepo.path))
     }
 
+    @Test func theReleasePageIsThisVersionsTagInClawBarsOwnRepo() {
+        #expect(AppInfo.releasePage.absoluteString == "https://github.com/vr1e/clawbar/releases/tag/v\(AppInfo.version)")
+    }
+
     @Test func oneRootHasOneCanonicalSpellingEvenBeforeItExists() {
         let name = "cb-canon-\(UUID().uuidString)"
         // /tmp is a symlink to /private/tmp; neither folder below it exists.
