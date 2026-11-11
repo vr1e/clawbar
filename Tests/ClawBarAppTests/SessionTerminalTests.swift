@@ -3,7 +3,8 @@ import Testing
 @testable import ClawBar
 import ClawBarShared
 
-/// What is typed into a terminal or put on the clipboard for a recent session; osascript itself never runs here.
+/// What is typed into a terminal or put on the clipboard for a recent session; osascript runs only on scripts that
+/// reach no app.
 @Suite struct SessionTerminalTests {
     let id = "00000000-0000-4000-8000-000000000003"
     var command: String { "claude -r \(id)" }

@@ -196,7 +196,7 @@ struct RecentScan: Sendable, Hashable {
 }
 
 /// Finds the week's session transcripts, `<config dir>/projects/<folder>/<session id>.jsonl`, and reads each one's
-/// tail. An unchanged file is never read twice.
+/// end and first bytes. An unchanged file is never read twice.
 actor RecentSessionScanner {
     private struct Cached {
         var inode: UInt64

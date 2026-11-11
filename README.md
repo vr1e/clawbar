@@ -159,11 +159,11 @@ Everything ClawBar touches, so you know there is nothing else:
   Claude Code's folder, or `CLAUDE_CONFIG_DIR` when that is set. With `showHistory` on and the details open, it reads
   the week's transcripts in `~/.claude/projects` every 15 minutes, taking only each reply's model, fast-mode flag,
   token counts, time, message or request id and working folder to weigh this week's projects; `--diagnose` reads them
-  once and prints only counts. With `showRecentSessions` on, it reads the end of each session transcript of the week
-  every 5 minutes and when a session ends, and only those that changed, taking the session's title, your
-  last prompt cut to 300 characters, its folder and the time of its last line. The titles show in the menu and in the
-  widget's sessions hover list, so they say on screen what a session was about; the prompt shows only in a menu
-  item's hover popup. Both stay in memory:
+  once and prints only counts. With `showRecentSessions` on, it reads the end and the first 64 KB of each session
+  transcript of the week every 5 minutes and when a session ends, and only those that changed, taking the session's
+  title, your last prompt cut to 300 characters, its folder and the time of its last line. The titles show in the
+  menu and in the widget's sessions hover list, so they say on screen what a session was about; the prompt shows only
+  in a menu item's hover popup. Both stay in memory:
   `error.log`, `state.json`, `--dump-state` and `--diagnose` get counts, never the text. Beyond that it keeps none
   of what was said, and nothing leaves the Mac.
 - **Ghostty:** a click on a recent session runs `osascript` to ask Ghostty for a new tab in the session's folder
