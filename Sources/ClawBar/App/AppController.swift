@@ -225,8 +225,10 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private func animationTick() {
         let k = config.scale
         let mouse = NSEvent.mouseLocation
-        // Over the window only when our panel is the topmost window there, so covering windows count.
-        let over = NSWindow.windowNumber(at: mouse, belowWindowWithWindowNumber: 0) == panel.windowNumber
+        // Over the window only when our panel is the topmost window there, so covering windows count. The frame test
+        // first spares a WindowServer round trip on every tick the pointer is elsewhere.
+        let over = panel.frame.contains(mouse)
+            && NSWindow.windowNumber(at: mouse, belowWindowWithWindowNumber: 0) == panel.windowNumber
         var mouseX: Double?
         if over {
             // The engine needs x whenever the pointer is over the window; before the first layout the row sits at 13.

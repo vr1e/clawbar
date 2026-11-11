@@ -57,7 +57,8 @@ shell or AppleScript only as `SessionTerminal` passes it: the id checked as a UU
 
 ## Checking a change
 
-- `swift build && swift test`; no CI runs them.
+- `swift build && swift test`; no CI runs them. When codesign fails after an interrupted build, delete the `*.cstemp`
+  it left in `.build/out/Products/Debug/*.xctest/Contents/MacOS/` and build again.
 - Anything visible: `.build/debug/ClawBar --snapshot <dir>` renders every widget state in both languages at three
   sizes, the menu bar item, each Settings tab, and the menus and Settings pages as text; open the PNGs to look.
 - Probes: `.build/debug/ClawBar --diagnose` runs the engine once against the real `claude` and network, through the
