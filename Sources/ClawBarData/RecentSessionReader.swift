@@ -12,16 +12,6 @@ struct TranscriptSummary: Sendable, Hashable {
     var cwd: String?
     /// The newest line's time, else the file's.
     var lastActivity: Date
-    /// `cli`, `claude-desktop`, or `sdk-cli` for a `claude -p` run.
-    var entrypoint: String?
-    /// Claude answered at least once.
-    var replied = false
-
-    /// Something was asked, by a person: a `/clear` alone leaves no title, prompt or reply, and a `claude -p` run
-    /// belongs to another tool. A transcript without title lines still counts once Claude replied.
-    var isSession: Bool {
-        entrypoint != "sdk-cli" && (customTitle != nil || aiTitle != nil || !lastPrompt.isEmpty || replied)
-    }
 }
 
 /// Reads a transcript's lines that title its session, backwards from the end, where Claude Code appends them again as
@@ -43,6 +33,7 @@ struct RecentSessionReader: Sendable {
     private var lastPrompt: String?
     private var lastCwd: String?
     private var firstCwd: String?
+    /// `cli`, `claude-desktop`, or `sdk-cli` for a `claude -p` run.
     private var entrypoint: String?
     private var lastActivity: Date?
     private var replied = false
@@ -59,8 +50,14 @@ struct RecentSessionReader: Sendable {
     private static let originNeedle = Data(#""entrypoint":""#.utf8)
     private static let replyNeedle = Data(TranscriptScanner.marker)
 
-    /// A `claude -p` run is no session, whatever else it says.
+    /// A `claude -p` run belongs to another tool, whatever else it says.
     private var isPrintRun: Bool { entrypoint == "sdk-cli" }
+
+    /// Something was asked, by a person: a `/clear` alone leaves no title, prompt or reply. A transcript without
+    /// title lines still counts once Claude replied.
+    var isSession: Bool {
+        !isPrintRun && (customTitle != nil || aiTitle != nil || !(lastPrompt ?? "").isEmpty || replied)
+    }
 
     /// The title and the last prompt are both read, with the margin behind them; a long line's read part counts too.
     /// A print run never gets a title, so nothing more is looked for.
@@ -113,7 +110,7 @@ struct RecentSessionReader: Sendable {
     func summary(sessionId: String, modified: Date) -> TranscriptSummary {
         TranscriptSummary(
             sessionId: sessionId, customTitle: customTitle, aiTitle: aiTitle, lastPrompt: lastPrompt ?? "",
-            cwd: firstCwd ?? lastCwd, lastActivity: lastActivity ?? modified, entrypoint: entrypoint, replied: replied
+            cwd: firstCwd ?? lastCwd, lastActivity: lastActivity ?? modified
         )
     }
 
@@ -207,43 +204,29 @@ actor RecentSessionScanner {
         var reader: RecentSessionReader
     }
 
-    /// By path, so another config dir's transcripts are other entries.
     private var cache: [String: Cached] = [:]
 
     func scan(root: String, now: Date) -> RecentScan {
-        let cutoff = now.addingTimeInterval(-TranscriptScanner.window).timeIntervalSince1970
         var scan = RecentScan()
         var seen: Set<String> = []
-        let fm = FileManager.default
-        for folder in (try? fm.contentsOfDirectory(atPath: root)) ?? [] {
-            let dir = root + "/" + folder
-            for name in (try? fm.contentsOfDirectory(atPath: dir)) ?? [] where name.hasSuffix(".jsonl") {
-                // A session's own transcript is named by its id; subagent transcripts sit in subfolders under other names.
-                let sessionId = String(name.dropLast(".jsonl".count))
-                guard RecentSession.isSessionId(sessionId) else { continue }
-                guard !Task.isCancelled else { break }
-                let path = dir + "/" + name
-                var st = stat()
-                guard stat(path, &st) == 0, st.st_mode & S_IFMT == S_IFREG else { continue }
-                let modified = TimeInterval(st.st_mtimespec.tv_sec) + TimeInterval(st.st_mtimespec.tv_nsec) / 1e9
-                guard modified >= cutoff else { continue }
-                seen.insert(path)
-                scan.files += 1
-                let inode = UInt64(st.st_ino), size = UInt64(st.st_size)
-                // A grown or replaced file is read again; one that cannot be opened is tried again next pass.
-                if cache[path]?.inode != inode || cache[path]?.size != size {
-                    cache[path] = Self.read(path, size: Int(st.st_size)).map { Cached(inode: inode, size: size, reader: $0) }
-                    scan.read += 1
-                }
-                guard let reader = cache[path]?.reader else {
-                    scan.unreadable += 1
-                    continue
-                }
-                let summary = reader.summary(sessionId: sessionId, modified: Date(timeIntervalSince1970: modified))
-                if summary.isSession { scan.sessions.append(summary) }
+        for file in TranscriptFiles.ofTheWeek(root: root, now: now, deep: false) {
+            // A session's own transcript is named by its id; subagent transcripts sit in subfolders under other names.
+            let sessionId = String(file.name.dropLast(".jsonl".count))
+            guard RecentSession.isSessionId(sessionId) else { continue }
+            seen.insert(file.path)
+            scan.files += 1
+            // A grown or replaced file is read again; one that cannot be opened is tried again next pass.
+            if cache[file.path]?.inode != file.inode || cache[file.path]?.size != file.size {
+                cache[file.path] = Self.read(file.path, size: Int(file.size)).map { Cached(inode: file.inode, size: file.size, reader: $0) }
+                scan.read += 1
             }
+            guard let reader = cache[file.path]?.reader else {
+                scan.unreadable += 1
+                continue
+            }
+            if reader.isSession { scan.sessions.append(reader.summary(sessionId: sessionId, modified: file.modified)) }
         }
-        // Transcripts that left the week are forgotten.
+        // What this pass did not see, gone from the week or under another config dir, is forgotten.
         cache = cache.filter { seen.contains($0.key) }
         return scan
     }

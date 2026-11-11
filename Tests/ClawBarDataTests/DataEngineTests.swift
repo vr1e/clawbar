@@ -622,14 +622,14 @@ import ClawBarShared
             transcript(1, ai: "Older", ago: 3600), transcript(2, ai: "Newer", ago: 60), transcript(3, ai: "Same time", ago: 60),
         ])), now: t0)
         #expect(e.snapshot.recentSessions.map(\.title) == ["Newer", "Same time", "Older"])
-        #expect(e.snapshot.recentSessions.allSatisfy { !$0.isLive && $0.pid == nil })
+        #expect(e.snapshot.recentSessions.allSatisfy { !$0.isLive })
         _ = e.handle(.sessionsRead([
             SessionInfo(pid: 11, sessionId: sessionID(1), name: "api-07", cwd: "/Users/example/api", state: .waiting),
             // No transcript yet: not a recent session.
             SessionInfo(pid: 19, sessionId: sessionID(9), name: "new-01", state: .idle),
         ]), now: t0 + 2)
         let older = e.snapshot.recentSessions[2]
-        #expect(older.isLive && older.pid == 11 && older.title == "Older")
+        #expect(older.pid == 11 && older.title == "Older")
         #expect(e.snapshot.recentSessions.count == 3)
         // It ended: the next read says so without another pass over the transcripts.
         _ = e.handle(.sessionsRead([]), now: t0 + 4)
@@ -670,21 +670,20 @@ import ClawBarShared
         #expect(logs(e.handle(.recentScanned(scan), now: t0 + 61)).isEmpty)
     }
 
-    @Test func aSessionStartingOrEndingReadsTheTranscriptsAtOnce() {
+    @Test func aSessionEndingReadsTheTranscriptsAtOnce() {
         var e = recentEngine()
         start(&e, now: t0)
         let root = "/Users/example/.claude/projects"
         let one = SessionInfo(pid: 11, sessionId: sessionID(1), name: "api"), two = SessionInfo(pid: 12, sessionId: sessionID(2), name: "web")
-        // The first read finds what the first pass is reading anyway.
-        #expect(e.handle(.sessionsRead([one]), now: t0 + 1).isEmpty)
         _ = e.handle(.recentScanned(RecentScan()), now: t0 + 2)
-        // The same sessions, whatever their state: nothing to read.
+        // One that starts has no transcript yet, and a change of state ends nothing.
         var busy = one
         busy.state = .busy
-        #expect(e.handle(.sessionsRead([busy]), now: t0 + 4).isEmpty)
-        #expect(e.handle(.sessionsRead([one, two]), now: t0 + 6) == [.scanRecent(root: root)])
-        // One ended while that pass ran: the next tick reads again.
-        #expect(e.handle(.sessionsRead([two]), now: t0 + 8).isEmpty)
+        #expect(e.handle(.sessionsRead([one]), now: t0 + 3).isEmpty)
+        #expect(e.handle(.sessionsRead([busy, two]), now: t0 + 4).isEmpty)
+        #expect(e.handle(.sessionsRead([two]), now: t0 + 6) == [.scanRecent(root: root)])
+        // The other ended while that pass ran: the next tick reads again.
+        #expect(e.handle(.sessionsRead([]), now: t0 + 8).isEmpty)
         #expect(e.handle(.tick, now: t0 + 9).isEmpty)
         _ = e.handle(.recentScanned(RecentScan()), now: t0 + 10)
         #expect(e.handle(.tick, now: t0 + 11) == [.scanRecent(root: root)])

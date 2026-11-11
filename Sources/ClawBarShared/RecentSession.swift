@@ -50,13 +50,13 @@ public struct RecentSessionItem: Sendable, Hashable {
     public var title: String
     /// The last prompt and what a click does.
     public var tooltip: String
-    /// nil for a live session with no terminal to bring forward.
-    public var click: RecentSessionClick?
+    /// False for an item that only informs.
+    public var clickable: Bool
 
-    public init(sessionId: String, title: String, tooltip: String = "", click: RecentSessionClick? = nil) {
+    public init(sessionId: String, title: String, tooltip: String = "", clickable: Bool = false) {
         self.sessionId = sessionId
         self.title = title
         self.tooltip = tooltip
-        self.click = click
+        self.clickable = clickable
     }
 }

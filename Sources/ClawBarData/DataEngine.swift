@@ -119,7 +119,7 @@ struct DataEngine: Sendable {
     static let changelogRetry = 600
     /// Upstream's 15 minutes: the transcripts change by the minute, a week's shares do not.
     static let projectsInterval = 900
-    /// Between sessions starting and ending, which each bring a pass of their own, only titles and prompts move.
+    /// A session's end brings a pass of its own; in between only titles and prompts move.
     static let recentInterval = 300
     /// Each run sources the user's rc files again, so a shell that never answers is not asked forever.
     static let loginRunLimit = 4
@@ -159,15 +159,15 @@ struct DataEngine: Sendable {
         case .located(let found, let hint):
             located(found, installHint: hint, now: now)
         case .sessionsRead(let sessions):
-            let ids = { (s: [SessionInfo]) in Set(s.map(\.sessionId)) }
-            let changed = snapshot.sessionsRead && ids(sessions) != ids(snapshot.sessions)
+            let ended = !Set(snapshot.sessions.map(\.sessionId)).isSubset(of: sessions.map(\.sessionId))
             snapshot.sessions = sessions
             snapshot.sessionsRead = true
             joinRecent()
-            // A session started or ended: its transcript is read now, or right after the pass that is running.
-            if changed, config.showRecentSessions {
+            // A session ended: its last title and prompt are read now, or on the tick after the pass that is running.
+            // One that started has no transcript yet.
+            if ended {
                 recent.lastTry = nil
-                if resolved, !recent.running { startRecent(now: now) }
+                startRecentIfDue(now: now)
             }
         case .loginShell(let login):
             locating.running = false
@@ -242,10 +242,7 @@ struct DataEngine: Sendable {
            projects.due(Self.projectsInterval, now) || !projects.running && scannedRoot != projectsRoot {
             startProjects(now: now)
         }
-        if resolved, config.showRecentSessions,
-           recent.due(Self.recentInterval, now) || !recent.running && recentRoot != projectsRoot {
-            startRecent(now: now)
-        }
+        startRecentIfDue(now: now)
         guard resolved, claude != nil else { return }
         if version.due(config.versionIntervalSeconds, now) { startVersion(now: now) }
         if latch == nil, usage.due(config.usageIntervalSeconds, now) { startUsage(now: now) }
@@ -458,7 +455,10 @@ struct DataEngine: Sendable {
 
     // MARK: - Recent sessions
 
-    private mutating func startRecent(now: Date) {
+    private mutating func startRecentIfDue(now: Date) {
+        guard resolved, config.showRecentSessions,
+              recent.due(Self.recentInterval, now) || !recent.running && recentRoot != projectsRoot
+        else { return }
         recent.start(now)
         recentRoot = projectsRoot
         emit(.scanRecent(root: projectsRoot))

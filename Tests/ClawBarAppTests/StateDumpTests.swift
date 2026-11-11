@@ -56,7 +56,6 @@ import ClawBarShared
         }
         var d = dump()
         d.snapshot.recentSessions = []
-        d.config.showRecentSessions = false
         #expect(d.render().contains("\nrecentSessions: 0 (live 0, titled 0)\n"))
     }
 

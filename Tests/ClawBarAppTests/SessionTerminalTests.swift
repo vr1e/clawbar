@@ -9,7 +9,7 @@ import ClawBarShared
     var command: String { "claude -r \(id)" }
 
     @Test func onlyASessionIdBecomesACommand() {
-        #expect(SessionTerminal.resumeCommand(sessionId: id) == "claude -r \(id)")
+        #expect(SessionTerminal.resumeCommand(sessionId: id) == command)
         #expect(SessionTerminal.resumeCommand(sessionId: id.uppercased()) == "claude -r \(id.uppercased())")
         for bad in ["", "abc", id + "; rm -rf ~", id + "\n", " " + id, "$(touch x)", String(id.dropLast())] {
             #expect(SessionTerminal.resumeCommand(sessionId: bad) == nil, "\(bad)")
@@ -17,20 +17,20 @@ import ClawBarShared
     }
 
     @Test func theClipboardLineQuotesTheFolder() {
-        #expect(SessionTerminal.shellLine(cwd: "/Users/example/code/api", command: command) == "cd '/Users/example/code/api' && claude -r \(id)")
+        #expect(SessionTerminal.shellLine(cwd: "/Users/example/code/api", command: command) == "cd '/Users/example/code/api' && \(command)")
         #expect(SessionTerminal.shellLine(cwd: "/Users/example/it's $HOME; here", command: command)
             == #"cd '/Users/example/it'\''s $HOME; here' && claude -r "# + id)
         // No folder known, or one that cannot be typed: the command alone.
-        #expect(SessionTerminal.shellLine(cwd: "", command: command) == "claude -r \(id)")
-        #expect(SessionTerminal.shellLine(cwd: "/Users/example/a\nb", command: command) == "claude -r \(id)")
-        #expect(SessionTerminal.shellLine(cwd: "-i", command: command) == "claude -r \(id)")
+        #expect(SessionTerminal.shellLine(cwd: "", command: command) == command)
+        #expect(SessionTerminal.shellLine(cwd: "/Users/example/a\nb", command: command) == command)
+        #expect(SessionTerminal.shellLine(cwd: "-i", command: command) == command)
     }
 
     @Test func theFolderAndTheCommandReachGhosttyAsArgumentsNotAsScript() {
         let cwd = #"/Users/example/a "quoted" \ folder"#
-        let args = SessionTerminal.newTab(cwd: cwd, command: "claude -r \(id)")
+        let args = SessionTerminal.newTab(cwd: cwd, command: command)
         #expect(args.count == 4 && args[0] == "-e")
-        #expect(Array(args[2...]) == [cwd, "claude -r \(id)"])
+        #expect(Array(args[2...]) == [cwd, command])
         #expect(!args[1].contains("example") && !args[1].contains(id))
         #expect(args[1].contains(#"tell application "Ghostty""#) && args[1].contains("initial input"))
         // Neither a control character nor a would-be osascript option gets through as the folder.

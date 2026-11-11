@@ -10,6 +10,25 @@ enum SessionTerminal {
         NSWorkspace.shared.urlForApplication(withBundleIdentifier: ghosttyBundleID) != nil
     }
 
+    /// Carries out a click on a recent session's item. `failed` hears that Ghostty opened no tab, after the command
+    /// went on the clipboard instead.
+    static func perform(_ click: RecentSessionClick, on session: RecentSession, failed: @escaping @MainActor () -> Void) {
+        switch click {
+        case .focus:
+            // One that runs elsewhere stays where it is.
+            if let pid = session.pid { run(focus(pid: pid)) { _ in } }
+        case .resume, .copy:
+            guard let command = resumeCommand(sessionId: session.sessionId) else { return }
+            let line = shellLine(cwd: session.cwd, command: command)
+            guard click == .resume else { return copy(line) }
+            run(newTab(cwd: session.cwd, command: command)) { opened in
+                guard !opened else { return }
+                copy(line)
+                failed()
+            }
+        }
+    }
+
     /// `claude -r <id>`; nil unless the id is a UUID, since the line is typed into a shell.
     nonisolated static func resumeCommand(sessionId: String) -> String? {
         RecentSession.isSessionId(sessionId) ? "claude -r \(sessionId)" : nil
@@ -49,6 +68,11 @@ enum SessionTerminal {
         } catch {
             completion(false)
         }
+    }
+
+    private static func copy(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 
     /// A folder that is no absolute path, or has a control character, cannot be typed or passed on safely (osascript

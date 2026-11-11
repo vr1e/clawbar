@@ -66,8 +66,8 @@ import ClawBarShared
 
     static let live = "00000000-0000-4000-8000-000000000001", done = "00000000-0000-4000-8000-000000000003"
     let recent = [
-        RecentSessionItem(sessionId: live, title: "● Menu bar tooltip wording · ~/Dev/clawbar · now", tooltip: "Shorten it\n\nRunning in ~/Dev/clawbar", click: .focus),
-        RecentSessionItem(sessionId: done, title: "○ Rate limiter for the API · ~/code/api · 2h", tooltip: "Add a test\n\nClick to resume in a new Ghostty tab", click: .resume),
+        RecentSessionItem(sessionId: live, title: "● Menu bar tooltip wording · ~/Dev/clawbar · now", tooltip: "Shorten it\n\nRunning in ~/Dev/clawbar", clickable: true),
+        RecentSessionItem(sessionId: done, title: "○ Rate limiter for the API · ~/code/api · 2h", tooltip: "Add a test\n\nClick to resume in a new Ghostty tab", clickable: true),
         RecentSessionItem(sessionId: "00000000-0000-4000-8000-000000000002", title: "● Reading list · ~/notes · 12m", tooltip: "Running in ~/notes"),
     ]
 

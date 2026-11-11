@@ -422,35 +422,15 @@ final class AppController: NSObject, WidgetPanelDelegate {
         }
     }
 
-    /// A live session's Ghostty tab comes forward; an ended one gets `claude -r` in its folder, typed into a new
-    /// tab, else put on the clipboard.
+    /// What the click does is asked now, not when the menu opened: the session may have started or ended since.
     private func clickedRecent(_ sessionId: String) {
-        guard let session = recentSession(sessionId), let command = SessionTerminal.resumeCommand(sessionId: sessionId)
+        guard let session = data.snapshot.recentSessions.first(where: { $0.sessionId == sessionId }),
+              let click = RecentSessionsMenu.click(for: session, terminal: SessionTerminal.ghosttyInstalled)
         else { return }
-        let line = SessionTerminal.shellLine(cwd: session.cwd, command: command)
-        switch RecentSessionsMenu.click(for: session, terminal: SessionTerminal.ghosttyInstalled) {
-        case .focus?:
-            // One that runs elsewhere stays where it is.
-            if let pid = session.pid { SessionTerminal.run(SessionTerminal.focus(pid: pid)) { _ in } }
-        case .resume?:
-            SessionTerminal.run(SessionTerminal.newTab(cwd: session.cwd, command: command)) { [weak self] opened in
-                guard let self, !opened else { return }
-                // Automation was refused, or Ghostty could not open the tab.
-                errorLog.append("recent: Ghostty opened no tab; the resume command is on the clipboard")
-                copy(line)
-            }
-        case .copy?: copy(line)
-        case nil: break
+        SessionTerminal.perform(click, on: session) { [weak self] in
+            // Automation was refused, or Ghostty could not open the tab.
+            self?.errorLog.append("recent: Ghostty opened no tab; the resume command is on the clipboard")
         }
-    }
-
-    private func recentSession(_ sessionId: String) -> RecentSession? {
-        data.snapshot.recentSessions.first { $0.sessionId == sessionId }
-    }
-
-    private func copy(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
     }
 
     private func perform(_ action: SettingsAction) {

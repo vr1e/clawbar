@@ -5,7 +5,7 @@ enum StatusMenuAction: Hashable {
     case toggleWidget, refresh, settings, quit
     /// Opens Clawd Run; offered only while the main limit is used up.
     case play
-    /// A recent session, by its id: resumed in a terminal, or its terminal brought forward.
+    /// A recent session's item, by its id; `RecentSessionsMenu.click(for:terminal:)` says what it does.
     case recent(String)
 }
 
@@ -68,11 +68,10 @@ enum StatusMenu {
         ]
     }
 
-    /// Recent sessions ▸, one item per session; an item without a click only informs.
+    /// Recent sessions ▸, one item per session.
     private static func submenu(_ items: [RecentSessionItem], lang: Lang) -> Entry {
         let children = items.map { i in
-            let action: StatusMenuAction? = i.click == nil ? nil : .recent(i.sessionId)
-            return Entry(title: i.title, enabled: action != nil, action: action, tooltip: i.tooltip)
+            Entry(title: i.title, enabled: i.clickable, action: i.clickable ? .recent(i.sessionId) : nil, tooltip: i.tooltip)
         }
         let none = [Entry(title: L10n.t(.recentNone, lang), enabled: false)]
         return Entry(title: L10n.t(.menuRecent, lang), children: children.isEmpty ? none : children)

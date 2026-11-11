@@ -7,8 +7,7 @@ public enum RecentSessionsMenu {
     /// A `/rename` can be any length; the menu stays narrow.
     static let titleLimit = 60
 
-    /// The newest `limit` sessions of the input's data snapshot. `terminal` says whether a click can reach a terminal
-    /// app: without one a click copies the command, and a live session's item only informs.
+    /// The newest `limit` sessions of the input's data snapshot. `terminal` says whether a click can reach a terminal app.
     public static func items(_ input: PresenterInput, terminal: Bool) -> [RecentSessionItem] {
         let lang = input.config.lang
         return input.data.recentSessions.prefix(limit).map { s in
@@ -31,13 +30,13 @@ public enum RecentSessionsMenu {
                 title: (s.isLive ? "● " : "○ ") + [title, folder, ago].compactMap { $0 }.joined(separator: " · "),
                 // The prompt shows here alone, never on the item.
                 tooltip: [s.lastPrompt, hint.joined(separator: "\n")].filter { !$0.isEmpty }.joined(separator: "\n\n"),
-                click: click
+                clickable: click != nil
             )
         }
     }
 
-    /// What a click on a session's item does; nil for a live one with no terminal to bring forward. Asked again at
-    /// the click, since the session may have started or ended while the menu was open.
+    /// What a click on a session's item does. Without a terminal app an ended session's command is copied, and a
+    /// live one's item only informs: nil.
     public static func click(for session: RecentSession, terminal: Bool) -> RecentSessionClick? {
         if session.isLive { return terminal ? .focus : nil }
         return terminal ? .resume : .copy

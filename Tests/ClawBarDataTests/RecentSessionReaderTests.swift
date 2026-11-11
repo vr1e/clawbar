@@ -9,12 +9,14 @@ import ClawBarShared
     let now = utc("2026-10-16T22:30:00Z")
     var modified: Date { now - 5 }
 
-    func summary(_ text: String) -> TranscriptSummary { summary(Data(text.utf8)) }
-
     /// A whole transcript in memory, as the scanner reads one from disk.
-    func summary(_ data: Data) -> TranscriptSummary {
-        RecentSessionReader.read(size: data.count) { data.subdata(in: $0) }.summary(sessionId: sessionID(1), modified: modified)
+    func reader(_ data: Data) -> RecentSessionReader {
+        RecentSessionReader.read(size: data.count) { data.subdata(in: $0) }
     }
+
+    func summary(_ data: Data) -> TranscriptSummary { reader(data).summary(sessionId: sessionID(1), modified: modified) }
+    func summary(_ text: String) -> TranscriptSummary { summary(Data(text.utf8)) }
+    func isSession(_ text: String) -> Bool { reader(Data(text.utf8)).isSession }
 
     /// Conversation lines of about `bytes` in all, the last one written at `now - 60`.
     func filler(_ bytes: Int, cwd: String = "/Users/example/api") -> String {
@@ -23,17 +25,15 @@ import ClawBarShared
     }
 
     @Test func theLastTitleAndPromptOfTheFileAreCurrent() {
-        let s = summary(
-            L.user(at: now - 900) + L.aiTitle("First guess") + L.lastPrompt("first prompt")
-                + assistantLine("msg_1", at: now - 600) + "\n"
-                + L.aiTitle("Sonos amp network connection") + L.lastPrompt("why is the amp offline?")
-        )
+        let text = L.user(at: now - 900) + L.aiTitle("First guess") + L.lastPrompt("first prompt")
+            + assistantLine("msg_1", at: now - 600) + "\n"
+            + L.aiTitle("Sonos amp network connection") + L.lastPrompt("why is the amp offline?")
+        let s = summary(text)
         #expect(s.aiTitle == "Sonos amp network connection" && s.customTitle == nil)
         #expect(s.lastPrompt == "why is the amp offline?")
-        // The reply is the newest line; how the session was started is on the prompt before it.
-        #expect(s.cwd == "/Users/example/api" && s.entrypoint == "cli" && s.replied)
+        #expect(s.cwd == "/Users/example/api")
         #expect(s.lastActivity == now - 600)
-        #expect(s.sessionId == sessionID(1) && s.isSession)
+        #expect(s.sessionId == sessionID(1) && isSession(text))
     }
 
     @Test func aRenameIsReadBesideTheSummaryAndFromTheFilesStart() {
@@ -64,14 +64,14 @@ import ClawBarShared
     }
 
     @Test func aMissingPromptTitleOrTimeIsNoError() {
-        let untitled = summary(L.user(at: now - 30) + assistantLine("msg_1", at: now - 20) + "\n")
+        let replyOnly = L.user(at: now - 30) + assistantLine("msg_1", at: now - 20) + "\n"
+        let untitled = summary(replyOnly)
         #expect(untitled.aiTitle == nil && untitled.customTitle == nil && untitled.lastPrompt.isEmpty)
-        #expect(untitled.isSession && untitled.lastActivity == now - 20)
+        #expect(isSession(replyOnly) && untitled.lastActivity == now - 20)
         // No line with a time: the file's own.
         let timeless = summary(L.aiTitle("Only a title"))
-        #expect(timeless.lastActivity == modified && timeless.cwd == nil && timeless.entrypoint == nil)
-        #expect(timeless.isSession)
-        #expect(summary("").isSession == false)
+        #expect(timeless.lastActivity == modified && timeless.cwd == nil)
+        #expect(isSession(L.aiTitle("Only a title")) && !isSession(""))
         #expect(summary("not json\n{\"type\":\"ai-title\"}\n[1,2]\n").aiTitle == nil)
     }
 
@@ -109,9 +109,9 @@ import ClawBarShared
         let s = summary(text)
         #expect(s.aiTitle == nil && s.lastPrompt.isEmpty)
         // The time comes from the end, the folder from the start, and the filler's lines are prompts, not replies.
-        #expect(s.lastActivity == now - 60 && s.cwd == "/Users/example/launch" && !s.replied)
-        #expect(!s.isSession)
-        #expect(summary(text + assistantLine("msg_2", at: now - 10) + "\n").isSession)
+        #expect(s.lastActivity == now - 60 && s.cwd == "/Users/example/launch")
+        #expect(!isSession(text))
+        #expect(isSession(text + assistantLine("msg_2", at: now - 10) + "\n"))
     }
 
     @Test func theFolderIsTheOneTheSessionWasStartedIn() {
@@ -127,11 +127,10 @@ import ClawBarShared
 
     @Test func aClearAloneOrAPrintModeRunIsNoSession() {
         // What `/clear` leaves: a command line, an empty last prompt, no reply.
-        let cleared = summary(L.user(at: now, text: "<command-name>/clear</command-name>") + L.lastPrompt(""))
-        #expect(cleared.lastPrompt.isEmpty && !cleared.replied && !cleared.isSession)
-        let printed = summary(L.user(at: now, entrypoint: "sdk-cli") + assistantLine("msg_1", at: now) + "\n" + L.aiTitle("t") + L.lastPrompt("p"))
-        #expect(printed.entrypoint == "sdk-cli" && !printed.isSession)
-        #expect(summary(L.user(at: now, entrypoint: "claude-desktop") + L.aiTitle("t") + L.lastPrompt("p")).isSession)
+        let cleared = L.user(at: now, text: "<command-name>/clear</command-name>") + L.lastPrompt("")
+        #expect(summary(cleared).lastPrompt.isEmpty && !isSession(cleared))
+        #expect(!isSession(L.user(at: now, entrypoint: "sdk-cli") + assistantLine("msg_1", at: now) + "\n" + L.aiTitle("t") + L.lastPrompt("p")))
+        #expect(isSession(L.user(at: now, entrypoint: "claude-desktop") + L.aiTitle("t") + L.lastPrompt("p")))
     }
 
     @Test func thePromptIsOneLineCutShort() {

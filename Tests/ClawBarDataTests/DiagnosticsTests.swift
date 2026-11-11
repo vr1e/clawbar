@@ -45,11 +45,11 @@ import ClawBarShared
         h.config.showSessions = false
         h.config.showMascot = false
         h.config.showHistory = false
+        h.config.showRecentSessions = false
         h.table = FakeTable(starts: [4242: .unknown])
         h.session(4242, in: h.home + "/.claude")
         h.runner.reply(.usage, data: Fixture.data("usage/today.json"))
         let text = await h.diagnose()
-        h.config.showRecentSessions = false
         let lines = ["status: none", "account: Team", "sessions: 1 · p4242 (busy)", "projects: 0 transcripts", "recent sessions: 0 transcripts"]
         for line in lines { #expect(text.contains(line)) }
     }

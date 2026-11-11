@@ -21,6 +21,10 @@ import ClawBarShared
         )
     }
 
+    func clicks(terminal: Bool) -> [RecentSessionClick?] {
+        DataSnapshot.sample.recentSessions.map { RecentSessionsMenu.click(for: $0, terminal: terminal) }
+    }
+
     func ago(_ seconds: TimeInterval, _ lang: Lang = .en) -> String {
         Ago.text(since: Samples.now - seconds, now: Samples.now, timeZone: Samples.timeZone, lang: lang)
     }
@@ -52,7 +56,7 @@ import ClawBarShared
             Click to bring its Ghostty tab forward
             """)
         #expect(all[2].tooltip == "Add a token bucket per API key and a test for the refill\n\nClick to resume in a new Ghostty tab")
-        #expect(all.map(\.click) == [.focus, .focus, .resume, .resume, .resume])
+        #expect(clicks(terminal: true) == [.focus, .focus, .resume, .resume, .resume] && all.allSatisfy(\.clickable))
         for (item, session) in zip(all, DataSnapshot.sample.recentSessions) {
             #expect(!item.title.contains(session.lastPrompt))
         }
@@ -63,15 +67,11 @@ import ClawBarShared
 
     @Test func withoutATerminalAClickCopiesAndALiveSessionOnlyInforms() {
         let all = items(terminal: false)
-        #expect(all.map(\.click) == [nil, nil, .copy, .copy, .copy])
+        #expect(clicks(terminal: false) == [nil, nil, .copy, .copy, .copy])
+        #expect(all.map(\.clickable) == [false, false, true, true, true])
         #expect(all[0].tooltip == "Shorten the stale line in the tooltip and keep the reset times\n\nRunning in ~/Dev/clawbar")
         #expect(all[2].tooltip.hasSuffix("\n\nClick to copy the command that resumes it"))
         #expect(items(lang: .de, terminal: false)[2].tooltip.hasSuffix("\n\nKlicken, um den Befehl zum Fortsetzen zu kopieren"))
-        // The click is asked again when it comes: a session that ended since the menu opened is resumed.
-        var session = DataSnapshot.sample.recentSessions[0]
-        #expect(RecentSessionsMenu.click(for: session, terminal: true) == .focus)
-        session.pid = nil
-        #expect(RecentSessionsMenu.click(for: session, terminal: true) == .resume)
     }
 
     @Test func theNewestFifteenShow() {

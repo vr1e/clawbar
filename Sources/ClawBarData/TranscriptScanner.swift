@@ -47,24 +47,11 @@ actor TranscriptScanner {
         let since = first - first % 60
         var scan = ProjectScan()
         var seen: Set<String> = []
-        let fm = FileManager.default
-        for folder in (try? fm.contentsOfDirectory(atPath: root)) ?? [] {
-            let dir = root + "/" + folder
-            guard let walk = fm.enumerator(atPath: dir) else { continue }
-            while let relative = walk.nextObject() as? String {
-                guard relative.hasSuffix(".jsonl"), !Task.isCancelled else { continue }
-                let path = dir + "/" + relative
-                var st = stat()
-                guard stat(path, &st) == 0, st.st_mode & S_IFMT == S_IFREG,
-                      TimeInterval(st.st_mtimespec.tv_sec) >= cutoff.timeIntervalSince1970
-                else { continue }
-                seen.insert(path)
-                scan.files += 1
-                scan.bytes += Int(st.st_size)
-                if !read(path, folder: folder, inode: UInt64(st.st_ino), size: UInt64(st.st_size), since: since) {
-                    scan.unreadable += 1
-                }
-            }
+        for file in TranscriptFiles.ofTheWeek(root: root, now: now, deep: true) {
+            seen.insert(file.path)
+            scan.files += 1
+            scan.bytes += Int(file.size)
+            if !read(file.path, folder: file.folder, inode: file.inode, size: file.size, since: since) { scan.unreadable += 1 }
         }
         // Transcripts that left the week are forgotten; their replies age out with their hours.
         marks = marks.filter { seen.contains($0.key) }

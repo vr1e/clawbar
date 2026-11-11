@@ -207,7 +207,7 @@ import ClawBarShared
         }
         #expect(scan.sessions == [TranscriptSummary(
             sessionId: sessionID(1), aiTitle: "Rate limiter", lastPrompt: "add a test", cwd: "/Users/example/api",
-            lastActivity: t0 - 60, entrypoint: "cli"
+            lastActivity: t0 - 60
         )])
         // The recipes keep one scanner, so the second pass reads nothing.
         #expect(scan.read == 1 && again.read == 0 && again.sessions == scan.sessions)
