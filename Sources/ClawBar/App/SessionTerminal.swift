@@ -4,7 +4,7 @@ import ClawBarShared
 /// Reaching a session in its terminal. Only Ghostty can be told to open a tab in a folder with a command typed in, or
 /// to bring forward the tab a pid runs in; macOS has no default terminal to ask instead.
 enum SessionTerminal {
-    static let ghosttyBundleID = "com.mitchellh.ghostty"
+    private static let ghosttyBundleID = "com.mitchellh.ghostty"
 
     static var ghosttyInstalled: Bool {
         NSWorkspace.shared.urlForApplication(withBundleIdentifier: ghosttyBundleID) != nil

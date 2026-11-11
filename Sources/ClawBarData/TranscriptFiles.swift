@@ -1,4 +1,5 @@
 import Foundation
+import ClawBarShared
 
 /// One transcript on disk, as a scanner's pass finds it.
 struct TranscriptFile {
@@ -11,11 +12,29 @@ struct TranscriptFile {
     var modified: Date
 }
 
+/// Where Claude Code keeps its transcripts, `<config dir>/projects/<folder>/**/*.jsonl`, and which of them count.
 enum TranscriptFiles {
-    /// The `.jsonl` files under `root/<folder>` changed in the week before `now`. `deep` goes into subfolders, where
-    /// subagents' transcripts sit. A cancelled task gets what was found so far.
-    static func ofTheWeek(root: String, now: Date, deep: Bool) -> [TranscriptFile] {
-        let cutoff = now.addingTimeInterval(-TranscriptScanner.window)
+    static let window: TimeInterval = 7 * 86400
+
+    static func root(configDir: String) -> String { configDir + "/projects" }
+
+    /// Every transcript changed in the week before `now`, subagents' among them. A cancelled task gets what was found
+    /// so far.
+    static func ofTheWeek(root: String, now: Date) -> [TranscriptFile] {
+        walk(root: root, now: now, deep: true)
+    }
+
+    /// The week's session transcripts with their session ids: a session's own transcript sits at the top of its
+    /// folder, named by its id, and subagents' sit in subfolders under other names.
+    static func sessionsOfTheWeek(root: String, now: Date) -> [(sessionId: String, file: TranscriptFile)] {
+        walk(root: root, now: now, deep: false).compactMap { file in
+            let id = String(file.name.dropLast(".jsonl".count))
+            return RecentSession.isSessionId(id) ? (id, file) : nil
+        }
+    }
+
+    private static func walk(root: String, now: Date, deep: Bool) -> [TranscriptFile] {
+        let cutoff = now.addingTimeInterval(-window)
         var files: [TranscriptFile] = []
         let fm = FileManager.default
         for folder in (try? fm.contentsOfDirectory(atPath: root)) ?? [] {

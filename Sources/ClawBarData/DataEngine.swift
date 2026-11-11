@@ -535,7 +535,7 @@ struct DataEngine: Sendable {
         ClaudeConfigDir.resolve(account: snapshot.account, login: login, environment: environment, home: home)
     }
 
-    private var projectsRoot: String { TranscriptScanner.root(configDir: configDirectory) }
+    private var projectsRoot: String { TranscriptFiles.root(configDir: configDirectory) }
 
     private var childEnvironment: [String: String] {
         ChildEnv.make(inherited: environment, login: login, claude: claude?.path)

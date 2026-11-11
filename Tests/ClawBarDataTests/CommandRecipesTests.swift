@@ -176,7 +176,7 @@ import ClawBarShared
         let h = Harness()
         h.dir.write("home/.claude/projects/-Users-example-api/s1.jsonl", assistantLine("msg_1", at: t0, output: 1000) + "\n")
         let r = h.recipes()
-        let command = DataCommand.scanProjects(root: TranscriptScanner.root(configDir: h.home + "/.claude"))
+        let command = DataCommand.scanProjects(root: TranscriptFiles.root(configDir: h.home + "/.claude"))
         guard case .later(let priority, _)? = r.recipe(for: command, now: t0) else {
             Issue.record("the scan should run later")
             return
@@ -195,7 +195,7 @@ import ClawBarShared
         let lines = TranscriptLine.user(at: t0 - 60) + TranscriptLine.aiTitle("Rate limiter") + TranscriptLine.lastPrompt("add a test")
         h.dir.write("home/.claude/projects/-Users-example-api/\(sessionID(1)).jsonl", lines)
         let r = h.recipes()
-        let command = DataCommand.scanRecent(root: TranscriptScanner.root(configDir: h.home + "/.claude"))
+        let command = DataCommand.scanRecent(root: TranscriptFiles.root(configDir: h.home + "/.claude"))
         guard case .later(let priority, _)? = r.recipe(for: command, now: t0) else {
             Issue.record("the scan should run later")
             return

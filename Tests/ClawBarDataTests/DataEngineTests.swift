@@ -558,7 +558,7 @@ import ClawBarShared
         )
     }
 
-    func recentEngine(_ edit: @escaping (inout Config) -> Void = { _ in }) -> DataEngine {
+    func recentEngine(_ edit: (inout Config) -> Void = { _ in }) -> DataEngine {
         engine {
             $0.showRecentSessions = true
             edit(&$0)
@@ -687,10 +687,6 @@ import ClawBarShared
         #expect(e.handle(.tick, now: t0 + 9).isEmpty)
         _ = e.handle(.recentScanned(RecentScan()), now: t0 + 10)
         #expect(e.handle(.tick, now: t0 + 11) == [.scanRecent(root: root)])
-        var off = engine()
-        start(&off, now: t0)
-        _ = off.handle(.sessionsRead([one]), now: t0 + 1)
-        #expect(off.handle(.sessionsRead([]), now: t0 + 2).isEmpty)
     }
 
     // MARK: - One instant

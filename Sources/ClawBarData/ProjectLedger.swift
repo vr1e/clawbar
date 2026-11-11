@@ -13,6 +13,9 @@ struct TranscriptReply: Sendable, Hashable {
     var minute: Int
     var cwd: String?
 
+    /// Every assistant line carries it at the top level; a scanner parses no other line.
+    static let marker = Array(#""type":"assistant""#.utf8)
+
     private static let stamp = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
     private static let wholeSeconds = Date.ISO8601FormatStyle()
 

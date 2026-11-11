@@ -7,7 +7,7 @@ struct TranscriptSummary: Sendable, Hashable {
     /// Set by `/rename` or `claude -n`.
     var customTitle: String?
     var aiTitle: String?
-    var lastPrompt = ""
+    var lastPrompt: String
     /// The folder the session was started in, else the last one a line named.
     var cwd: String?
     /// The newest line's time, else the file's.
@@ -48,7 +48,7 @@ struct RecentSessionReader: Sendable {
     private static let stampNeedle = Data(#""timestamp":""#.utf8)
     private static let cwdNeedle = Data(#""cwd":""#.utf8)
     private static let originNeedle = Data(#""entrypoint":""#.utf8)
-    private static let replyNeedle = Data(TranscriptScanner.marker)
+    private static let replyNeedle = Data(TranscriptReply.marker)
 
     /// A `claude -p` run belongs to another tool, whatever else it says.
     private var isPrintRun: Bool { entrypoint == "sdk-cli" }
@@ -209,10 +209,7 @@ actor RecentSessionScanner {
     func scan(root: String, now: Date) -> RecentScan {
         var scan = RecentScan()
         var seen: Set<String> = []
-        for file in TranscriptFiles.ofTheWeek(root: root, now: now, deep: false) {
-            // A session's own transcript is named by its id; subagent transcripts sit in subfolders under other names.
-            let sessionId = String(file.name.dropLast(".jsonl".count))
-            guard RecentSession.isSessionId(sessionId) else { continue }
+        for (sessionId, file) in TranscriptFiles.sessionsOfTheWeek(root: root, now: now) {
             seen.insert(file.path)
             scan.files += 1
             // A grown or replaced file is read again; one that cannot be opened is tried again next pass.

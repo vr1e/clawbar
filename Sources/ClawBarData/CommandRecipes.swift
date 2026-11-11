@@ -47,7 +47,7 @@ struct CommandRecipes: Sendable {
     private let updateLog: URL
     /// Keeps each transcript's read position and the week's replies between scans.
     private let scanner = TranscriptScanner()
-    /// Keeps what each transcript's tail said, so an unchanged one is not read again.
+    /// Keeps each transcript's reader, so an unchanged one is not read again.
     private let recentScanner = RecentSessionScanner()
 
     /// The status page and the latest version; the changelog is a bigger file.

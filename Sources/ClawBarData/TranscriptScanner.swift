@@ -25,14 +25,9 @@ actor TranscriptScanner {
     private var marks: [String: Mark] = [:]
     private var ledger = ProjectLedger()
 
-    static let window: TimeInterval = 7 * 86400
     static let chunk = 1 << 20
-    /// Every assistant line carries it at the top level; anything else is not parsed.
-    static let marker = Array(#""type":"assistant""#.utf8)
     /// Where the marker's `y` sits: `"` is on every other byte of JSON, `y` is not.
     private static let anchor = 2
-
-    static func root(configDir: String) -> String { configDir + "/projects" }
 
     func scan(root: String, now: Date) -> ProjectScan {
         // Another config dir is another set of transcripts.
@@ -41,17 +36,17 @@ actor TranscriptScanner {
             marks = [:]
             ledger = ProjectLedger()
         }
-        let cutoff = now.addingTimeInterval(-Self.window)
+        let cutoff = now.addingTimeInterval(-TranscriptFiles.window)
         // The week starts on a whole UTC hour, as the original's does.
         let first = UsageSample.minute(of: cutoff)
         let since = first - first % 60
         var scan = ProjectScan()
         var seen: Set<String> = []
-        for file in TranscriptFiles.ofTheWeek(root: root, now: now, deep: true) {
+        for file in TranscriptFiles.ofTheWeek(root: root, now: now) {
             seen.insert(file.path)
             scan.files += 1
             scan.bytes += Int(file.size)
-            if !read(file.path, folder: file.folder, inode: file.inode, size: file.size, since: since) { scan.unreadable += 1 }
+            if !read(file, since: since) { scan.unreadable += 1 }
         }
         // Transcripts that left the week are forgotten; their replies age out with their hours.
         marks = marks.filter { seen.contains($0.key) }
@@ -62,7 +57,8 @@ actor TranscriptScanner {
     }
 
     /// Reads one file from its mark; false when it cannot be opened.
-    private func read(_ path: String, folder: String, inode: UInt64, size: UInt64, since: Int) -> Bool {
+    private func read(_ file: TranscriptFile, since: Int) -> Bool {
+        let path = file.path, folder = file.folder, inode = file.inode, size = file.size
         // A replaced or truncated file starts over; its replies already counted stay counted once.
         var mark = marks[path].flatMap { $0.inode == inode && $0.offset <= size ? $0 : nil } ?? Mark(inode: inode, offset: 0)
         defer { marks[path] = mark }
@@ -103,7 +99,7 @@ actor TranscriptScanner {
 
     /// memmem crawls JSON, where its first byte `"` is everywhere; seeking the rarer `y` is five times faster.
     private static func hasMarker(_ line: UnsafeRawPointer, _ count: Int) -> Bool {
-        marker.withUnsafeBytes { m in
+        TranscriptReply.marker.withUnsafeBytes { m in
             var at = anchor
             while at < count, let y = memchr(line + at, Int32(m[anchor]), count - at) {
                 let start = line.distance(to: UnsafeRawPointer(y)) - anchor
