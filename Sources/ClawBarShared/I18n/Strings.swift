@@ -34,6 +34,7 @@ extension L10nKey {
             en: "{0} priced as the closest model listed",
             de: "{0} zum Preis des nächsten bekannten Modells geschätzt"
         )
+        case .uiReadAt: .text(en: "Usage last read at {0}", de: "Nutzung zuletzt gelesen um {0}")
         case .uiPortOf: .text(
             en: "macOS port of clawd-usage-winwidget {0}, with some features of later releases (MIT)",
             de: "macOS-Portierung von clawd-usage-winwidget {0}, mit einigen Funktionen späterer Versionen (MIT)"

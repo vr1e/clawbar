@@ -65,7 +65,7 @@ To update, pull and run the last two commands again. `config.json` and ClawBar's
   button opens.
 - **Drag** the widget by anything but Clawd and the buttons. ▾ opens the details, – hides the widget, ✕ quits.
 - **Click** the status line to open status.claude.com, the version line to run `claude update` when one is out
-  (otherwise it opens the changelog), and the ClawBar line to visit the original project.
+  (otherwise it opens the changelog), and the ClawBar line to open its release notes.
 - **Right-click Clawd or the sky** for the developer menu: force a mood, play any animation, set the hearts, pick a
   time of day or weather, or sit back and watch everything in turn.
 - **Play Clawd Run** while the session limit is used up: click the orange *Play Clawd Run while you wait* button
@@ -224,7 +224,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Widget window | ✅ Ported differently | On every Space, and opens at login by itself. |
 | Menu bar item | ✅ Ported differently | It replaces the tray icon, and its tooltip lists every limit with its reset. |
 | Languages | ✅ Ported differently | English is worded for macOS and German is added. Not ported: Russian; French; Brazilian Portuguese; Spanish. |
-| The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and links to the original. Not ported: Self-update from GitHub releases. |
+| The widget's own version and updates | ✅ Ported differently | It shows ClawBar's version and opens its release notes. Not ported: Self-update from GitHub releases. |
 | 7-day history | ✅ Ported differently | The chart spans the bars' width, starts empty, and breaks its lines after a pause that grows with the probe interval; the top projects keep folders of the same name apart and weigh each reply at its model's list price; the hover's busiest project is the local hour's, not the UTC hour's. |
 | Themes and skins | ✅ Ported differently | Classic by default, picked from a menu in Settings › Look, as are the skins; Space's model weeks are pink; your own skin under a built-in's name keeps its own name; the pattern is on the widget alone; the scenes keep moving with Clawd hidden, at one pace; Space's ship flies in from the left edge; Halloween's scare plays with Clawd hidden, without his jump; Cyberpunk's 20:77 secret doesn't play with Clawd hidden; Cyberpunk's rain falls. |
 | Settings window | ✅ Ported differently | A native window with Look and Widget tabs, opened from the menu; Look has the language, the theme and Clawd's skin. Not ported: A tab for Claude Code's own settings. |
@@ -279,7 +279,8 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
   list shows folders relative to `~`. A session whose `procStart` is no Windows time between 1990 and 2100 is kept
   rather than dropped.
 - The ClawBar line and the menu header carry ClawBar's own version. Hovering the line names the original release it
-  ports and clicking it opens the original project, where the original shows and opens its changelog.
+  ports and clicking it opens that ClawBar release on GitHub, where the original shows and opens its changelog.
+  Hovering the time in the footer says it is when the usage was last read.
 - The sky uses the weather location's time zone, retries Open-Meteo hourly after falling back to met.no, and draws
   polar days and nights as day and night. Its moon phase corrects three signs in the original's formula, which
   brings it to within about an hour of the real moon, where the original can be six hours off.

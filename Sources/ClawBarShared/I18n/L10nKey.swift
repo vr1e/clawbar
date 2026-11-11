@@ -28,6 +28,8 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case histUnpriced = "hist.unpriced"
     /// Tooltip of the ClawBar version line; {0} is the original's version.
     case uiPortOf = "ui.portOf"
+    /// Tooltip of the footer's time; {0} is that time.
+    case uiReadAt = "ui.readAt"
 
     case spanD = "span.d"
     case spanH = "span.h"

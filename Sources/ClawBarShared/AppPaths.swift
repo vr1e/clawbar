@@ -64,6 +64,8 @@ public enum AppInfo {
     public static let originalVersion = "1.3.0"
     public static let originalRepo = URL(string: "https://github.com/Enhed/clawd-usage-winwidget")!
     public static let repo = URL(string: "https://github.com/vr1e/clawbar")!
+    /// This version's release notes: `main` carries the last release's version, so the tag exists.
+    public static let releasePage = repo.appendingPathComponent("releases/tag/v\(version)")
     /// Names ClawBar's own home as the contact, so complaints about ClawBar never reach Enhed.
     public static let userAgent = "\(name)/\(version) (+\(repo.absoluteString))"
     public static let statusPage = URL(string: "https://status.claude.com")!

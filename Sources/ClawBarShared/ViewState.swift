@@ -156,7 +156,8 @@ public struct CardPart: Sendable, Hashable {
         case project(Int)
         /// The Claude Code version line, and the ClawBar line beside it.
         case version, appVersion
-        case account
+        /// The footer: the account, and the time of the last usage reading.
+        case account, stamp
     }
 
     public var id: ID

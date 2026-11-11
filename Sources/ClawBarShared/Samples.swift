@@ -175,6 +175,7 @@ extension WidgetViewState {
             CardPart(.sessions, tooltip: "▶ Menu bar tooltip wording — ~/Dev/clawbar\n? Reading list [permission] — ~/notes"),
             CardPart(.status, tooltip: "Open status.claude.com"),
             CardPart(.account, tooltip: "Max  ·  user@example.com"),
+            CardPart(.stamp, tooltip: "Usage last read at 14:04:35"),
         ],
         pctText: "34", pctColor: Palette.ok, mainFraction: 0.34, mainBarColor: Palette.ok,
         resetText: "resets in 2h 05m",

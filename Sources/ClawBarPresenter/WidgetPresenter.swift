@@ -352,6 +352,8 @@ private struct Render {
         } else if let at = data.usageAt {
             v.stampText = staleStamp(at) ?? clockText(at)
         }
+        // ClawBar's own: the original leaves the time unexplained.
+        if let at = data.usageAt { v.show(.stamp, tooltip: t(.uiReadAt, clockText(at))) }
     }
 
     /// "stale · time" once the numbers from `at` are stale, else nil; the footer and the menu bar item share it.
