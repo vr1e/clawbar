@@ -8,8 +8,10 @@ import ClawBarShared
         entries.map { $0.isSeparator ? "---" : $0.title }
     }
 
-    private func entries(_ config: Config = Config(), widgetVisible: Bool = true, limitReached: Bool = false) -> [StatusMenu.Entry] {
-        StatusMenu.entries(config: config, widgetVisible: widgetVisible, limitReached: limitReached)
+    private func entries(
+        _ config: Config = Config(), widgetVisible: Bool = true, limitReached: Bool = false, recent: [RecentSessionItem]? = nil
+    ) -> [StatusMenu.Entry] {
+        StatusMenu.entries(config: config, widgetVisible: widgetVisible, limitReached: limitReached, recent: recent)
     }
 
     @Test func theOriginalsShortMenuSince1_10() {
@@ -70,29 +72,29 @@ import ClawBarShared
     ]
 
     @Test func recentSessionsAreASubmenuAfterTheWidgetToggle() {
-        let e = StatusMenu.entries(config: Config(), widgetVisible: true, limitReached: true, recent: recent)
+        let e = entries(limitReached: true, recent: recent)
         #expect(titles(e) == ["ClawBar v\(AppInfo.version)", "---", "Hide widget", "Play Clawd Run…", "Recent sessions", "Refresh now", "Settings…", "---", "Quit ClawBar"])
         let sub = e[4]
         #expect(sub.enabled && sub.action == nil && sub.tooltip.isEmpty)
         #expect(sub.children.map(\.title) == recent.map(\.title))
         #expect(sub.children.map(\.tooltip) == recent.map(\.tooltip))
-        #expect(sub.children.map(\.action) == [.focus(Self.live), .resume(Self.done), nil])
+        #expect(sub.children.map(\.action) == [.recent(Self.live), .recent(Self.done), nil])
         // An item with nothing to do on a click only informs.
         #expect(sub.children.map(\.enabled) == [true, true, false])
-        #expect(StatusMenu.entries(config: Config(language: "de"), widgetVisible: true, recent: recent)[3].title == L10n.t(.menuRecent, .de))
+        #expect(entries(Config(language: "de"), recent: recent)[3].title == L10n.t(.menuRecent, .de))
     }
 
     @Test func switchedOffThereIsNoSubmenuAndWithoutSessionsItSaysSo() {
         #expect(entries().allSatisfy { $0.children.isEmpty })
-        let empty = StatusMenu.entries(config: Config(), widgetVisible: true, recent: [])[3]
+        let empty = entries(recent: [])[3]
         #expect(empty.title == "Recent sessions" && empty.children == [MenuEntry(title: "none in the last 7 days", enabled: false)])
-        let de = StatusMenu.entries(config: Config(language: "de"), widgetVisible: true, recent: [])[3]
+        let de = entries(Config(language: "de"), recent: [])[3]
         #expect(de.children.map(\.title) == [L10n.t(.recentNone, .de)])
     }
 
     @Test func theSubmenusItemsCarryTheirTooltipsAndRouteTheirClicks() throws {
         var got: [StatusMenuAction] = []
-        let menu = MenuBuilder.menu(StatusMenu.entries(config: Config(), widgetVisible: true, recent: recent)) { got.append($0) }
+        let menu = MenuBuilder.menu(entries(recent: recent)) { got.append($0) }
         let sub = try #require(menu.items[3].submenu)
         #expect(menu.items[3].isEnabled && menu.items[3].toolTip == nil)
         #expect(sub.items.map(\.title) == recent.map(\.title))
@@ -100,12 +102,12 @@ import ClawBarShared
         #expect(sub.items.map(\.isEnabled) == [true, true, false] && !sub.autoenablesItems)
         click(sub.items[1])
         click(sub.items[0])
-        #expect(got == [.resume(Self.done), .focus(Self.live)])
+        #expect(got == [.recent(Self.done), .recent(Self.live)])
         #expect(sub.items[2].action == nil)
     }
 
     @Test func theTextDumpShowsTheSubmenuWithItsTooltips() {
-        let dump = MenuEntry.dump(StatusMenu.entries(config: Config(), widgetVisible: true, recent: recent))
+        let dump = MenuEntry.dump(entries(recent: recent))
         #expect(dump.contains("""
               Recent sessions ▸
                   ● Menu bar tooltip wording · ~/Dev/clawbar · now

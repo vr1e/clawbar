@@ -9,8 +9,11 @@ import ClawBarShared
     let now = utc("2026-10-16T22:30:00Z")
     var modified: Date { now - 5 }
 
-    func summary(_ text: String) -> TranscriptSummary {
-        RecentSessionReader.summary(of: Data(text.utf8), sessionId: sessionID(1), modified: modified)
+    func summary(_ text: String) -> TranscriptSummary { summary(Data(text.utf8)) }
+
+    /// A whole transcript in memory, as the scanner reads one from disk.
+    func summary(_ data: Data) -> TranscriptSummary {
+        RecentSessionReader.read(size: data.count) { data.subdata(in: $0) }.summary(sessionId: sessionID(1), modified: modified)
     }
 
     /// Conversation lines of about `bytes` in all, the last one written at `now - 60`.
@@ -57,7 +60,7 @@ import ClawBarShared
         let first = reader.summary(sessionId: "s", modified: modified)
         #expect(tail.utf8.count == RecentSessionReader.step - 10)
         #expect(first.aiTitle == "Summary" && first.customTitle == nil && !reader.isComplete)
-        #expect(RecentSessionReader.summary(of: data, sessionId: "s", modified: modified).customTitle == "Mine")
+        #expect(summary(data).customTitle == "Mine")
     }
 
     @Test func aMissingPromptTitleOrTimeIsNoError() {

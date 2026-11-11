@@ -76,7 +76,7 @@ struct StateDump {
         add("sessions", "\(snapshot.sessions.count) (busy \(busy), waiting \(waiting)), read: \(snapshot.sessionsRead)")
         // Counts only: titles, folders and prompts stay out of the dump.
         let recent = snapshot.recentSessions
-        add("recentSessions", "\(recent.count) (live \(recent.count { $0.isLive }), titled \(recent.count { $0.titleSource != .folder }))")
+        add("recentSessions", "\(recent.count) (live \(recent.count { $0.isLive }), titled \(recent.count { $0.title != nil }))")
         add("status.indicator", snapshot.status?.indicator ?? "none")
         add("status.at", Self.iso(snapshot.statusAt))
         if let a = snapshot.account {

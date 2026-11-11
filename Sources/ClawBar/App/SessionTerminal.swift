@@ -16,8 +16,7 @@ enum SessionTerminal {
     }
 
     /// The command with its folder, for the clipboard: `cd '<cwd>' && claude -r <id>`.
-    nonisolated static func shellLine(cwd: String, sessionId: String) -> String? {
-        guard let command = resumeCommand(sessionId: sessionId) else { return nil }
+    nonisolated static func shellLine(cwd: String, command: String) -> String {
         let folder = typeable(cwd)
         return folder.isEmpty ? command : "cd '\(folder.replacingOccurrences(of: "'", with: #"'\''"#))' && \(command)"
     }

@@ -187,9 +187,8 @@ private struct Render {
         v.sessionsLabel = t(.uiSessions)
         v.sessionsText = sessionCounts()?.joined(separator: "  ·  ") ?? t(.sessNone)
         guard cfg.showSessions else { return }
-        // What a session is about says more than its registry name; a title that is only its folder says less.
-        let titled = data.recentSessions.filter { $0.titleSource != .folder }
-        let titles = Dictionary(titled.map { ($0.sessionId, $0.title) }) { first, _ in first }
+        // What a session is about says more than its registry name.
+        let titles = Dictionary(data.recentSessions.compactMap { s in s.title.map { (s.sessionId, $0) } }) { first, _ in first }
         v.show(.sessions, tooltip: data.sessions.map { sessionLine($0, title: titles[$0.sessionId]) }.joined(separator: "\n"))
     }
 

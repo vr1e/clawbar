@@ -452,10 +452,9 @@ enum SnapshotMode {
 
     static func menuDump(lang: Lang) -> String {
         let forced = ClawdDevState(forcedMood: .work, forceCrit: true, forceHearts: 4)
-        let config = Config(language: lang.rawValue)
-        let sample = PresenterInput(config: config, now: Samples.now, timeZone: Samples.timeZone, data: .sample, homeDirectory: Samples.home)
+        let sample = input(for: SnapshotCase(name: "sample"), lang: lang)
         func recent(_ items: [RecentSessionItem]) -> String {
-            MenuEntry.dump(StatusMenu.entries(config: config, widgetVisible: true, recent: items))
+            MenuEntry.dump(StatusMenu.entries(config: sample.config, widgetVisible: true, recent: items))
         }
         let sections: [(String, String)] = [
             (

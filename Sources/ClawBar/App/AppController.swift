@@ -417,33 +417,31 @@ final class AppController: NSObject, WidgetPanelDelegate {
             if reloadSkins() { recompute() }
             settings.show(beside: panel.frame, on: (panel.screen ?? NSScreen.main)?.visibleFrame)
         case .play: game.show()
-        case .resume(let id): resume(id)
-        case .focus(let id): focus(id)
+        case .recent(let id): clickedRecent(id)
         case .quit: NSApp.terminate(nil)
         }
     }
 
-    /// `claude -r` in the session's folder: typed into a new Ghostty tab, else put on the clipboard.
-    private func resume(_ sessionId: String) {
-        guard let session = recentSession(sessionId),
-              let command = SessionTerminal.resumeCommand(sessionId: sessionId),
-              let line = SessionTerminal.shellLine(cwd: session.cwd, sessionId: sessionId)
+    /// A live session's Ghostty tab comes forward; an ended one gets `claude -r` in its folder, typed into a new
+    /// tab, else put on the clipboard.
+    private func clickedRecent(_ sessionId: String) {
+        guard let session = recentSession(sessionId), let command = SessionTerminal.resumeCommand(sessionId: sessionId)
         else { return }
-        // It started again since the menu opened: a second process on the conversation would fork it.
-        guard !session.isLive else { return focus(sessionId) }
-        guard SessionTerminal.ghosttyInstalled else { return copy(line) }
-        SessionTerminal.run(SessionTerminal.newTab(cwd: session.cwd, command: command)) { [weak self] opened in
-            guard let self, !opened else { return }
-            // Automation was refused, or Ghostty could not open the tab.
-            errorLog.append("recent: Ghostty opened no tab; the resume command is on the clipboard")
-            copy(line)
+        let line = SessionTerminal.shellLine(cwd: session.cwd, command: command)
+        switch RecentSessionsMenu.click(for: session, terminal: SessionTerminal.ghosttyInstalled) {
+        case .focus?:
+            // One that runs elsewhere stays where it is.
+            if let pid = session.pid { SessionTerminal.run(SessionTerminal.focus(pid: pid)) { _ in } }
+        case .resume?:
+            SessionTerminal.run(SessionTerminal.newTab(cwd: session.cwd, command: command)) { [weak self] opened in
+                guard let self, !opened else { return }
+                // Automation was refused, or Ghostty could not open the tab.
+                errorLog.append("recent: Ghostty opened no tab; the resume command is on the clipboard")
+                copy(line)
+            }
+        case .copy?: copy(line)
+        case nil: break
         }
-    }
-
-    /// Brings a live session's Ghostty tab forward; one that runs elsewhere stays where it is.
-    private func focus(_ sessionId: String) {
-        guard let pid = recentSession(sessionId)?.pid else { return }
-        SessionTerminal.run(SessionTerminal.focus(pid: pid)) { _ in }
     }
 
     private func recentSession(_ sessionId: String) -> RecentSession? {

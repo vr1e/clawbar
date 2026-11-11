@@ -13,17 +13,18 @@ public enum RecentSessionsMenu {
         let lang = input.config.lang
         return input.data.recentSessions.prefix(limit).map { s in
             let folder = s.cwd.isEmpty ? nil : HomePath.relative(s.cwd, home: input.homeDirectory)
-            let title = s.title.count > titleLimit ? s.title.prefix(titleLimit).trimmingCharacters(in: .whitespaces) + "…" : s.title
+            // Untitled, it goes by its folder's leaf, else by the start of its id.
+            let leaf = (s.cwd as NSString).lastPathComponent
+            let name = s.title ?? (leaf.isEmpty ? String(s.sessionId.prefix(8)) : leaf)
+            let title = name.count > titleLimit ? name.prefix(titleLimit).trimmingCharacters(in: .whitespaces) + "…" : name
             let ago = Ago.text(since: s.lastActivity, now: input.now, timeZone: input.timeZone, lang: lang)
-            var hint: [String] = []
-            let click: RecentSessionClick?
-            if s.isLive {
-                hint.append(L10n.t(.recentRunning, lang, folder ?? "?"))
-                if terminal { hint.append(L10n.t(.recentFocus, lang)) }
-                click = terminal ? .focus : nil
-            } else {
-                hint.append(L10n.t(terminal ? .recentResume : .recentCopy, lang))
-                click = .resume
+            let click = click(for: s, terminal: terminal)
+            var hint = s.isLive ? [L10n.t(.recentRunning, lang, folder ?? "?")] : []
+            switch click {
+            case .focus?: hint.append(L10n.t(.recentFocus, lang))
+            case .resume?: hint.append(L10n.t(.recentResume, lang))
+            case .copy?: hint.append(L10n.t(.recentCopy, lang))
+            case nil: break
             }
             return RecentSessionItem(
                 sessionId: s.sessionId,
@@ -33,6 +34,13 @@ public enum RecentSessionsMenu {
                 click: click
             )
         }
+    }
+
+    /// What a click on a session's item does; nil for a live one with no terminal to bring forward. Asked again at
+    /// the click, since the session may have started or ended while the menu was open.
+    public static func click(for session: RecentSession, terminal: Bool) -> RecentSessionClick? {
+        if session.isLive { return terminal ? .focus : nil }
+        return terminal ? .resume : .copy
     }
 }
 

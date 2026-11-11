@@ -565,7 +565,7 @@ import ClawBarShared
         }
     }
 
-    @Test func theTranscriptsAreReadEveryMinuteWhateverTheWidgetShows() {
+    @Test func theTranscriptsAreReadEveryFiveMinutesWhateverTheWidgetShows() {
         var e = recentEngine {
             $0.showSessions = false
             $0.showMascot = false
@@ -579,8 +579,8 @@ import ClawBarShared
         #expect(e.handle(.located(nil, installHint: nil), now: t0).contains(.scanRecent(root: "/Users/example/.claude/projects")))
         #expect(!kinds(e.handle(.tick, now: t0 + 600)).contains("scanRecent"))
         _ = e.handle(.recentScanned(RecentScan()), now: t0 + 2)
-        #expect(!kinds(e.handle(.tick, now: t0 + 59)).contains("scanRecent"))
-        #expect(kinds(e.handle(.tick, now: t0 + 60)).contains("scanRecent"))
+        #expect(!kinds(e.handle(.tick, now: t0 + 299)).contains("scanRecent"))
+        #expect(kinds(e.handle(.tick, now: t0 + 300)).contains("scanRecent"))
         var off = engine()
         #expect(!kinds(start(&off, now: t0)).contains("scanRecent"))
     }
@@ -593,7 +593,7 @@ import ClawBarShared
         #expect(e.handle(.tick, now: t0 + 3).contains(.scanRecent(root: "/Users/example/.claude-work/projects")))
     }
 
-    @Test func theTitleFallsBackFromRenameToSummaryToAGivenNameToTheFolder() {
+    @Test func theTitleIsTheRenameElseTheSummaryElseAGivenName() {
         var e = recentEngine()
         start(&e, now: t0)
         _ = e.handle(.sessionsRead([
@@ -608,8 +608,8 @@ import ClawBarShared
             transcript(5, prompt: "p5", cwd: nil, ago: 500),
         ])), now: t0)
         let recent = e.snapshot.recentSessions
-        #expect(recent.map(\.title) == ["Mine", "Summary", "amp", "Dev", "00000000"])
-        #expect(recent.map(\.titleSource) == [.custom, .ai, .registry, .folder, .folder])
+        // A name the registry derived from the folder is no title.
+        #expect(recent.map(\.title) == ["Mine", "Summary", "amp", nil, nil])
         // A transcript that names no folder takes the live session's.
         #expect(recent.map(\.cwd) == ["/Users/example/api", "/Users/example/api", "/Users/example/sonos", "/Users/example/Dev", ""])
         #expect(recent.map(\.lastPrompt) == ["p1", "p2", "p3", "p4", "p5"])
@@ -629,7 +629,7 @@ import ClawBarShared
             SessionInfo(pid: 19, sessionId: sessionID(9), name: "new-01", state: .idle),
         ]), now: t0 + 2)
         let older = e.snapshot.recentSessions[2]
-        #expect(older.isLive && older.pid == 11 && older.state == .waiting && older.title == "Older")
+        #expect(older.isLive && older.pid == 11 && older.title == "Older")
         #expect(e.snapshot.recentSessions.count == 3)
         // It ended: the next read says so without another pass over the transcripts.
         _ = e.handle(.sessionsRead([]), now: t0 + 4)
@@ -668,6 +668,30 @@ import ClawBarShared
         let scan = RecentScan(sessions: [transcript(1, ai: "A private title", prompt: "a private prompt")], files: 3, read: 2, unreadable: 2)
         #expect(logs(e.handle(.recentScanned(scan), now: t0 + 1)) == ["recent: unreadable transcripts: 2"])
         #expect(logs(e.handle(.recentScanned(scan), now: t0 + 61)).isEmpty)
+    }
+
+    @Test func aSessionStartingOrEndingReadsTheTranscriptsAtOnce() {
+        var e = recentEngine()
+        start(&e, now: t0)
+        let root = "/Users/example/.claude/projects"
+        let one = SessionInfo(pid: 11, sessionId: sessionID(1), name: "api"), two = SessionInfo(pid: 12, sessionId: sessionID(2), name: "web")
+        // The first read finds what the first pass is reading anyway.
+        #expect(e.handle(.sessionsRead([one]), now: t0 + 1).isEmpty)
+        _ = e.handle(.recentScanned(RecentScan()), now: t0 + 2)
+        // The same sessions, whatever their state: nothing to read.
+        var busy = one
+        busy.state = .busy
+        #expect(e.handle(.sessionsRead([busy]), now: t0 + 4).isEmpty)
+        #expect(e.handle(.sessionsRead([one, two]), now: t0 + 6) == [.scanRecent(root: root)])
+        // One ended while that pass ran: the next tick reads again.
+        #expect(e.handle(.sessionsRead([two]), now: t0 + 8).isEmpty)
+        #expect(e.handle(.tick, now: t0 + 9).isEmpty)
+        _ = e.handle(.recentScanned(RecentScan()), now: t0 + 10)
+        #expect(e.handle(.tick, now: t0 + 11) == [.scanRecent(root: root)])
+        var off = engine()
+        start(&off, now: t0)
+        _ = off.handle(.sessionsRead([one]), now: t0 + 1)
+        #expect(off.handle(.sessionsRead([]), now: t0 + 2).isEmpty)
     }
 
     // MARK: - One instant

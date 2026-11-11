@@ -123,28 +123,27 @@ extension DataSnapshot {
         // The two live sessions, then three that ended; the last one's transcript never got a title.
         recentSessions: [
             RecentSession(
-                sessionId: "00000000-0000-4000-8000-000000000001", title: "Menu bar tooltip wording", titleSource: .ai,
+                sessionId: "00000000-0000-4000-8000-000000000001", title: "Menu bar tooltip wording",
                 cwd: "/Users/example/Dev/clawbar", lastActivity: Samples.now.addingTimeInterval(-40),
-                lastPrompt: "Shorten the stale line in the tooltip and keep the reset times", pid: 4242, state: .busy
+                lastPrompt: "Shorten the stale line in the tooltip and keep the reset times", pid: 4242
             ),
             RecentSession(
-                sessionId: "00000000-0000-4000-8000-000000000002", title: "Reading list", titleSource: .custom,
+                sessionId: "00000000-0000-4000-8000-000000000002", title: "Reading list",
                 cwd: "/Users/example/notes", lastActivity: Samples.now.addingTimeInterval(-12 * 60),
-                lastPrompt: "Sort the reading list by topic", pid: 4343, state: .waiting
+                lastPrompt: "Sort the reading list by topic", pid: 4343
             ),
             RecentSession(
-                sessionId: "00000000-0000-4000-8000-000000000003", title: "Rate limiter for the API", titleSource: .ai,
+                sessionId: "00000000-0000-4000-8000-000000000003", title: "Rate limiter for the API",
                 cwd: "/Users/example/code/api", lastActivity: Samples.now.addingTimeInterval(-130 * 60),
                 lastPrompt: "Add a token bucket per API key and a test for the refill"
             ),
             RecentSession(
-                sessionId: "00000000-0000-4000-8000-000000000004", title: "Release notes draft", titleSource: .ai,
+                sessionId: "00000000-0000-4000-8000-000000000004", title: "Release notes draft",
                 cwd: "/Users/example/code/docs", lastActivity: Samples.now.addingTimeInterval(-26 * 3600),
                 lastPrompt: "Draft the release notes from the merged pull requests"
             ),
             RecentSession(
-                sessionId: "00000000-0000-4000-8000-000000000005", title: "infra", titleSource: .folder,
-                cwd: "/Users/example/code/infra", lastActivity: Samples.now.addingTimeInterval(-3 * 86_400),
+                sessionId: "00000000-0000-4000-8000-000000000005", cwd: "/Users/example/code/infra", lastActivity: Samples.now.addingTimeInterval(-3 * 86_400),
                 lastPrompt: "Why does the staging deploy time out?"
             ),
         ]

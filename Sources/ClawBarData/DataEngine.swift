@@ -119,8 +119,8 @@ struct DataEngine: Sendable {
     static let changelogRetry = 600
     /// Upstream's 15 minutes: the transcripts change by the minute, a week's shares do not.
     static let projectsInterval = 900
-    /// A pass reads only the transcripts that grew, so it can follow a title within the minute.
-    static let recentInterval = 60
+    /// Between sessions starting and ending, which each bring a pass of their own, only titles and prompts move.
+    static let recentInterval = 300
     /// Each run sources the user's rc files again, so a shell that never answers is not asked forever.
     static let loginRunLimit = 4
 
@@ -159,9 +159,16 @@ struct DataEngine: Sendable {
         case .located(let found, let hint):
             located(found, installHint: hint, now: now)
         case .sessionsRead(let sessions):
+            let ids = { (s: [SessionInfo]) in Set(s.map(\.sessionId)) }
+            let changed = snapshot.sessionsRead && ids(sessions) != ids(snapshot.sessions)
             snapshot.sessions = sessions
             snapshot.sessionsRead = true
             joinRecent()
+            // A session started or ended: its transcript is read now, or right after the pass that is running.
+            if changed, config.showRecentSessions {
+                recent.lastTry = nil
+                if resolved, !recent.running { startRecent(now: now) }
+            }
         case .loginShell(let login):
             locating.running = false
             loginRuns += 1
@@ -477,20 +484,12 @@ struct DataEngine: Sendable {
 
     /// The transcripts' sessions with the registry's live ones, newest activity first.
     private mutating func joinRecent() {
-        var live: [String: SessionInfo] = [:]
-        for s in snapshot.sessions where !s.sessionId.isEmpty && live[s.sessionId] == nil { live[s.sessionId] = s }
+        let live = Dictionary(snapshot.sessions.map { ($0.sessionId, $0) }) { first, _ in first }
         let joined = transcripts.map { t in
             let s = live[t.sessionId]
-            let cwd = t.cwd ?? s?.cwd ?? ""
-            let leaf = (cwd as NSString).lastPathComponent
-            let (title, source): (String, SessionTitleSource) =
-                if let custom = t.customTitle { (custom, .custom) }
-                else if let ai = t.aiTitle { (ai, .ai) }
-                else if let s, s.named { (s.name, .registry) }
-                else { (leaf.isEmpty ? String(t.sessionId.prefix(8)) : leaf, .folder) }
             return RecentSession(
-                sessionId: t.sessionId, title: title, titleSource: source, cwd: cwd, lastActivity: t.lastActivity,
-                lastPrompt: t.lastPrompt, pid: s?.pid, state: s?.state
+                sessionId: t.sessionId, title: t.customTitle ?? t.aiTitle ?? s.flatMap { $0.named ? $0.name : nil },
+                cwd: t.cwd ?? s?.cwd ?? "", lastActivity: t.lastActivity, lastPrompt: t.lastPrompt, pid: s?.pid
             )
         }
         snapshot.recentSessions = joined.sorted {

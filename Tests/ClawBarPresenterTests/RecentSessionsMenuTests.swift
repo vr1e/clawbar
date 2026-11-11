@@ -14,9 +14,9 @@ import ClawBarShared
         )
     }
 
-    func ended(_ n: Int, title: String = "Title", cwd: String = "/Users/example/api", ago: TimeInterval = 300) -> RecentSession {
+    func ended(_ n: Int, title: String? = "Title", cwd: String = "/Users/example/api", ago: TimeInterval = 300) -> RecentSession {
         RecentSession(
-            sessionId: String(format: "00000000-0000-4000-8000-%012d", n), title: title, titleSource: .ai, cwd: cwd,
+            sessionId: String(format: "00000000-0000-4000-8000-%012d", n), title: title, cwd: cwd,
             lastActivity: Samples.now - ago, lastPrompt: "prompt \(n)"
         )
     }
@@ -63,10 +63,15 @@ import ClawBarShared
 
     @Test func withoutATerminalAClickCopiesAndALiveSessionOnlyInforms() {
         let all = items(terminal: false)
-        #expect(all.map(\.click) == [nil, nil, .resume, .resume, .resume])
+        #expect(all.map(\.click) == [nil, nil, .copy, .copy, .copy])
         #expect(all[0].tooltip == "Shorten the stale line in the tooltip and keep the reset times\n\nRunning in ~/Dev/clawbar")
         #expect(all[2].tooltip.hasSuffix("\n\nClick to copy the command that resumes it"))
         #expect(items(lang: .de, terminal: false)[2].tooltip.hasSuffix("\n\nKlicken, um den Befehl zum Fortsetzen zu kopieren"))
+        // The click is asked again when it comes: a session that ended since the menu opened is resumed.
+        var session = DataSnapshot.sample.recentSessions[0]
+        #expect(RecentSessionsMenu.click(for: session, terminal: true) == .focus)
+        session.pid = nil
+        #expect(RecentSessionsMenu.click(for: session, terminal: true) == .resume)
     }
 
     @Test func theNewestFifteenShow() {
@@ -90,6 +95,9 @@ import ClawBarShared
         // Outside the home folder, and with no home at all, the path is whole.
         #expect(all[1].title == "○ Title · /opt/work · 5m")
         #expect(items(home: "")[1].title == "● Reading list · /Users/example/notes · 12m")
+        // Untitled, a session goes by its folder's leaf, else by the start of its id.
+        data.recentSessions = [ended(3, title: nil), ended(4, title: nil, cwd: "")]
+        #expect(items(data).map(\.title) == ["○ api · ~/api · 5m", "○ 00000000 · 5m"])
     }
 
     @Test func theTimeGoesFromNowToMinutesHoursYesterdayAndDays() {
@@ -106,10 +114,9 @@ import ClawBarShared
 
     @Test func theWidgetsHoverListNamesALiveSessionByItsTitle() {
         #expect(render().tooltip(.sessions) == "▶ Menu bar tooltip wording — ~/Dev/clawbar\n? Reading list [permission] — ~/notes")
-        // A title that is only the folder's leaf says less than the registry's name; so does none at all.
+        // Without a title, or without a transcript read yet, the registry's name stands.
         var data = DataSnapshot.sample
-        data.recentSessions[0].title = "clawbar"
-        data.recentSessions[0].titleSource = .folder
+        data.recentSessions[0].title = nil
         data.recentSessions.remove(at: 1)
         #expect(render(data).tooltip(.sessions) == "▶ clawbar — ~/Dev/clawbar\n? notes [permission] — ~/notes")
         #expect(render(data, config: Config(showSessions: false)).tooltip(.sessions) == nil)

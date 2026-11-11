@@ -59,8 +59,12 @@ struct RecentSessionReader: Sendable {
     private static let originNeedle = Data(#""entrypoint":""#.utf8)
     private static let replyNeedle = Data(TranscriptScanner.marker)
 
+    /// A `claude -p` run is no session, whatever else it says.
+    private var isPrintRun: Bool { entrypoint == "sdk-cli" }
+
     /// The title and the last prompt are both read, with the margin behind them; a long line's read part counts too.
-    var isComplete: Bool { pastSettled.map { $0 + carry.count >= Self.margin } ?? false }
+    /// A print run never gets a title, so nothing more is looked for.
+    var isComplete: Bool { isPrintRun || pastSettled.map { $0 + carry.count >= Self.margin } ?? false }
 
     /// Takes the chunk that ends where the last one began; `atStart` when it begins the file.
     mutating func add(earlier chunk: Data, atStart: Bool) {
@@ -130,16 +134,11 @@ struct RecentSessionReader: Sendable {
             end = start
         }
         autoreleasepool {
-            if let head = bytes(0 ..< min(step, size)) { reader.addHead(head, whole: size <= step) }
+            if !reader.isPrintRun, let head = bytes(0 ..< min(step, size)) { reader.addHead(head, whole: size <= step) }
         }
         // The scanner keeps the reader for the week; an unfinished line's bytes are of no more use.
         reader.carry = Data()
         return reader
-    }
-
-    /// A whole transcript in memory, as the scanner reads one from disk.
-    static func summary(of data: Data, sessionId: String, modified: Date) -> TranscriptSummary {
-        read(size: data.count) { data.subdata(in: $0) }.summary(sessionId: sessionId, modified: modified)
     }
 
     /// One whole line, parsed only when it can still tell something.
@@ -208,15 +207,10 @@ actor RecentSessionScanner {
         var reader: RecentSessionReader
     }
 
-    private var root: String?
+    /// By path, so another config dir's transcripts are other entries.
     private var cache: [String: Cached] = [:]
 
     func scan(root: String, now: Date) -> RecentScan {
-        // Another config dir is another set of transcripts.
-        if root != self.root {
-            self.root = root
-            cache = [:]
-        }
         let cutoff = now.addingTimeInterval(-TranscriptScanner.window).timeIntervalSince1970
         var scan = RecentScan()
         var seen: Set<String> = []
@@ -256,7 +250,6 @@ actor RecentSessionScanner {
 
     /// Switched off: the titles and prompts leave memory.
     func forget() {
-        root = nil
         cache = [:]
     }
 

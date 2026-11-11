@@ -52,7 +52,7 @@ import ClawBarShared
         #expect(text.contains("\nrecentSessions: 5 (live 2, titled 4)\n"))
         #expect(text.contains("\nconfig.showRecentSessions: true\n"))
         for session in DataSnapshot.sample.recentSessions {
-            #expect(!text.contains(session.title) && !text.contains(session.lastPrompt), "\(session.title)")
+            #expect(!text.contains(session.title ?? "infra") && !text.contains(session.lastPrompt), "\(session.sessionId)")
         }
         var d = dump()
         d.snapshot.recentSessions = []

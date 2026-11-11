@@ -6,24 +6,24 @@ import ClawBarShared
 /// What is typed into a terminal or put on the clipboard for a recent session; osascript itself never runs here.
 @Suite struct SessionTerminalTests {
     let id = "00000000-0000-4000-8000-000000000003"
+    var command: String { "claude -r \(id)" }
 
     @Test func onlyASessionIdBecomesACommand() {
         #expect(SessionTerminal.resumeCommand(sessionId: id) == "claude -r \(id)")
         #expect(SessionTerminal.resumeCommand(sessionId: id.uppercased()) == "claude -r \(id.uppercased())")
         for bad in ["", "abc", id + "; rm -rf ~", id + "\n", " " + id, "$(touch x)", String(id.dropLast())] {
             #expect(SessionTerminal.resumeCommand(sessionId: bad) == nil, "\(bad)")
-            #expect(SessionTerminal.shellLine(cwd: "/Users/example", sessionId: bad) == nil, "\(bad)")
         }
     }
 
     @Test func theClipboardLineQuotesTheFolder() {
-        #expect(SessionTerminal.shellLine(cwd: "/Users/example/code/api", sessionId: id) == "cd '/Users/example/code/api' && claude -r \(id)")
-        #expect(SessionTerminal.shellLine(cwd: "/Users/example/it's $HOME; here", sessionId: id)
+        #expect(SessionTerminal.shellLine(cwd: "/Users/example/code/api", command: command) == "cd '/Users/example/code/api' && claude -r \(id)")
+        #expect(SessionTerminal.shellLine(cwd: "/Users/example/it's $HOME; here", command: command)
             == #"cd '/Users/example/it'\''s $HOME; here' && claude -r "# + id)
         // No folder known, or one that cannot be typed: the command alone.
-        #expect(SessionTerminal.shellLine(cwd: "", sessionId: id) == "claude -r \(id)")
-        #expect(SessionTerminal.shellLine(cwd: "/Users/example/a\nb", sessionId: id) == "claude -r \(id)")
-        #expect(SessionTerminal.shellLine(cwd: "-i", sessionId: id) == "claude -r \(id)")
+        #expect(SessionTerminal.shellLine(cwd: "", command: command) == "claude -r \(id)")
+        #expect(SessionTerminal.shellLine(cwd: "/Users/example/a\nb", command: command) == "claude -r \(id)")
+        #expect(SessionTerminal.shellLine(cwd: "-i", command: command) == "claude -r \(id)")
     }
 
     @Test func theFolderAndTheCommandReachGhosttyAsArgumentsNotAsScript() {
