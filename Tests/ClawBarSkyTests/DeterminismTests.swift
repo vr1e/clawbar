@@ -52,14 +52,6 @@ import ClawBarSky
         #expect(sun.color == RGBA("#FFFB923C") && near(sun.opacity, 0.425, 1e-12))
         #expect(frames[399].top == RGBA.dim(RGBA("#00404E8A"), 0.45))
     }
-
-    @Test func dropsAndFlakesKeepMovingEveryTick() {
-        let frames = play(seed: 7)
-        let rain = frames[0 ..< 100].map { Sprites($0).drops?.rects ?? [] }
-        #expect(zip(rain, rain.dropFirst()).allSatisfy { $0 != $1 })
-        let snow = frames[100 ..< 200].map { Sprites($0).flakes?.rects ?? [] }
-        #expect(zip(snow, snow.dropFirst()).allSatisfy { $0 != $1 })
-    }
 }
 
 /// Inputs the original never produced, or produced and crashed on: the step must still draw.

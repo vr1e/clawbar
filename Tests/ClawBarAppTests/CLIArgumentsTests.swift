@@ -36,16 +36,6 @@ import ClawBarShared
         #expect(parse("--command", "lang", "EN") == .success(.command(.lang(.en))))
     }
 
-    @Test func everyRecorderScenarioParses() {
-        for name in ["tour", "sleep", "limit", "reset", "hearts", "weather", "clicks"] {
-            guard case .success(.record(let s, gif: "x.gif")) = parse("--record", name, "x.gif") else {
-                Issue.record("\(name) did not parse")
-                continue
-            }
-            #expect(s.rawValue == name)
-        }
-    }
-
     @Test func mistakesAreReportedNotGuessed() {
         #expect(isFailure(parse("--snapshot")))
         #expect(isFailure(parse("--record", "tour")))

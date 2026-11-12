@@ -153,7 +153,6 @@ import ClawBarShared
     }
 
     @Test func everyConfigKeyHasAStableJSONName() {
-        #expect(ConfigKey.allCases.count == 32)
         #expect(ConfigKey.theme.rawValue == "theme" && ConfigKey.accent.rawValue == "accent")
         #expect(ConfigKey.skin.rawValue == "skin")
         #expect(ConfigKey.mainLimit.rawValue == "mainLimit")

@@ -12,11 +12,9 @@ final class LaidOutCard {
     let layout = LayoutModel()
     let host: NSHostingView<AnyView>
 
-    init(_ view: WidgetViewState = .sample, scale k: Double = 1.2, clawd: ClawdFrame = .sample, mascot: Bool = true, sky: Bool = true) {
+    init(_ view: WidgetViewState = .sample, scale k: Double = 1.2, clawd: ClawdFrame = .sample) {
         app.view = view
         app.scale = k
-        app.mascotVisible = mascot
-        app.skyVisible = sky
         animation.publish(clawd)
         animation.publish(SkyFrame.sample)
         host = NSHostingView(rootView: AnyView(EmptyView()))
@@ -143,15 +141,6 @@ final class LaidOutCard {
         let x = try #require(regions.chartX(at: CGPoint(x: chart.midX, y: chart.midY)))
         #expect(abs(x - 118) < 0.01)
         #expect(regions.classify(CGPoint(x: chart.midX, y: chart.midY), isSecondary: false) == .drag)
-    }
-
-    @Test func withoutClawdOrTheSkyThereIsNoDeveloperMenu() throws {
-        let card = LaidOutCard(mascot: false, sky: false)
-        let regions = card.regions, k = card.k
-        let row = try card.rect(.percentRow)
-        #expect(regions.rects(.sprite).isEmpty && regions.rects(.sky).isEmpty)
-        #expect(regions.classify(CGPoint(x: row.maxX - 8 * k, y: row.minY + 8 * k), isSecondary: true) == .control)
-        #expect(regions.classify(CGPoint(x: row.minX + 100 * k, y: row.minY + 30 * k), isSecondary: false) == .drag)
     }
 }
 

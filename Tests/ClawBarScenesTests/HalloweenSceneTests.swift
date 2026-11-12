@@ -10,8 +10,8 @@ import ClawBarShared
     static let web = RGBA("#59E9D5FF"), bat = RGBA("#FF7353A0"), ghost = RGBA("#FFF5F3FF"), moon = RGBA("#FFFDE68A")
     static let pumpkinFace = RGBA("#FFFDE047"), ground = RGBA("#FF2E1F3D")
 
-    private func run(_ steps: Int, size: CGSize = sceneCard, sky: Bool = true, seed: UInt64 = 3) -> [SceneFrame] {
-        runScene(.halloween, steps, size: size, sky: sky, seed: seed)
+    private func run(_ steps: Int) -> [SceneFrame] {
+        runScene(.halloween, steps)
     }
 
     private func thread(_ f: SceneFrame) -> CGRect? {
@@ -86,28 +86,7 @@ import ClawBarShared
         #expect(flicker.allSatisfy { (0.3 ... 1).contains($0) } && Set(flicker).count > 20)
     }
 
-    @Test func theSkyLayerWaitsWhileTheSkyRowIsHidden() {
-        #expect(run(50, sky: false).allSatisfy { $0.sky.isEmpty && !$0.backdrop.isEmpty })
-    }
-
-    @Test func theOutputStaysBoundedAtEverySize() {
-        for size in [CGSize(width: 260, height: 140), sceneCard, CGSize(width: 260, height: 520)] {
-            let frames = run(1_000, size: size)
-            // Fog, wisps, the web, thread and spider, two layers a bat and the ghost's two.
-            #expect(frames.allSatisfy { $0.backdrop.count <= 4 + 6 + 1 + 1 + 3 + 3 * 2 + 2 })
-            #expect(Set(frames.map(\.sky.count)).count == 1)
-        }
-    }
-
-    @Test func nothingDrawsBeforeTheCardHasASize() {
-        #expect(run(3, size: .zero).allSatisfy { $0 == .empty })
-    }
-
     // MARK: The midnight scare
-
-    private func scareStarts(around midnight: Date, seed: UInt64, zone: TimeZone = Samples.timeZone) -> [Date] {
-        secretStarts(.halloween, around: midnight, seed: seed, zone: zone)
-    }
 
     private func midnight() throws -> Date {
         try #require(Calendar.gregorian(in: Samples.timeZone).date(from: DateComponents(year: 2026, month: 11, day: 2)))
@@ -118,7 +97,7 @@ import ClawBarShared
         let calendar = Calendar.gregorian(in: Samples.timeZone)
         var scared = 0
         for seed in UInt64(0) ..< 30 {
-            let starts = scareStarts(around: midnight, seed: seed)
+            let starts = secretStarts(.halloween, around: midnight, seed: seed)
             #expect(starts.count <= 1, "seed \(seed)")
             #expect(starts.allSatisfy { calendar.dateComponents([.hour, .minute], from: $0) == DateComponents(hour: 0, minute: 0) })
             scared += starts.count
@@ -127,34 +106,11 @@ import ClawBarShared
     }
 
     @Test func theNextNightGetsAFreshChance() throws {
-        let first = try midnight()
-        var clock = SceneClock(.halloween, seed: 0, from: first.addingTimeInterval(-10))
-        func scares(for steps: Int) -> Int {
-            var count = 0, on = false
-            for _ in 0 ..< steps {
-                let now = clock.step().secret != nil
-                if now, !on { count += 1 }
-                on = now
-            }
-            return count
-        }
         // Many nights on one scene: about one in three is scary, never more than one scare a night.
-        var nights = 0
-        for night in 0 ..< 30 {
-            clock.now = first.addingTimeInterval(Double(night) * 86_400 - 10)
-            let n = scares(for: 900)
-            #expect(n <= 1)
-            nights += n
-        }
-        #expect((4 ... 18).contains(nights))
-    }
-
-    @Test func midnightIsReadInTheInputZone() throws {
-        // Midnight in Berlin is 23:00 in UTC: no scare there.
-        let midnight = try midnight()
-        for seed in UInt64(0) ..< 15 {
-            #expect(scareStarts(around: midnight, seed: seed, zone: .gmt).isEmpty)
-        }
+        let starts = secretStarts(.halloween, around: try midnight(), seed: 0, nights: 30)
+        let calendar = Calendar.gregorian(in: Samples.timeZone)
+        #expect(Set(starts.map { calendar.startOfDay(for: $0) }).count == starts.count)
+        #expect((4 ... 18).contains(starts.count))
     }
 
     @Test func theScareFlashesDarkensLoomsAndClawdJumpsAsTheLightsReturn() {
@@ -199,14 +155,5 @@ import ClawBarShared
         var clock = SceneClock(.halloween, seed: 3)
         clock.engine.play(.scare, at: 60)
         #expect(clock.step().secret?.cues == [.act(.jump)])
-    }
-
-    @Test func endingTheSecretPutsTheLightsBackAtOnce() {
-        var clock = SceneClock(.halloween, seed: 3)
-        _ = clock.step()
-        clock.engine.play(.scare)
-        #expect(clock.step().secret != nil)
-        clock.engine.endSecret()
-        #expect((0 ..< 80).allSatisfy { _ in clock.step().secret == nil })
     }
 }

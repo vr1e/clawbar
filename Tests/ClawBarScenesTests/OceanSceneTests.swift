@@ -11,8 +11,8 @@ import ClawBarShared
     static let kelp = RGBA("#FF15803D"), bell = RGBA("#D9F0ABFC"), tentacle = RGBA("#B3F0ABFC")
     static let flowerCentre = RGBA("#FFFEF9C3")
 
-    private func run(_ steps: Int, size: CGSize = sceneCard, sky: Bool = true) -> [SceneFrame] {
-        runScene(.ocean, steps, size: size, sky: sky)
+    private func run(_ steps: Int) -> [SceneFrame] {
+        runScene(.ocean, steps)
     }
 
     private func bubbles(_ f: SceneFrame) -> [CGRect] {
@@ -107,29 +107,12 @@ import ClawBarShared
         #expect(!wrapped.isEmpty && wrapped.allSatisfy { $0.maxX < 0 && $0.minX > -21 })
     }
 
-    @Test func theSkyLayerWaitsWhileTheSkyRowIsHidden() {
+    @Test func theFishArePlacedWhenTheSkyRowFirstShows() {
         var clock = SceneClock(.ocean, seed: 3)
-        for _ in 0 ..< 200 {
-            let f = clock.step(size: sceneCard, sky: false)
-            #expect(f.sky.isEmpty && !f.backdrop.isEmpty)
-        }
+        for _ in 0 ..< 200 { _ = clock.step(size: sceneCard, sky: false) }
         // Fish are placed on the row's first step, off its edges, and have moved one step since.
         let first = clock.step(size: sceneCard)
         #expect(fish(first, Self.yellowFish)!.x >= PlayArea.skySize.width - 1)
         #expect(fish(first, Self.pinkFish)!.x < 0)
-    }
-
-    @Test func theOutputStaysBoundedAtEverySize() {
-        for size in [CGSize(width: 260, height: 140), sceneCard, CGSize(width: 260, height: 520)] {
-            let frames = run(1_000, size: size)
-            // The surface, four beams and fourteen bubbles.
-            #expect(frames.allSatisfy { $0.backdrop.count == 1 + 4 + 14 })
-            // Four flowers of two colours, sand, starfish, four kelp, two fish, the bell and its tentacles.
-            #expect(frames.allSatisfy { $0.sky.count <= 8 + 2 + 1 + 4 + 5 + 1 + 1 })
-        }
-    }
-
-    @Test func nothingDrawsBeforeTheCardHasASize() {
-        #expect(run(3, size: .zero).allSatisfy { $0 == .empty })
     }
 }

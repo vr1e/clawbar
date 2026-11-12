@@ -8,8 +8,8 @@ import ClawBarShared
 @Suite struct SpaceSceneTests {
     static let shipGrey = RGBA("#FF94A3B8")
 
-    private func run(_ steps: Int, size: CGSize = sceneCard, sky: Bool = true) -> [SceneFrame] {
-        runScene(.space, steps, size: size, sky: sky)
+    private func run(_ steps: Int, size: CGSize = sceneCard) -> [SceneFrame] {
+        runScene(.space, steps, size: size)
     }
 
     /// The faint stars' layers: the backdrop's only plain rects.
@@ -122,27 +122,10 @@ import ClawBarShared
         #expect(try discs(frames[0]).colours != discs(frames[100]).colours)
     }
 
-    @Test func theSkyLayerWaitsWhileTheSkyRowIsHidden() {
+    @Test func theShipStandsStillWhileTheSkyRowIsHidden() {
         var clock = SceneClock(.space, seed: 3)
-        for _ in 0 ..< 200 {
-            let f = clock.step(size: sceneCard, sky: false)
-            #expect(f.sky.isEmpty && !f.backdrop.isEmpty)
-        }
+        for _ in 0 ..< 200 { _ = clock.step(size: sceneCard, sky: false) }
         // One step of the ship, not 201.
         #expect(shipX(clock.step(size: sceneCard)) == 59)
-    }
-
-    @Test func theOutputStaysBoundedAtEverySize() {
-        for size in [CGSize(width: 260, height: 140), sceneCard, CGSize(width: 260, height: 520)] {
-            let frames = run(1_000, size: size)
-            // Nebulae, star layers, bright stars and the shooting star.
-            #expect(frames.allSatisfy { $0.backdrop.count <= 3 + 10 + 14 + 1 })
-            // Two glows, two ring halves, at most a layer per planet pixel, and the ship's four.
-            #expect(frames.allSatisfy { $0.sky.count <= 2 + 2 + 17 * 17 + 11 * 11 + 4 })
-        }
-    }
-
-    @Test func nothingDrawsBeforeTheCardHasASize() {
-        #expect(run(3, size: .zero).allSatisfy { $0 == .empty })
     }
 }

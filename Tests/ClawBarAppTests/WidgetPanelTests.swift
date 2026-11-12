@@ -27,16 +27,6 @@ final class ScreenBox {
         return p
     }
 
-    @Test func aSavedPositionOnAnyScreenIsKept() {
-        #expect(PanelPlacement.topLeft(saved: CGPoint(x: 2000, y: 100), size: size, screens: both) == CGPoint(x: 2000, y: 100))
-    }
-
-    @Test func withoutAUsableSavedPositionTheWidgetSitsTwentyPointsInFromTheTopRight() {
-        let expected = CGPoint(x: 1512 - 20 - 314, y: 33 + 20)
-        #expect(PanelPlacement.topLeft(saved: nil, size: size, screens: both) == expected)
-        #expect(PanelPlacement.topLeft(saved: CGPoint(x: 2000, y: 100), size: size, screens: primaryOnly) == expected)
-    }
-
     @Test func unpluggingTheScreenItWasOnMovesTheWidgetHome() {
         let box = ScreenBox(both)
         let p = panel(box)

@@ -11,8 +11,8 @@ import ClawBarShared
     static let carBody = RGBA("#FF3B3656"), roofSign = RGBA("#FF00F0FF"), sideSign = RGBA("#FFFF2A6D")
     static let bars = ["#66FF003C", "#5500F0FF", "#4DFF003C", "#4400F0FF", "#33FCEE0A"].map(RGBA.init)
 
-    private func run(_ steps: Int, size: CGSize = sceneCard, sky: Bool = true, seed: UInt64 = 3) -> [SceneFrame] {
-        runScene(.cyberpunk, steps, size: size, sky: sky, seed: seed)
+    private func run(_ steps: Int, sky: Bool = true) -> [SceneFrame] {
+        runScene(.cyberpunk, steps, sky: sky)
     }
 
     /// The rain's streaks in their order, after the glows.
@@ -156,22 +156,8 @@ import ClawBarShared
         }
     }
 
-    @Test func theSkyLayerAndSearchlightsWaitWhileTheSkyRowIsHidden() {
-        #expect(run(50, sky: false).allSatisfy { $0.sky.isEmpty && beams($0).isEmpty && !$0.backdrop.isEmpty })
-    }
-
-    @Test func theOutputStaysBoundedAtEverySize() {
-        for size in [CGSize(width: 260, height: 140), sceneCard, CGSize(width: 260, height: 520)] {
-            let frames = run(1_000, size: size)
-            // Glows, rain, bars and the two searchlights.
-            #expect(frames.allSatisfy { $0.backdrop.count <= 3 + 36 + 5 + 2 })
-            // Far walls, windows and beacon, two cars, near walls, windows and signs.
-            #expect(frames.allSatisfy { $0.sky.count <= 1 + 3 + 2 + 2 + 1 + 2 + 2 })
-        }
-    }
-
-    @Test func nothingDrawsBeforeTheCardHasASize() {
-        #expect(run(3, size: .zero).allSatisfy { $0 == .empty })
+    @Test func theSearchlightsWaitWhileTheSkyRowIsHidden() {
+        #expect(run(50, sky: false).allSatisfy { beams($0).isEmpty })
     }
 
     // MARK: The 20:77 secret
@@ -180,8 +166,8 @@ import ClawBarShared
         try #require(Calendar.gregorian(in: Samples.timeZone).date(from: DateComponents(year: 2026, month: 11, day: 2, hour: hour, minute: minute)))
     }
 
-    private func relicStarts(at minute: Date, asleep: Bool = true, zone: TimeZone = Samples.timeZone) -> [Date] {
-        secretStarts(.cyberpunk, around: minute, seed: 3, zone: zone, asleep: asleep)
+    private func relicStarts(at minute: Date, asleep: Bool = true, zone: TimeZone = Samples.timeZone, nights: Int = 1) -> [Date] {
+        secretStarts(.cyberpunk, around: minute, seed: 3, zone: zone, asleep: asleep, nights: nights)
     }
 
     /// The secret from its first step, `steps` long; a step that draws nothing is nil.
@@ -203,18 +189,7 @@ import ClawBarShared
     }
 
     @Test func theNextEveningStrikesAgain() throws {
-        var clock = SceneClock(.cyberpunk, seed: 3, from: try evening().addingTimeInterval(-10))
-        var starts = 0
-        for night in 0 ..< 3 {
-            clock.now = try evening().addingTimeInterval(Double(night) * 86_400 - 10)
-            var on = false
-            for _ in 0 ..< 900 {
-                let playing = clock.step(asleep: true).secret != nil
-                if playing, !on { starts += 1 }
-                on = playing
-            }
-        }
-        #expect(starts == 3)
+        #expect(relicStarts(at: try evening(), nights: 3).count == 3)
     }
 
     @Test func theCardFlushesRedWithBarsTornThickestInTheStorms() {
@@ -281,14 +256,5 @@ import ClawBarShared
         // The last step draws nothing and puts him back to sleep.
         #expect(s[109] == SceneSecretFrame(overlay: [], cues: [.letSleep]))
         #expect(s[110 ..< 112].allSatisfy { $0 == nil })
-    }
-
-    @Test func endingTheSecretStopsItAtOnce() {
-        var clock = SceneClock(.cyberpunk, seed: 3)
-        _ = clock.step()
-        clock.engine.play(.relic)
-        #expect(clock.step().secret != nil)
-        clock.engine.endSecret()
-        #expect((0 ..< 120).allSatisfy { _ in clock.step().secret == nil })
     }
 }

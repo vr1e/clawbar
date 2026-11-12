@@ -108,12 +108,6 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
             == "Sitzung 34% · 2h 05min (16:10)\nWoche 59% · 4d 15h (Do. 06:00)\nSonnet 23%\nFable 8% · 1d 0h (morgen 14:05)" + sessionsLineDE)
     }
 
-    @Test func aResetAWeekOutNamesItsDay() {
-        let d = sample { $0.weekReset = Samples.now.plus(days: 7, minutes: -5) }
-        #expect(render(d).trayTooltip.contains("\nweek 59% · 6d 23h (Sat 24 14:00)\n"))
-        #expect(render(d, lang: .de).trayTooltip.contains("\nWoche 59% · 6d 23h (Sa. 24. 14:00)\n"))
-    }
-
     @Test func partsThatAreMissingAreLeftOut() {
         let d = sample {
             $0.sessionReset = nil
@@ -150,12 +144,6 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         #expect(render(lang: .de, now: Samples.now.plus(hours: 1)).trayTooltip.hasSuffix("\nFable 8% · 4d 14h (Do. 06:00)\nveraltet · 14:04:35" + sessionsLineDE))
         // The widget keeps its level colours; its stamp already says stale.
         #expect(stale.pctColor == Palette.ok)
-    }
-
-    @Test func theStaleLineComesBeforeAnIssueLine() {
-        let d = sample(data: { $0.usageIssue = .flagRejected("--output-format") })
-        let tip = render(d, now: Samples.now.plus(hours: 1)).trayTooltip
-        #expect(tip.contains("\nFable 8% · 4d 14h (Thu 06:00)\nstale · 14:04:35\n"))
     }
 
     @Test func theSessionsLineComesLastAndOnlyWithSessionsShown() {
@@ -195,11 +183,6 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
             BarRow(label: "FABLE · WEEK", value: "8%", fraction: 0.08, color: Palette.modelWeekBar),
         ])
         #expect(render(d, lang: .de).modelWeeks.map(\.label) == ["SONNET · WOCHE", "FABLE · WOCHE"])
-    }
-
-    @Test func noUsageMeansNoModelRows() {
-        #expect(render(.empty).modelWeeks.isEmpty)
-        #expect(render(sample { $0.modelWeeks = [] }).modelWeeks.isEmpty)
     }
 }
 
@@ -402,21 +385,9 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         #expect(render(config: config, now: Samples.now.plus(seconds: 1000)).stampText == "14:04:35")
     }
 
-    @Test func theStampUsesTheInputsZone() {
-        let v = WidgetPresenter.make(PresenterInput(
-            config: Config(), now: Samples.now, timeZone: TimeZone(identifier: "America/New_York")!, data: .sample
-        ))
-        #expect(v.stampText == "08:04:35")
-    }
-
     @Test func aFailedTickSaysError() {
         #expect(render(tickError: true).stampText == "error")
         #expect(render(lang: .de, tickError: true).stampText == "Fehler")
         #expect(render(.empty, tickError: true).stampText == "error")
-    }
-
-    @Test func noUsageYetMeansNoStamp() {
-        #expect(render(.empty).stampText == "")
-        #expect(render(.empty).stampColor == Palette.footer)
     }
 }

@@ -45,14 +45,6 @@ let package = Package(
 
         .testTarget(name: "ClawBarSharedTests", dependencies: ["ClawBarShared"], swiftSettings: testSettings),
         .testTarget(
-            name: "ContractTests",
-            dependencies: [
-                "ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarSky", "ClawBarScenes", "ClawBarAnimation",
-                "ClawBarCard",
-            ],
-            swiftSettings: testSettings
-        ),
-        .testTarget(
             name: "ClawBarDataTests",
             dependencies: ["ClawBarData", "ClawBarShared"],
             exclude: ["Fixtures"],

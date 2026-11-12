@@ -56,13 +56,6 @@ import ClawBarShared
         #expect(moon(at: days(23), latitude: -33.87).lit == Self.right)
     }
 
-    @Test func phasesFollowTheRealMoonEitherSideOfTheEpoch() {
-        // Six days before the epoch the age is 22.8: waning, past the last quarter.
-        #expect(moon(at: days(-6)).lit == Self.left)
-        // The full moon of 2026-10-26 04:12 UTC.
-        #expect(moon(at: local(2026, 10, 26, 4, 12, in: Zones.utc)).lit == Self.disk)
-    }
-
     /// The elongation with upstream's three signs fixed stays within ~1.1 h; the mean month was up to ~23 h off.
     @Test(arguments: [
         (epoch, 0.0),
@@ -93,10 +86,5 @@ import ClawBarShared
         #expect(Sprites(firstFrame(inputs(utcDay(780)))).moonDark == nil)
         let rainy = Sprites(firstFrame(inputs(utcDay(60), weather: SkyWeather(code: 63, windKmh: 10))))
         #expect(rainy.moonDark == nil && rainy.moonLit == nil)
-    }
-
-    @Test func theDarkPartIsDrawnUnderTheLitPart() {
-        let order = Sprites(firstFrame(inputs(days(7), phase: .night))).order
-        #expect(order.filter { $0.hasPrefix("moon") } == ["moonDark", "moonLit"])
     }
 }

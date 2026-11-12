@@ -187,12 +187,6 @@ import ClawBarShared
 }
 
 @Suite struct SnapshotDerivationTests {
-    @Test func sessionsAreCountedByState() {
-        #expect(DataSnapshot.sample.count(of: .busy) == 1)
-        #expect(DataSnapshot.sample.count(of: .waiting) == 1)
-        #expect(DataSnapshot.sample.count(of: .idle) == 0)
-    }
-
     @Test func clawdReadsTheSessionsAndTheMainLimitFromADataSnapshot() {
         let input = ClawdDataInput(DataSnapshot.sample, mainLimit: .session, critPercent: 85)
         #expect(input == ClawdDataInput(

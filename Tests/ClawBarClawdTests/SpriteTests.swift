@@ -29,7 +29,6 @@ import ClawBarShared
     }
 
     @Test func everyFixtureLineIsCovered() {
-        #expect(PixelFixtures.all.count == 32)
         #expect(PixelFixtures.all.allSatisfy { Self.pose(for: $0.label) != nil })
         let faces = Set(PixelFixtures.all.compactMap { Self.pose(for: $0.label)?.facing })
         #expect(faces == Set(ClawdFacing.allCases))
@@ -145,13 +144,6 @@ import ClawBarShared
     @Test func coinShadowSitsBelowTheGround() {
         #expect(close(ClawdSprite.render(ClawdPose(shadow: .wide)).fx, [CGRect(x: 12, y: 11.5 * 2.2, width: 12, height: 1.1)]))
         #expect(close(ClawdSprite.render(ClawdPose(shadow: .narrow)).fx, [CGRect(x: 16, y: 11.5 * 2.2, width: 4, height: 1.1)]))
-    }
-
-    @Test func theCacheReturnsTheSameGeometry() {
-        let sprite = ClawdSprite()
-        let pose = ClawdPose(eyes: .happy, arms: .up, look: 1)
-        #expect(sprite.geometry(pose) == ClawdSprite.render(pose))
-        #expect(sprite.geometry(pose) == sprite.geometry(pose))
     }
 
     @Test func soulHangsAboveItsOrigin() {

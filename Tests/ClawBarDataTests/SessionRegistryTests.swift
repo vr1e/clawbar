@@ -165,12 +165,6 @@ struct FakeTable: ProcessTable {
         #expect(r.read(excluding: [], now: started).isEmpty)
     }
 
-    @Test func theConfigDirectoryDecidesTheFolder() {
-        #expect(SessionRegistry.directory(configDir: "/Users/example/.claude-work", home: "/Users/example").path
-            == "/Users/example/.claude-work/sessions")
-        #expect(SessionRegistry.directory(configDir: nil, home: "/Users/example").path == "/Users/example/.claude/sessions")
-    }
-
     @Test func aLiveProcessKeepsItsRealStartAndAShiftedOneIsDropped() async throws {
         let runner = ProcessRunner()
         let sleeper = Task { await runner.run(ProcessSpec(

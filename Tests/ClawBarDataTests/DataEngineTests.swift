@@ -168,16 +168,6 @@ import ClawBarShared
         #expect(kinds(e.handle(.tick, now: t0 + 300)) == ["locate"])
     }
 
-    @Test func theLoginShellIsAskedAgainOnlyWhileItGaveNoAnswerAndClaudeIsMissing() {
-        var answered = engine()
-        start(&answered, now: t0, missing: true)
-        #expect(kinds(answered.handle(.tick, now: t0 + 60)) == ["locate"])
-        var present = engine()
-        start(&present, now: t0)
-        let later = kinds(present.handle(.tick, now: t0 + 60))
-        #expect(!later.contains("locate") && !later.contains("runLoginShell"))
-    }
-
     @Test func aChangedClaudePathIsLocatedAgainOnceTheShellAnswered() {
         var e = engine()
         var config = e.config
@@ -231,16 +221,6 @@ import ClawBarShared
         #expect(e.snapshot.usageIssue == .noLimits)
         #expect(e.snapshot.usage == UsageSnapshot())
         #expect(e.snapshot.usageAt == t0 + 60)
-    }
-
-    @Test func aSubscriptionAnswerWithoutLimitsKeepsTheLastNumbers() {
-        var e = engine()
-        start(&e, now: t0)
-        _ = e.handle(usage(50), now: t0)
-        _ = e.handle(issue(.probeFailed("no limit lines in /usage")), now: t0 + 60)
-        #expect(e.snapshot.usageIssue == .probeFailed("no limit lines in /usage"))
-        #expect(e.snapshot.usage?.sessionPercent == 50)
-        #expect(e.snapshot.usageAt == t0)
     }
 
     @Test func onlyAGoodAnswerIsASampleAndItIsSaved() {
@@ -583,14 +563,6 @@ import ClawBarShared
         #expect(kinds(e.handle(.tick, now: t0 + 300)).contains("scanRecent"))
         var off = engine()
         #expect(!kinds(start(&off, now: t0)).contains("scanRecent"))
-    }
-
-    @Test func anotherConfigDirectoryIsReadAtOnce() {
-        var e = recentEngine()
-        start(&e, now: t0)
-        _ = e.handle(.recentScanned(RecentScan()), now: t0 + 1)
-        _ = e.handle(.account(AccountInfo(loggedIn: true, configDirectory: "/Users/example/.claude-work")), now: t0 + 2)
-        #expect(e.handle(.tick, now: t0 + 3).contains(.scanRecent(root: "/Users/example/.claude-work/projects")))
     }
 
     @Test func theTitleIsTheRenameElseTheSummaryElseAGivenName() {

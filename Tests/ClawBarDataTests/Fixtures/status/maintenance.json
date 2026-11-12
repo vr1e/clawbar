@@ -1,7 +1,0 @@
-{
-  "components": [
-    {"id": "c1", "name": "claude.ai", "status": "under_maintenance", "group": false}
-  ],
-  "incidents": [],
-  "status": {"indicator": "maintenance", "description": "Service Under Maintenance"}
-}

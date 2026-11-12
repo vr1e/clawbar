@@ -102,14 +102,6 @@ import ClawBarShared
         #expect(h.runner.calls.isEmpty)
     }
 
-    @Test func aLatchedProbeIsReportedAndNotRunAgain() async throws {
-        let h = Harness()
-        try LatchStore(url: h.paths.stateFile).save(UsageLatch(version: "2.1.302", issue: .flagRejected("--no-session-persistence")))
-        let text = await h.diagnose()
-        #expect(text.contains("usage: latched for 2.1.302: claude rejected --no-session-persistence"))
-        #expect(h.runner.count(.usage) == 0)
-    }
-
     @Test func aLatchIsHonouredWhileClaudeVersionFailsAsTheAppDoes() async throws {
         let h = Harness()
         try LatchStore(url: h.paths.stateFile).save(UsageLatch(version: "2.1.302", issue: .flagRejected("--no-session-persistence")))

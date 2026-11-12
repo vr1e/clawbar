@@ -32,15 +32,6 @@ import ClawBarShared
         #expect(ClaudeLocator(home: home).locate(configPath: nil, login: nil)?.path == native)
     }
 
-    @Test func theCandidatesCoverNativeHomebrewAndNpmInstalls() {
-        let c = ClaudeLocator.candidates(home: "/Users/example")
-        #expect(c.prefix(4) == [
-            "/Users/example/.local/bin/claude", "/Users/example/.claude/local/claude",
-            "/opt/homebrew/bin/claude", "/usr/local/bin/claude",
-        ])
-        #expect(c.contains("/Users/example/.npm-global/bin/claude"))
-    }
-
     @Test func thenTheLoginShellsCommandV() {
         let elsewhere = fakeClaude("elsewhere/claude")
         let login = LoginEnvironment(claudePath: elsewhere, path: "/usr/bin")

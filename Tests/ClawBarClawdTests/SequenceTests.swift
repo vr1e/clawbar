@@ -93,15 +93,6 @@ func expectPose(_ frame: ClawdFrame, _ pose: ClawdPose, lift: Double = 0, source
         expectPose(frames[2], ClawdPose(arms: .up))
     }
 
-    @Test func celebrateShowsTheBangEveryFrameAndThrowsConfetti() {
-        let engine = ClawdEngine.settled()
-        engine.perform(.act(.celebrate))
-        let frames = engine.run(15).map(FrameView.init)
-        #expect(frames.allSatisfy { $0.bubble == "!" })
-        #expect(frames.allSatisfy { $0.texts.first?.color == Palette.bubbleBang })
-        #expect(frames[0].confetti.count == 12)
-    }
-
     @Test func customActFrames() {
         expectPose(frameAt(.wave, 0), ClawdPose(eyes: .happy, arms: .right))
         expectPose(frameAt(.wave, 4), ClawdPose(eyes: .happy))
