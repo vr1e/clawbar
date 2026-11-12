@@ -32,7 +32,7 @@ public enum Diagnostics {
             now = deps.clock()
             latch = recipes.savedLatch()
             engine = DataEngine(
-                config: config.everyBlockOn(), environment: deps.environment, home: deps.home, latch: latch, history: []
+                config: config.everythingShown(), environment: deps.environment, home: deps.home, latch: latch, history: []
             )
         }
 
@@ -177,22 +177,5 @@ public enum Diagnostics {
             let c = cal.dateComponents([.year, .month, .day, .hour, .minute], from: d)
             return String(format: "%04d-%02d-%02d %02d:%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0, c.hour ?? 0, c.minute ?? 0)
         }
-    }
-}
-
-extension Config {
-    /// Every block shown and the details open, whatever config.json says: `--diagnose` looks at hidden rows too.
-    func everyBlockOn() -> Config {
-        var c = self
-        c.showStats = true
-        c.showStatus = true
-        c.showSessions = true
-        c.showAccount = true
-        c.showMascot = true
-        c.showSky = true
-        c.showHistory = true
-        c.showRecentSessions = true
-        c.expanded = true
-        return c
     }
 }

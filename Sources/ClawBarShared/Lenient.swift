@@ -1,14 +1,13 @@
 import Foundation
-import ClawBarShared
 
 /// JSONSerialization values read the forgiving way PowerShell did: "false" is false, "12" is 12.
-enum Lenient {
-    static func isBool(_ v: Any?) -> Bool {
+public enum Lenient {
+    public static func isBool(_ v: Any?) -> Bool {
         guard let n = v as? NSNumber else { return false }
         return CFGetTypeID(n) == CFBooleanGetTypeID()
     }
 
-    static func bool(_ v: Any?) -> Bool? {
+    public static func bool(_ v: Any?) -> Bool? {
         switch v {
         case let n as NSNumber:
             return isBool(n) ? n.boolValue : (n.doubleValue.isFinite ? n.doubleValue != 0 : nil)
@@ -23,7 +22,7 @@ enum Lenient {
         }
     }
 
-    static func double(_ v: Any?) -> Double? {
+    public static func double(_ v: Any?) -> Double? {
         switch v {
         case let n as NSNumber where !isBool(n):
             return n.doubleValue.isFinite ? n.doubleValue : nil
@@ -37,12 +36,12 @@ enum Lenient {
     }
 
     /// Whole numbers; halves round to even like PowerShell's [int].
-    static func int(_ v: Any?) -> Int? {
+    public static func int(_ v: Any?) -> Int? {
         guard let d = double(v), abs(d) < 1e15 else { return nil }
         return Int(d.rounded(.toNearestOrEven))
     }
 
-    static func string(_ v: Any?) -> String? {
+    public static func string(_ v: Any?) -> String? {
         switch v {
         case let s as String: return s
         case let n as NSNumber where !isBool(n): return n.stringValue

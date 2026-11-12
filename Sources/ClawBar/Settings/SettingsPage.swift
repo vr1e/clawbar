@@ -271,7 +271,7 @@ enum SteppedSetting: CaseIterable, Hashable {
     }
 
     private var step: Double { self == .size ? 0.1 : 0.05 }
-    private var range: ClosedRange<Double> { self == .size ? ConfigLimits.ranges[.scale]! : 0.3 ... 1.0 }
+    private var range: ClosedRange<Double> { self == .size ? ConfigKey.scale.setting.range! : 0.3 ... 1.0 }
 
     /// One step, rounded to two decimals like [math]::Round; nil where the value cannot move that way.
     /// Clamped only at the end it moves toward: 0.2 opacity steps up to 0.25 as in the original; '−' stays disabled.

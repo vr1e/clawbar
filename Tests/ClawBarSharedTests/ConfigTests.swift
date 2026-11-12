@@ -152,6 +152,24 @@ import ClawBarShared
         }
     }
 
+    @Test func everythingShownLeavesTheWindowAndLoginAlone() {
+        let hidden = Config(
+            topmost: false, expanded: false, showStats: false, showStatus: false, showSessions: false, showAccount: false,
+            showMascot: false, showSky: false, showHistory: false, launchAtLogin: false, menuBarMascot: false,
+            showRecentSessions: false
+        )
+        let c = hidden.everythingShown()
+        #expect(c.expanded && c.showStats && c.showStatus && c.showSessions && c.showAccount)
+        #expect(c.showMascot && c.showSky && c.showHistory && c.showRecentSessions)
+        #expect(!c.topmost && !c.launchAtLogin && !c.menuBarMascot)
+    }
+
+    /// A property without a key would never be read, written or dumped, and the round trip would not notice.
+    @Test func everyConfigPropertyHasAKeyOfItsName() {
+        let properties = Mirror(reflecting: Config()).children.compactMap(\.label)
+        #expect(Set(properties) == Set(ConfigKey.allCases.map(\.rawValue)) && properties.count == ConfigKey.allCases.count)
+    }
+
     @Test func everyConfigKeyHasAStableJSONName() {
         #expect(ConfigKey.theme.rawValue == "theme" && ConfigKey.accent.rawValue == "accent")
         #expect(ConfigKey.skin.rawValue == "skin")

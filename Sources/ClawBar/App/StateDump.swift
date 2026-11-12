@@ -41,20 +41,10 @@ struct StateDump {
         add("widget.topLeft", "\(Self.num(topLeft.x)), \(Self.num(topLeft.y))")
         add("widget.animating", animating)
         add("widget.tickMs", tickMilliseconds)
-        add("config.language", config.lang.rawValue)
-        add("config.scale", Self.num(config.scale))
-        add("config.opacity", Self.num(config.opacity))
-        add("config.topmost", config.topmost)
-        add("config.mainLimit", config.mainLimit.rawValue)
-        add("config.theme", config.theme.rawValue)
-        add("config.accent", config.accent?.hex ?? "none")
-        add("config.skin", skins.skin(for: config.skin).id)
-        add("config.showMascot", config.showMascot)
-        add("config.showSky", config.showSky)
-        add("config.showHistory", config.showHistory)
-        add("config.launchAtLogin", config.launchAtLogin)
-        add("config.menuBarMascot", config.menuBarMascot)
-        add("config.showRecentSessions", config.showRecentSessions)
+        for k in ConfigKey.allCases { add("config.\(k.rawValue)", Self.setting(k, config)) }
+        // What config.json's language and skin come to: unknown ones fall back.
+        add("lang", config.lang.rawValue)
+        add("skin", skins.skin(for: config.skin).id)
         add("loginItem.status", loginItemStatus)
         add("loginItem.installedApp", installedApp)
         let u = snapshot.usage
@@ -100,6 +90,13 @@ struct StateDump {
 
     static func rect(_ r: CGRect) -> String {
         "\(num(r.minX)), \(num(r.minY)), \(num(r.width)) × \(num(r.height))"
+    }
+
+    static func setting(_ k: ConfigKey, _ c: Config) -> String {
+        let s = k.setting
+        guard let v = s.value(c) else { return "none" }
+        if s.dumpsOnlyWhetherSet { return "set" }
+        return (v.base as? Double).map(num) ?? "\(v.base)"
     }
 
     static func num(_ v: Double) -> String {

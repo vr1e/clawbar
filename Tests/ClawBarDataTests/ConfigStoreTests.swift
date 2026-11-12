@@ -69,7 +69,7 @@ import ClawBarShared
         write(#"{"skin": " Santa "}"#)
         let store = ConfigStore(paths: paths)
         #expect(store.load().skin == " Santa ")
-        #expect(ConfigStore.decode([:]).skin == "classic")
+        #expect(Config(json: [:]).skin == "classic")
         _ = try store.update { $0.skin = BuiltInSkin.tophat.rawValue }
         #expect(json()["skin"] as? String == "tophat")
     }
@@ -90,6 +90,28 @@ import ClawBarShared
         #expect(c.claudePath == nil)
         #expect(c.topmost == d.topmost)
         #expect(c.statusIntervalSeconds == d.statusIntervalSeconds)
+    }
+
+    @Test func everyKeySurvivesAWriteAndALoad() throws {
+        let c = Config(
+            language: "de", theme: .fixed(.space), accent: RGBA("#FFF472B6"), skin: "santa", scale: 1.5, opacity: 0.8,
+            topmost: true, mainLimit: .week, warnPercent: 50, critPercent: 90, expanded: true, showStats: false,
+            showStatus: false, showSessions: false, showAccount: false, showMascot: false, showSky: false, showHistory: true,
+            weatherLat: 48.2, weatherLon: 16.4, refreshSeconds: 20, usageIntervalSeconds: 120, versionIntervalSeconds: 7200,
+            statusIntervalSeconds: 300, accountIntervalSeconds: 1200, weatherIntervalSeconds: 1800, left: 100, top: 200,
+            claudePath: "/opt/tools/claude", launchAtLogin: false, menuBarMascot: false, showRecentSessions: false
+        )
+        // A key added without a value here fails, so the round trip keeps covering every key.
+        for k in ConfigKey.allCases {
+            #expect(k.setting.value(c) != k.setting.value(Config()), "\(k)")
+        }
+        try ConfigStore(paths: paths).update { $0 = c }
+        #expect(ConfigStore(paths: paths).load() == c)
+    }
+
+    @Test func aValueOfTheWrongKindLeavesEveryKeyAtItsDefault() {
+        let j = Dictionary(uniqueKeysWithValues: ConfigKey.allCases.map { ($0.rawValue, [1] as Any) })
+        #expect(Config(json: j) == Config())
     }
 
     @Test func loadingAlwaysClamps() {
