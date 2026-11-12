@@ -52,6 +52,14 @@ _Avoid_: picture
 The decisions of what the card shows: the presenter's view state and the animation frame, with the haywire and the chart's readout laid over them. It takes the data snapshot, the settings, what the card measured and the pointer; only the card's drawing reads its haywire view state, every other reader the presented one.
 _Avoid_: composer, widget engine (the widget includes the menu bar item), controller
 
+**Action**:
+A request from the user or another process: a click on a card control, a status menu item, a Settings change or a `--command`. The app engine turns each one into one effect.
+_Avoid_: command (the data engine's word, though `--command` sends an action), event, intent
+
+**App engine**:
+The decisions of the app around the card: what an action does, what a reloaded or edited config changes beyond the card, and when the widget's position is written. It takes the action and what the app knows now, and returns the effect; the app controller carries it out.
+_Avoid_: router, dispatcher, controller (the AppKit glue that carries out its effects)
+
 **Theme palette**:
 The colours a theme changes, one per role: the background, the text tiers (secondary, muted, label, footer), the accent, the model-week bar and the empty heart. The presenter resolves it into the view state; the levels, Clawd, the sky, the card's border and tracks, and the chart's fill, cursor and session line stay fixed.
 _Avoid_: theme (the config's choice of look), colour scheme, skin

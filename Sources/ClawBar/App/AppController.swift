@@ -81,9 +81,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
         layout.onRectsChange = { [unowned self] in scheduleRegionRefresh() }
         data.onChange = { [weak self] in self?.recompute() }
 
-        statusItem.onToggle = { [unowned self] in toggleWidget() }
+        statusItem.onToggle = { [unowned self] in perform(.menu(.toggleWidget)) }
         statusItem.menuProvider = { [unowned self] in statusMenu() }
-        settings.perform = { [unowned self] in perform($0) }
+        settings.perform = { [unowned self] in perform(.settings($0)) }
         settings.update(skins: skins)
 
         // The card publishes its size during layout; with sizingOptions = [] the hosting view reports none itself.
@@ -94,7 +94,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
         observe()
         ipc.onShow = { [unowned self] in showWidget() }
-        ipc.onCommand = { [unowned self] in run($0) }
+        ipc.onCommand = { [unowned self] in perform(.remote($0)) }
         ipc.onDumpState = { [unowned self] in writeStateDump(nonce: $0) }
         ipc.start(channel: IPC.channel(paths))
 
@@ -226,15 +226,12 @@ final class AppController: NSObject, WidgetPanelDelegate {
         return CGPoint(x: l, y: t)
     }
 
-    /// Sync-Config: a reloaded or edited config takes effect at once. The window owns its position, so the
-    /// in-memory left/top survive a reload.
+    /// Sync-Config: a reloaded or edited config takes effect at once.
     private func apply(config fresh: Config, initial: Bool = false) {
-        var c = fresh.clamped()
-        if !initial {
-            c.left = config.left
-            c.top = config.top
-        }
-        let old = config
+        let reload = initial
+            ? ConfigReload(config: fresh.clamped(), rescheduleDataTimer: false, reconcileLoginItem: false)
+            : AppEngine.reload(fresh, over: config)
+        let c = reload.config
         config = c
         if !initial { data.apply(config: c) }
         app.scale = c.scale
@@ -242,20 +239,20 @@ final class AppController: NSObject, WidgetPanelDelegate {
         panel.apply(topmost: c.topmost)
         settings.update(config: c)
         guard !initial else { return }
-        if c.refreshSeconds != old.refreshSeconds { scheduleDataTimer() }
-        if c.launchAtLogin != old.launchAtLogin { loginItem.reconcile(desired: c.launchAtLogin) }
+        if reload.rescheduleDataTimer { scheduleDataTimer() }
+        if reload.reconcileLoginItem { loginItem.reconcile(desired: c.launchAtLogin) }
         recompute()
     }
 
     /// Writes only what `edit` changes; a failed write still applies in memory and is logged.
-    private func change(_ edit: (inout Config) -> Void) {
+    private func change(_ edit: ConfigEdit) {
         do {
-            apply(config: try configStore.update(edit))
+            apply(config: try configStore.update { edit.apply(to: &$0) })
         } catch {
             errorLog.append("config: \(error)")
             var next = config
-            edit(&next)
-            apply(config: next.clamped())
+            edit.apply(to: &next)
+            apply(config: next)
         }
     }
 
@@ -273,11 +270,9 @@ final class AppController: NSObject, WidgetPanelDelegate {
         saveTimer = Timer.onMain(after: 0.5) { [unowned self] in savePosition() }
     }
 
-    /// The top-left, WPF-style and rounded like the original's [math]::Round, written only when it moved.
+    /// The top-left, WPF-style.
     private func savePosition() {
-        let tl = panel.topLeft
-        let left = tl.x.rounded(.toNearestOrEven), top = tl.y.rounded(.toNearestOrEven)
-        guard config.left != left || config.top != top else { return }
+        guard let (left, top) = AppEngine.position(of: panel.topLeft, saved: config) else { return }
         config.left = left
         config.top = top
         do {
@@ -311,10 +306,6 @@ final class AppController: NSObject, WidgetPanelDelegate {
         syncAnimation()
     }
 
-    private func toggleWidget() {
-        widgetVisible ? hideWidget() : showWidget()
-    }
-
     /// The tooltip regions and the chart's readout, once SwiftUI has published the rects they read.
     private func scheduleRegionRefresh() {
         guard !regionRefreshPending else { return }
@@ -341,17 +332,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     }
 
     func clicked(_ click: CardClick) {
-        switch click {
-        case .toggleDetails: change { $0.expanded.toggle() }
-        case .hide: hideWidget()
-        case .quit: NSApp.terminate(nil)
-        case .play: game.show()
-        case .open(let url): NSWorkspace.shared.open(url)
-        case .runUpdate:
-            data.startClaudeUpdate()
-            recompute()
-        case .nothing: break
-        }
+        perform(.card(click))
     }
 
     func developerMenu() -> NSMenu? {
@@ -381,61 +362,41 @@ final class AppController: NSObject, WidgetPanelDelegate {
         let entries = StatusMenu.entries(
             config: config, widgetVisible: widgetVisible, limitReached: card.presented.limitReached, recent: recent
         )
-        return MenuBuilder.menu(entries) { [unowned self] in perform($0) }
+        return MenuBuilder.menu(entries) { [unowned self] in perform(.menu($0)) }
     }
 
-    private func perform(_ action: StatusMenuAction) {
-        switch action {
-        case .toggleWidget: toggleWidget()
+    // MARK: Actions
+
+    private func perform(_ action: AppAction) {
+        guard let effect = AppEngine.effect(of: action, widgetVisible: widgetVisible) else { return }
+        switch effect {
+        case .edit(let edit): change(edit)
+        case .showWidget: showWidget()
+        case .hideWidget: hideWidget()
         case .refresh: data.refreshNow()
-        case .settings:
+        case .showSettings:
             if reloadSkins() { recompute() }
             settings.show(beside: panel.frame, on: (panel.screen ?? NSScreen.main)?.visibleFrame)
-        case .play: game.show()
-        case .recent(let id): clickedRecent(id)
+        case .showGame: game.show()
+        case .open(let url): NSWorkspace.shared.open(url)
+        case .startClaudeUpdate:
+            data.startClaudeUpdate()
+            recompute()
+        case .resumeSession(let id): resume(id)
+        case .openConfig: openConfig()
+        case .openSkinsFolder: openSkinsFolder()
         case .quit: NSApp.terminate(nil)
         }
     }
 
     /// What the click does is asked now, not when the menu opened: the session may have started or ended since.
-    private func clickedRecent(_ sessionId: String) {
+    private func resume(_ sessionId: String) {
         guard let session = data.snapshot.recentSessions.first(where: { $0.sessionId == sessionId }),
               let click = RecentSessionsMenu.click(for: session, terminal: SessionTerminal.ghosttyInstalled)
         else { return }
         SessionTerminal.perform(click, on: session) { [weak self] in
             // Automation was refused, or Ghostty could not open the tab.
             self?.errorLog.append("recent: Ghostty opened no tab; the resume command is on the clipboard")
-        }
-    }
-
-    private func perform(_ action: SettingsAction) {
-        switch action {
-        case .step(let s, let up): change { $0[keyPath: s.key] = s.next(from: $0[keyPath: s.key], up: up) ?? $0[keyPath: s.key] }
-        case .toggleTopmost: change { $0.topmost.toggle() }
-        case .toggleMainWeek: change { $0.mainLimit = $0.mainLimit.other }
-        case .toggleLaunchAtLogin: change { $0.launchAtLogin.toggle() }
-        case .toggleMenuBarMascot: change { $0.menuBarMascot.toggle() }
-        case .toggleRecentSessions: change { $0.showRecentSessions.toggle() }
-        case .language(let l): change { $0.language = l.rawValue }
-        case .theme(let t): change { $0.theme = t }
-        case .skin(let id): change { $0.skin = id }
-        case .toggleBlock(let b): change { $0[keyPath: b.flag].toggle() }
-        case .openConfig: openConfig()
-        case .openSkinsFolder: openSkinsFolder()
-        }
-    }
-
-    /// `--command` from another process.
-    private func run(_ command: RemoteCommand) {
-        switch command {
-        case .toggle: toggleWidget()
-        case .show: showWidget()
-        case .larger: perform(SettingsAction.step(.size, up: true))
-        case .smaller: perform(SettingsAction.step(.size, up: false))
-        case .refresh: perform(StatusMenuAction.refresh)
-        case .settings: perform(StatusMenuAction.settings)
-        case .quit: perform(StatusMenuAction.quit)
-        case .lang(let l): perform(SettingsAction.language(l))
         }
     }
 
