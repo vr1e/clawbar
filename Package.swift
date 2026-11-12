@@ -15,7 +15,8 @@ let sdkLinkerSettings: [LinkerSetting] = ProcessInfo.processInfo.environment["SD
 } ?? []
 
 // One target per owner, so modules built in parallel never share internal names. The libraries depend on
-// ClawBarShared alone, except ClawBarAnimation, which composes Clawd, the sky and the scenes through their entry points.
+// ClawBarShared alone, except ClawBarAnimation, which composes Clawd, the sky and the scenes through their entry points,
+// and ClawBarCard, which composes the presenter and the animation the same way.
 // Shipped targets have no resources: Bundle.module breaks in the hand-assembled .app.
 let package = Package(
     name: "ClawBar",
@@ -31,10 +32,13 @@ let package = Package(
         .target(name: "ClawBarSky", dependencies: ["ClawBarShared"]),
         .target(name: "ClawBarScenes", dependencies: ["ClawBarShared"]),
         .target(name: "ClawBarAnimation", dependencies: ["ClawBarShared", "ClawBarClawd", "ClawBarSky", "ClawBarScenes"]),
+        .target(name: "ClawBarCard", dependencies: ["ClawBarShared", "ClawBarPresenter", "ClawBarAnimation"]),
         .target(name: "ClawBarGame", dependencies: ["ClawBarShared"]),
         .executableTarget(
             name: "ClawBar",
-            dependencies: ["ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarAnimation", "ClawBarGame"],
+            dependencies: [
+                "ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarAnimation", "ClawBarCard", "ClawBarGame",
+            ],
             swiftSettings: [.defaultIsolation(MainActor.self)],
             linkerSettings: sdkLinkerSettings
         ),
@@ -44,6 +48,7 @@ let package = Package(
             name: "ContractTests",
             dependencies: [
                 "ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarSky", "ClawBarScenes", "ClawBarAnimation",
+                "ClawBarCard",
             ],
             swiftSettings: testSettings
         ),
@@ -59,9 +64,10 @@ let package = Package(
         .testTarget(name: "ClawBarScenesTests", dependencies: ["ClawBarScenes", "ClawBarShared"], swiftSettings: testSettings),
         .testTarget(
             name: "ClawBarAnimationTests",
-            dependencies: ["ClawBarAnimation", "ClawBarShared", "ClawBarClawd", "ClawBarSky"],
+            dependencies: ["ClawBarAnimation", "ClawBarCard", "ClawBarShared", "ClawBarClawd", "ClawBarSky"],
             swiftSettings: testSettings
         ),
+        .testTarget(name: "ClawBarCardTests", dependencies: ["ClawBarCard", "ClawBarPresenter", "ClawBarShared"], swiftSettings: testSettings),
         .testTarget(name: "ClawBarGameTests", dependencies: ["ClawBarGame", "ClawBarShared"], swiftSettings: testSettings),
         .testTarget(
             name: "ClawBarAppTests",

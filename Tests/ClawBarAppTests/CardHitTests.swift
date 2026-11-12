@@ -61,7 +61,7 @@ final class LaidOutCard {
         #expect(abs(try card.rect(.percentRow).minX - 13 * k) <= 0.5)
         #expect(card.layout.numberWidth > 20)
         // A scene's sky row sits where the percent row does, inside the rim.
-        let origin = card.layout.skyOrigin(scale: k), row = try card.rect(.percentRow)
+        let origin = card.layout.measure(scale: k).skyOrigin, row = try card.rect(.percentRow)
         #expect(abs(origin.x - 12) <= 0.5 / k && abs(origin.y - (row.minY / k - 1)) < 1e-9)
     }
 

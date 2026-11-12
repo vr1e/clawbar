@@ -2,6 +2,7 @@ import CoreGraphics
 import Foundation
 import Testing
 import ClawBarAnimation
+import ClawBarCard
 @testable import ClawBarClawd
 import ClawBarShared
 
@@ -136,6 +137,6 @@ struct Sprites {
 func replay(_ s: RecordScenario, seed: UInt64, numberWidth: Double = 32) -> [AnimationFrame] {
     let run = ScenarioRun(s, seed: seed)
     var frames: [AnimationFrame] = []
-    while let f = run.next(numberWidth: numberWidth) { frames.append(f.animation) }
+    while let f = run.next(CardMeasure(numberWidth: numberWidth)) { frames.append(f.animation) }
     return frames
 }

@@ -1,14 +1,14 @@
 import Foundation
 import ClawBarShared
 
-/// record-gif.ps1 with a seeded generator and a virtual clock: one scenario through an `AnimationEngine` on
+/// record-gif.ps1 with a seeded generator and a virtual clock: one scenario through a `CardEngine` on
 /// record-gif.ps1's config.json, a frame per tick. The steps set the fake data; the clock advances by the cadence.
 public final class ScenarioRun {
-    /// record-gif.ps1's config.json, for the presenter too.
+    /// record-gif.ps1's config.json.
     public let config = Scenarios.config
     /// The fake data as of the last frame.
     public private(set) var data = DataSnapshot.empty
-    let engine: AnimationEngine
+    let card: CardEngine
     let script: ScenarioScript
     private var now = Samples.now
     private var n = 0
@@ -22,22 +22,24 @@ public final class ScenarioRun {
     /// Update-Texts renders once before the first tick, with no data yet.
     public init(_ scenario: RecordScenario, seed: UInt64) {
         script = Scenarios.script(scenario)
-        engine = AnimationEngine(random: SeededRandomSource(seed: seed), config: config, skins: .builtIn, now: now)
+        card = CardEngine(random: SeededRandomSource(seed: seed), config: config, skins: .builtIn, now: now)
         data = fakeData(now: now)
-        engine.apply(data, config: config, skins: .builtIn, now: now, timeZone: Samples.timeZone)
+        present(now: now)
     }
 
     /// Crop below the reset line, as every scenario but the tour does.
     public var crop: Bool { script.crop }
-    /// The engine's visibility rule, so the recorder draws what the app would.
-    public var mascotVisible: Bool { engine.mascotVisible }
-    public var skyVisible: Bool { engine.skyVisible }
+    /// What the card draws as of the last frame, and the engine's visibility rule, so the recorder draws what the
+    /// app would.
+    public var view: WidgetViewState { card.shown }
+    public var mascotVisible: Bool { card.mascotVisible }
+    public var skyVisible: Bool { card.skyVisible }
 
     /// The mascot timer's own handler first, then record-gif.ps1's: the due steps, then Update-Widget. Nil once the
     /// last step is due, which ends the recording.
-    public func next(numberWidth: Double) -> ScenarioFrame? {
+    public func next(_ measure: CardMeasure) -> ScenarioFrame? {
         let at = now
-        let animation = engine.step(AnimationInputs(now: at, timeZone: Samples.timeZone, numberWidth: numberWidth))
+        let animation = card.step(now: at, timeZone: Samples.timeZone, measure: measure)
         var applied = 0
         while due < script.steps.count, script.steps[due].at <= Scenarios.time(frame: n) {
             for action in script.steps[due].actions { apply(action, now: at) }
@@ -47,14 +49,21 @@ public final class ScenarioRun {
         var fresh: DataSnapshot?
         if applied > 0 {
             data = fakeData(now: at)
-            engine.apply(data, config: config, skins: .builtIn, now: at, timeZone: Samples.timeZone)
+            present(now: at)
             fresh = data
         }
         if due >= script.steps.count { return nil }
         // record-gif.ps1's config shows Clawd, so a tick always has a cadence.
-        now = at.addingTimeInterval(Double(engine.tickMilliseconds!) / 1000)
+        now = at.addingTimeInterval(Double(card.tickMilliseconds!) / 1000)
         n += 1
         return ScenarioFrame(animation: animation, at: at, data: fresh)
+    }
+
+    private func present(now: Date) {
+        card.present(
+            PresenterInput(config: config, now: now, timeZone: Samples.timeZone, data: data, homeDirectory: Samples.home),
+            skins: .builtIn
+        )
     }
 
     /// Set-Sky, Set-Usage and the session list as record-gif.ps1 applies them: the overrides, the click and the drain
@@ -62,16 +71,16 @@ public final class ScenarioRun {
     private func apply(_ action: ScenarioAction, now: Date) {
         switch action {
         case let .sky(phase, code):
-            engine.perform(.skyPhase(phase))
-            engine.perform(.skyWeather(code))
+            card.perform(.skyPhase(phase))
+            card.perform(.skyWeather(code))
         case let .usage(p, minutes):
             pct = p
             sessionReset = now.addingTimeInterval(minutes * 60)
             weekReset = now.addingTimeInterval(2.4 * 86400)
             usageAt = now
         case let .sessions(s): sessions = s
-        case .click: engine.click(now: now)
-        case .drain: engine.startDrain()
+        case .click: card.click(now: now)
+        case .drain: card.startDrain()
         }
     }
 

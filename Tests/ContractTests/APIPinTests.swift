@@ -2,6 +2,7 @@ import CoreGraphics
 import Foundation
 import Testing
 import ClawBarAnimation
+import ClawBarCard
 import ClawBarClawd
 import ClawBarData
 import ClawBarPresenter
@@ -115,10 +116,38 @@ private func pinAnimation() {
     let _: Bool = engine.skyVisible
     let _: [DevMenuNode] = engine.developerMenu()
     let _: String = engine.skyTooltip(now: Date(), timeZone: .gmt)
+    engine.startDrain()
+}
+
+private func pinCard() {
+    let card = CardEngine(random: SeededRandomSource(seed: 1), config: Config(), skins: .builtIn, now: Date())
+    card.present(PresenterInput(config: Config(), now: Date(), timeZone: .gmt, data: .empty), skins: .builtIn)
+    let measure = CardMeasure(
+        numberWidth: 32, cardSize: CGSize(width: 262, height: 222), percentRow: CGRect(x: 13, y: 31, width: 236, height: 40), scale: 1
+    )
+    let _: CGSize = measure.backdropSize
+    let _: CGPoint = measure.skyOrigin
+    let _: Double = measure.mouseX(cardX: 100)
+    let _: AnimationFrame = card.step(now: Date(), timeZone: .gmt, measure: measure, pointerX: 100)
+    card.hover(chartX: 40)
+    card.click(now: Date())
+    card.perform(.skyPhase(.night))
+    card.play(.relic, at: 60)
+    card.hide()
+    let _: WidgetViewState = card.presented
+    let _: WidgetViewState = card.shown
+    let _: HistoryHover? = card.historyHover
+    let _: AnimationFrame = card.frame
+    let _: Int? = card.tickMilliseconds
+    let _: Bool = card.mascotVisible
+    let _: Bool = card.skyVisible
+    let _: [DevMenuNode] = card.developerMenu()
+    let _: String = card.skyTooltip(now: Date(), timeZone: .gmt)
     let run = ScenarioRun(.tour, seed: 42)
-    let _: ScenarioFrame? = run.next(numberWidth: 32)
+    let _: ScenarioFrame? = run.next(CardMeasure(numberWidth: 32))
     let _: Config = run.config
     let _: DataSnapshot = run.data
+    let _: WidgetViewState = run.view
     let _: Bool = run.crop
 }
 

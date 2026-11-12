@@ -2,6 +2,7 @@ import AppKit
 import ImageIO
 import SwiftUI
 import UniformTypeIdentifiers
+import ClawBarCard
 import ClawBarShared
 
 /// The card drawn offscreen, for snapshots and recordings.
@@ -13,6 +14,14 @@ enum CardRenderer {
         var skyVisible = true
         var animation = AnimationFrame.empty
         var historyHover: HistoryHover?
+    }
+
+    /// The card as the engine has it now.
+    static func input(_ card: CardEngine) -> Input {
+        Input(
+            view: card.shown, mascotVisible: card.mascotVisible, skyVisible: card.skyVisible, animation: card.frame,
+            historyHover: card.historyHover
+        )
     }
 
     /// The card at scale `k`, `pixelScale` pixels per point. Renders twice when needed so the number's

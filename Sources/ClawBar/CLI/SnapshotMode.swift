@@ -3,6 +3,7 @@ import CoreGraphics
 import Foundation
 import SwiftUI
 import ClawBarAnimation
+import ClawBarCard
 import ClawBarClawd
 import ClawBarGame
 import ClawBarPresenter
@@ -320,42 +321,29 @@ enum SnapshotMode {
     /// The card's input with its animation settled, and the layout its first pass measured.
     static func settledCard(_ c: SnapshotCase, lang: Lang, scale k: Double) -> (CardRenderer.Input, LayoutModel) {
         let input = input(for: c, lang: lang)
-        let engine = AnimationEngine(random: SeededRandomSource(seed: 7), config: input.config, skins: .builtIn, now: Samples.now)
-        engine.apply(c.data, config: input.config, skins: .builtIn, now: Samples.now, timeZone: Samples.timeZone)
+        let engine = CardEngine(random: SeededRandomSource(seed: 7), config: input.config, skins: .builtIn, now: Samples.now)
+        engine.present(input, skins: .builtIn)
+        engine.hover(chartX: c.hoverX)
         let layout = LayoutModel()
-        var card = CardRenderer.Input(
-            view: WidgetPresenter.make(input), mascotVisible: engine.mascotVisible, skyVisible: engine.skyVisible
-        )
-        if let x = c.hoverX, let chart = card.view.history {
-            card.historyHover = HistoryReadout.hover(x: x, chart: chart, input: input)
-        }
         // A first pass measures the number, which sets the play area Clawd walks in, and the card a scene covers.
-        _ = CardRenderer.render(card, scale: k, layout: layout)
-        card.animation = settle(
-            engine, c, numberWidth: layout.numberWidth, backdropSize: layout.backdropSize(scale: k), skyOrigin: layout.skyOrigin(scale: k)
-        )
-        card.view = Haywire.scramble(card.view, card.animation.scene?.secret?.haywire)
-        return (card, layout)
+        _ = CardRenderer.render(CardRenderer.input(engine), scale: k, layout: layout)
+        settle(engine, c, measure: layout.measure(scale: k))
+        return (CardRenderer.input(engine), layout)
     }
 
     /// Clawd and the sky or the scene after the case's ticks from `Samples.now`, its sky overrides set as the
     /// developer menu would.
-    static func settle(
-        _ engine: AnimationEngine, _ c: SnapshotCase, numberWidth: Double, backdropSize: CGSize, skyOrigin: CGPoint
-    ) -> AnimationFrame {
+    static func settle(_ engine: CardEngine, _ c: SnapshotCase, measure: CardMeasure) {
         if let phase = c.skyDev.phase { engine.perform(.skyPhase(phase)) }
         if let code = c.skyDev.weatherCode { engine.perform(.skyWeather(code)) }
         var now = Samples.now
         for i in 0 ..< c.ticks {
             // Played from its start, so every cue before the pictured step reaches Clawd.
             if let (secret, step) = c.secret, i == c.ticks - 1 - step { engine.play(secret) }
-            engine.step(AnimationInputs(
-                now: now, timeZone: Samples.timeZone, numberWidth: numberWidth, backdropSize: backdropSize, skyOrigin: skyOrigin
-            ))
+            engine.step(now: now, timeZone: Samples.timeZone, measure: measure)
             guard let ms = engine.tickMilliseconds else { break }
             now = now.addingTimeInterval(Double(ms) / 1000)
         }
-        return engine.frame
     }
 
     /// The menu bar item on a light and a dark bar, at 2 pixels per point; `no-clawd` is the pill alone.
