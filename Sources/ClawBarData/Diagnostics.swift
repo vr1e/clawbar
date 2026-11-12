@@ -32,7 +32,7 @@ public enum Diagnostics {
             now = deps.clock()
             latch = recipes.savedLatch()
             engine = DataEngine(
-                config: config.everyBlockOn(), environment: deps.environment, home: deps.home, latch: latch, history: []
+                config: config.everythingShown(), environment: deps.environment, home: deps.home, latch: latch, history: []
             )
         }
 

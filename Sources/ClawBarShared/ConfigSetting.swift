@@ -1,19 +1,18 @@
 import Foundation
 
 /// How one config.json key is read, written, kept in range and dumped. Decoding, writing, clamping, `--dump-state`
-/// and `--diagnose`'s every-block config all read these, so a setting is declared once, in `ConfigKey.setting`.
+/// and `--diagnose`'s everything-shown config all read these, so a setting is declared once, in `ConfigKey.setting`.
 public struct ConfigSetting: Sendable {
     /// Reads the file's value leniently; one it cannot read leaves the key's default.
     let read: @Sendable (Any?, inout Config) -> Void
     /// What is written, compared and dumped; nil is written as null.
     public let value: @Sendable (Config) -> AnyHashable?
     let clamp: @Sendable (inout Config) -> Void
-    /// The numbers the value is kept within.
     public let range: ClosedRange<Double>?
-    /// Set for a part of the card or the menu that can be hidden: `--diagnose` shows them all.
-    let turnOn: (@Sendable (inout Config) -> Void)?
-    /// A home location: `--dump-state` says only whether it is set.
-    public let isPrivate: Bool
+    /// Set for something the card or the menu can hide: `--diagnose` shows it all.
+    var turnOn: (@Sendable (inout Config) -> Void)?
+    /// A home location, so `--dump-state` says only whether it is set.
+    public let dumpsOnlyWhetherSet: Bool
 
     init(
         read: @escaping @Sendable (Any?, inout Config) -> Void,
@@ -21,14 +20,14 @@ public struct ConfigSetting: Sendable {
         clamp: @escaping @Sendable (inout Config) -> Void = { _ in },
         range: ClosedRange<Double>? = nil,
         turnOn: (@Sendable (inout Config) -> Void)? = nil,
-        isPrivate: Bool = false
+        dumpsOnlyWhetherSet: Bool = false
     ) {
         self.read = read
         self.value = value
         self.clamp = clamp
         self.range = range
         self.turnOn = turnOn
-        self.isPrivate = isPrivate
+        self.dumpsOnlyWhetherSet = dumpsOnlyWhetherSet
     }
 }
 
@@ -71,23 +70,21 @@ extension ConfigKey {
     }
 }
 
-typealias ConfigField<T> = WritableKeyPath<Config, T> & Sendable
+typealias ConfigKeyPath<T> = WritableKeyPath<Config, T> & Sendable
 
 extension ConfigSetting {
-    static func flag(_ f: ConfigField<Bool>) -> Self {
+    static func flag(_ f: ConfigKeyPath<Bool>) -> Self {
         Self(read: { v, c in if let b = Lenient.bool(v) { c[keyPath: f] = b } }, value: { $0[keyPath: f] })
     }
 
-    /// A flag that shows a part of the card or the menu.
-    static func shows(_ f: ConfigField<Bool>) -> Self {
-        Self(
-            read: { v, c in if let b = Lenient.bool(v) { c[keyPath: f] = b } }, value: { $0[keyPath: f] },
-            turnOn: { $0[keyPath: f] = true }
-        )
+    /// A flag that shows something on the card or in the menu.
+    static func shows(_ f: ConfigKeyPath<Bool>) -> Self {
+        var s = flag(f)
+        s.turnOn = { $0[keyPath: f] = true }
+        return s
     }
 
-    /// Whole numbers, halves to even.
-    static func count(_ f: ConfigField<Int>, _ r: ClosedRange<Int>) -> Self {
+    static func count(_ f: ConfigKeyPath<Int>, _ r: ClosedRange<Int>) -> Self {
         Self(
             read: { v, c in if let n = Lenient.int(v) { c[keyPath: f] = n } }, value: { $0[keyPath: f] },
             clamp: { $0[keyPath: f] = min(r.upperBound, max(r.lowerBound, $0[keyPath: f])) },
@@ -96,7 +93,7 @@ extension ConfigSetting {
     }
 
     /// A non-finite value goes back to the default.
-    static func number(_ f: ConfigField<Double>, _ r: ClosedRange<Double>) -> Self {
+    static func number(_ f: ConfigKeyPath<Double>, _ r: ClosedRange<Double>) -> Self {
         Self(
             read: { v, c in if let d = Lenient.double(v) { c[keyPath: f] = d } }, value: { $0[keyPath: f] },
             clamp: { c in
@@ -108,31 +105,31 @@ extension ConfigSetting {
     }
 
     /// Unset when out of range, so the weather falls back to the IP location.
-    static func coordinate(_ f: ConfigField<Double?>, _ r: ClosedRange<Double>) -> Self {
+    static func coordinate(_ f: ConfigKeyPath<Double?>, _ r: ClosedRange<Double>) -> Self {
         Self(
             read: { v, c in c[keyPath: f] = Lenient.double(v) }, value: { $0[keyPath: f].map(AnyHashable.init) },
             clamp: { c in
                 if let v = c[keyPath: f], !(v.isFinite && r.contains(v)) { c[keyPath: f] = nil }
             },
-            range: r, isPrivate: true
+            range: r, dumpsOnlyWhetherSet: true
         )
     }
 
-    static func position(_ f: ConfigField<Double?>) -> Self {
+    static func position(_ f: ConfigKeyPath<Double?>) -> Self {
         Self(
             read: { v, c in c[keyPath: f] = Lenient.double(v) }, value: { $0[keyPath: f].map(AnyHashable.init) },
             clamp: { c in if c[keyPath: f]?.isFinite == false { c[keyPath: f] = nil } }
         )
     }
 
-    /// Kept as written: its reader matches it.
-    static func text(_ f: ConfigField<String>) -> Self {
+    /// Kept as the user spelled it; `Config.lang` and `SkinCatalog` resolve it when read.
+    static func text(_ f: ConfigKeyPath<String>) -> Self {
         Self(read: { v, c in if let s = v as? String { c[keyPath: f] = s } }, value: { $0[keyPath: f] })
     }
 
     /// Read by name, written by its raw value.
     static func choice<T: RawRepresentable & Hashable & Sendable>(
-        _ f: ConfigField<T>, _ parse: @escaping @Sendable (String?) -> T
+        _ f: ConfigKeyPath<T>, _ parse: @escaping @Sendable (String?) -> T
     ) -> Self where T.RawValue == String {
         Self(read: { v, c in c[keyPath: f] = parse(v as? String) }, value: { $0[keyPath: f].rawValue })
     }
@@ -160,8 +157,8 @@ extension Config {
         self = clamped()
     }
 
-    /// Every block shown and the details open, whatever config.json says: `--diagnose` looks at hidden rows too.
-    public func everyBlockOn() -> Config {
+    /// Everything shown and the details open, whatever config.json says: `--diagnose` looks at hidden rows too.
+    public func everythingShown() -> Config {
         var c = self
         for k in ConfigKey.allCases { k.setting.turnOn?(&c) }
         return c

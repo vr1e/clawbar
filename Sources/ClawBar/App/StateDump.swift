@@ -94,7 +94,7 @@ struct StateDump {
 
     static func setting(_ k: ConfigKey, _ c: Config) -> String {
         guard let v = k.setting.value(c) else { return "none" }
-        if k.setting.isPrivate { return "set" }
+        if k.setting.dumpsOnlyWhetherSet { return "set" }
         return (v.base as? Double).map(num) ?? "\(v.base)"
     }
 
