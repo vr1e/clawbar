@@ -7,28 +7,12 @@ public struct ConfigSetting: Sendable {
     let read: @Sendable (Any?, inout Config) -> Void
     /// What is written, compared and dumped; nil is written as null.
     public let value: @Sendable (Config) -> AnyHashable?
-    let clamp: @Sendable (inout Config) -> Void
-    public let range: ClosedRange<Double>?
+    var clamp: @Sendable (inout Config) -> Void = { _ in }
+    public internal(set) var range: ClosedRange<Double>? = nil
     /// Set for something the card or the menu can hide: `--diagnose` shows it all.
-    var turnOn: (@Sendable (inout Config) -> Void)?
+    var turnOn: (@Sendable (inout Config) -> Void)? = nil
     /// A home location, so `--dump-state` says only whether it is set.
-    public let dumpsOnlyWhetherSet: Bool
-
-    init(
-        read: @escaping @Sendable (Any?, inout Config) -> Void,
-        value: @escaping @Sendable (Config) -> AnyHashable?,
-        clamp: @escaping @Sendable (inout Config) -> Void = { _ in },
-        range: ClosedRange<Double>? = nil,
-        turnOn: (@Sendable (inout Config) -> Void)? = nil,
-        dumpsOnlyWhetherSet: Bool = false
-    ) {
-        self.read = read
-        self.value = value
-        self.clamp = clamp
-        self.range = range
-        self.turnOn = turnOn
-        self.dumpsOnlyWhetherSet = dumpsOnlyWhetherSet
-    }
+    public internal(set) var dumpsOnlyWhetherSet = false
 }
 
 extension ConfigKey {
@@ -73,9 +57,12 @@ extension ConfigKey {
 typealias ConfigKeyPath<T> = WritableKeyPath<Config, T> & Sendable
 
 extension ConfigSetting {
-    static func flag(_ f: ConfigKeyPath<Bool>) -> Self {
-        Self(read: { v, c in if let b = Lenient.bool(v) { c[keyPath: f] = b } }, value: { $0[keyPath: f] })
+    /// A key whose value is kept when it parses and left at its default when not.
+    static func plain<T: Hashable>(_ f: ConfigKeyPath<T>, _ parse: @escaping @Sendable (Any?) -> T?) -> Self {
+        Self(read: { v, c in if let x = parse(v) { c[keyPath: f] = x } }, value: { $0[keyPath: f] })
     }
+
+    static func flag(_ f: ConfigKeyPath<Bool>) -> Self { plain(f, Lenient.bool) }
 
     /// A flag that shows something on the card or in the menu.
     static func shows(_ f: ConfigKeyPath<Bool>) -> Self {
@@ -85,47 +72,42 @@ extension ConfigSetting {
     }
 
     static func count(_ f: ConfigKeyPath<Int>, _ r: ClosedRange<Int>) -> Self {
-        Self(
-            read: { v, c in if let n = Lenient.int(v) { c[keyPath: f] = n } }, value: { $0[keyPath: f] },
-            clamp: { $0[keyPath: f] = min(r.upperBound, max(r.lowerBound, $0[keyPath: f])) },
-            range: Double(r.lowerBound) ... Double(r.upperBound)
-        )
+        var s = plain(f, Lenient.int)
+        s.clamp = { $0[keyPath: f] = min(r.upperBound, max(r.lowerBound, $0[keyPath: f])) }
+        s.range = Double(r.lowerBound) ... Double(r.upperBound)
+        return s
     }
 
     /// A non-finite value goes back to the default.
     static func number(_ f: ConfigKeyPath<Double>, _ r: ClosedRange<Double>) -> Self {
+        var s = plain(f, Lenient.double)
+        s.clamp = { c in
+            let v = c[keyPath: f]
+            c[keyPath: f] = v.isFinite ? min(r.upperBound, max(r.lowerBound, v)) : Config()[keyPath: f]
+        }
+        s.range = r
+        return s
+    }
+
+    /// The widget's saved corner; a non-finite one is dropped.
+    static func position(_ f: ConfigKeyPath<Double?>) -> Self {
         Self(
-            read: { v, c in if let d = Lenient.double(v) { c[keyPath: f] = d } }, value: { $0[keyPath: f] },
-            clamp: { c in
-                let v = c[keyPath: f]
-                c[keyPath: f] = v.isFinite ? min(r.upperBound, max(r.lowerBound, v)) : Config()[keyPath: f]
-            },
-            range: r
+            read: { v, c in c[keyPath: f] = Lenient.double(v) }, value: { $0[keyPath: f] },
+            clamp: { c in if c[keyPath: f]?.isFinite == false { c[keyPath: f] = nil } }
         )
     }
 
     /// Unset when out of range, so the weather falls back to the IP location.
     static func coordinate(_ f: ConfigKeyPath<Double?>, _ r: ClosedRange<Double>) -> Self {
-        Self(
-            read: { v, c in c[keyPath: f] = Lenient.double(v) }, value: { $0[keyPath: f].map(AnyHashable.init) },
-            clamp: { c in
-                if let v = c[keyPath: f], !(v.isFinite && r.contains(v)) { c[keyPath: f] = nil }
-            },
-            range: r, dumpsOnlyWhetherSet: true
-        )
-    }
-
-    static func position(_ f: ConfigKeyPath<Double?>) -> Self {
-        Self(
-            read: { v, c in c[keyPath: f] = Lenient.double(v) }, value: { $0[keyPath: f].map(AnyHashable.init) },
-            clamp: { c in if c[keyPath: f]?.isFinite == false { c[keyPath: f] = nil } }
-        )
+        var s = position(f)
+        s.clamp = { c in if let v = c[keyPath: f], !(v.isFinite && r.contains(v)) { c[keyPath: f] = nil } }
+        s.range = r
+        s.dumpsOnlyWhetherSet = true
+        return s
     }
 
     /// Kept as the user spelled it; `Config.lang` and `SkinCatalog` resolve it when read.
-    static func text(_ f: ConfigKeyPath<String>) -> Self {
-        Self(read: { v, c in if let s = v as? String { c[keyPath: f] = s } }, value: { $0[keyPath: f] })
-    }
+    static func text(_ f: ConfigKeyPath<String>) -> Self { plain(f) { $0 as? String } }
 
     /// Read by name, written by its raw value.
     static func choice<T: RawRepresentable & Hashable & Sendable>(
@@ -141,7 +123,7 @@ extension ConfigSetting {
     )
 
     static let claudePath = Self(
-        read: { v, c in c.claudePath = v as? String }, value: { $0.claudePath.map(AnyHashable.init) },
+        read: { v, c in c.claudePath = v as? String }, value: { $0.claudePath },
         clamp: { c in
             let path = c.claudePath?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             c.claudePath = path.isEmpty ? nil : path

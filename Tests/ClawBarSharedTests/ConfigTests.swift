@@ -164,6 +164,12 @@ import ClawBarShared
         #expect(!c.topmost && !c.launchAtLogin && !c.menuBarMascot)
     }
 
+    /// A property without a key would never be read, written or dumped, and the round trip would not notice.
+    @Test func everyConfigPropertyHasAKeyOfItsName() {
+        let properties = Mirror(reflecting: Config()).children.compactMap(\.label)
+        #expect(Set(properties) == Set(ConfigKey.allCases.map(\.rawValue)) && properties.count == ConfigKey.allCases.count)
+    }
+
     @Test func everyConfigKeyHasAStableJSONName() {
         #expect(ConfigKey.theme.rawValue == "theme" && ConfigKey.accent.rawValue == "accent")
         #expect(ConfigKey.skin.rawValue == "skin")

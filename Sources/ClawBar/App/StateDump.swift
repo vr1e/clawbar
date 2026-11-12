@@ -93,8 +93,9 @@ struct StateDump {
     }
 
     static func setting(_ k: ConfigKey, _ c: Config) -> String {
-        guard let v = k.setting.value(c) else { return "none" }
-        if k.setting.dumpsOnlyWhetherSet { return "set" }
+        let s = k.setting
+        guard let v = s.value(c) else { return "none" }
+        if s.dumpsOnlyWhetherSet { return "set" }
         return (v.base as? Double).map(num) ?? "\(v.base)"
     }
 
