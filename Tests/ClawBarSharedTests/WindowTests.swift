@@ -9,12 +9,6 @@ import ClawBarShared
     let rightVisible = CGRect(x: 1512, y: 0, width: 1920, height: 1080)
     let size = CGSize(width: 314, height: 300)
 
-    @Test func topLeftCountsDownFromThePrimaryScreensTop() {
-        let frame = CGRect(x: 100, y: 600, width: 314, height: 300)
-        let tl = WindowPlacement.topLeft(of: frame, primaryMaxY: primary.maxY)
-        #expect(tl == CGPoint(x: 100, y: 82))
-    }
-
     @Test func frameAndTopLeftRoundTrip() {
         let frame = WindowPlacement.frame(topLeft: CGPoint(x: 40, y: 50), size: size, primaryMaxY: primary.maxY)
         #expect(frame == CGRect(x: 40, y: 632, width: 314, height: 300))

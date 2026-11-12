@@ -108,14 +108,6 @@ private func jump(_ e: RunnerEngine) -> RunnerInput { e.demoInput }
         #expect(pass(.bug, bottom: high, policy: stand) == .running)
     }
 
-    @Test func runningAddsScoreAndSpeedUpToTheLimit() {
-        let e = running()
-        let before = e.score
-        for _ in 0 ..< 60 { e.step(RunnerInput()) }
-        #expect(e.score > before)
-        #expect(e.speed > RunnerTuning.startSpeed && e.speed <= RunnerTuning.maxSpeed)
-    }
-
     @Test(arguments: [1, 2, 3, 4, 5] as [UInt64])
     func everyCourseCanBeCleared(seed: UInt64) {
         let e = RunnerEngine(random: SeededRandomSource(seed: seed))

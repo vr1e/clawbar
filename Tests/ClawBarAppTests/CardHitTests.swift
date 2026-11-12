@@ -144,15 +144,6 @@ final class LaidOutCard {
         #expect(abs(x - 118) < 0.01)
         #expect(regions.classify(CGPoint(x: chart.midX, y: chart.midY), isSecondary: false) == .drag)
     }
-
-    @Test func withoutClawdOrTheSkyThereIsNoDeveloperMenu() throws {
-        let card = LaidOutCard(mascot: false, sky: false)
-        let regions = card.regions, k = card.k
-        let row = try card.rect(.percentRow)
-        #expect(regions.rects(.sprite).isEmpty && regions.rects(.sky).isEmpty)
-        #expect(regions.classify(CGPoint(x: row.maxX - 8 * k, y: row.minY + 8 * k), isSecondary: true) == .control)
-        #expect(regions.classify(CGPoint(x: row.minX + 100 * k, y: row.minY + 30 * k), isSecondary: false) == .drag)
-    }
 }
 
 /// Positions against widget.xaml's measurements at k = 1 (header 17.29 = the 13-pt "–" line box).

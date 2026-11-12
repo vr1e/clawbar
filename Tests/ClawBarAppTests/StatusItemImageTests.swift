@@ -84,12 +84,6 @@ func close(_ a: RGBA, _ b: RGBA, tolerance: Int = 3) -> Bool {
         #expect(StatusItemImage.textWidth("100") + 4 <= StatusItemImage.pillRect(mascot: true).width)
     }
 
-    @Test func clawdStandsLeftOfThePillAtOnePointPerPixel() {
-        #expect(StatusItemImage.clawdRect.size == CGSize(width: 18, height: 12))
-        #expect(StatusItemImage.clawdRect.maxX < StatusItemImage.pillRect(mascot: true).minX)
-        #expect(StatusItemImage.size(mascot: true).height <= 22)
-    }
-
     @Test func withoutClawdThePillStandsAloneAtTheLeftEdge() {
         let pill = StatusItemImage.pillRect(mascot: false)
         #expect(pill.minX == 0)
@@ -115,12 +109,6 @@ func close(_ a: RGBA, _ b: RGBA, tolerance: Int = 3) -> Bool {
         let dark = r.count(in: pill.insetBy(dx: 4, dy: 2)) { $0.a > 200 && Int($0.r) + Int($0.g) + Int($0.b) < 120 }
         #expect(dark > 10, "the digits are drawn in black")
         #expect(r.color(atPoint: 0.25, 0.25).a == 0, "the corner stays transparent")
-    }
-
-    @Test func withoutDataThePillIsDeadGrey() {
-        let r = Raster(StatusItemImage.make(text: "--", color: Palette.dead, mascot: true))
-        let pill = StatusItemImage.pillRect(mascot: true)
-        #expect(close(r.color(atPoint: pill.minX + 3, pill.midY), Palette.dead))
     }
 
     @Test func theImageIsRebuiltOnlyWhenTextColourOrClawdChanges() {

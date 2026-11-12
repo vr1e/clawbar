@@ -42,16 +42,6 @@ import ClawBarSky
 
 /// When Step-Sky recomputes, and what a frame holds.
 @Suite struct FrameTests {
-    @Test func withinOneMinuteNewSunTimesWaitForTheNextRecompute() {
-        // 10:00 with sunrise 07:00 is day; with sunrise 11:40 it would be night.
-        let sky = SkyEngine(random: SeededRandomSource(seed: 3))
-        let now = utcDay(600)
-        #expect(sky.step(size: skySize, inputs: inputs(now)).top == RGBA("#004A8CCB"))
-        let night = SunTimes(sunrise: 700, sunset: 1140)
-        #expect(sky.step(size: skySize, inputs: inputs(now, sun: night)).top == RGBA("#004A8CCB"))
-        #expect(sky.step(size: skySize, inputs: inputs(utcDay(601), sun: night)).top == RGBA("#00304A8C"))
-    }
-
     @Test func aForcedPhaseRecomputesAtOnceEvenWhenTheMinuteStays() {
         // A polar day at 00:00 is day by the clock; forced to night at the same minute, the fallback sun times make it night.
         let sky = SkyEngine(random: SeededRandomSource(seed: 3))

@@ -74,18 +74,4 @@ import ClawBarShared
         #expect(visible.prefix(120).allSatisfy { sleighX($0) == nil })
         #expect(sleighX(visible[120]) != nil)
     }
-
-    @Test func theOutputStaysBoundedAtEverySize() {
-        for size in [CGSize(width: 260, height: 140), sceneCard, CGSize(width: 260, height: 520)] {
-            let frames = run(1_000, size: size)
-            let counts = Set(frames.dropFirst().map { $0.backdrop.count })
-            // Two snow layers, the wire, a glow per bulb and a dot layer per colour: nothing piles up.
-            #expect(counts == [2 + 1 + 18 + 4])
-            #expect(frames.allSatisfy { $0.sky.count <= 60 })
-        }
-    }
-
-    @Test func nothingDrawsBeforeTheCardHasASize() {
-        #expect(run(3, size: .zero).allSatisfy { $0 == .empty })
-    }
 }

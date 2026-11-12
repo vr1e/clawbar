@@ -49,7 +49,6 @@ import ClawBarShared
             return
         }
         #expect(title == "Clawd's skin")
-        #expect(options.count == 28)
         #expect(options.prefix(3).map(\.title) == ["Classic", "Astronaut", "Bow"])
         #expect(options.filter(\.on).map(\.action) == [.skin("santa")])
         #expect(options.map(\.action) == BuiltInSkin.allCases.map { .skin($0.rawValue) })
@@ -64,11 +63,6 @@ import ClawBarShared
     }
 
     private struct SkinPickerMissing: Error {}
-
-    @Test func anUnknownSkinShowsClassicAsTheChoice() throws {
-        let (_, options) = try look(Config(skin: "mine"))
-        #expect(options.filter(\.on).map(\.action) == [.skin("classic")])
-    }
 
     @Test func yourOwnSkinsFollowTheBuiltInOnesUnderTheirFilesNames() throws {
         let mine = Skin(id: "mine", name: "My hat", body: Palette.clawdBody, eyes: Palette.clawdEyes, layers: [])

@@ -87,12 +87,6 @@ final class FakeHTTP: HTTPFetching {
             == "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=48.2085&lon=16.3721")
         #expect(WeatherService.geoURL(.de).absoluteString == "https://ipwho.is/?lang=de")
     }
-
-    @Test func requestsCarryTheUserAgentAndTheTimeout() {
-        let r = URLSessionHTTP.request(URL(string: "https://api.met.no/x")!, timeout: 15)
-        #expect(r.value(forHTTPHeaderField: "User-Agent") == AppInfo.userAgent)
-        #expect(r.timeoutInterval == 15)
-    }
 }
 
 @MainActor

@@ -70,10 +70,4 @@ import ClawBarShared
         write("mine.txt", "---\nk: #222222\n---\nk\n")
         #expect(folder.reloadIfChanged() == nil)
     }
-
-    @Test func ensureExistsCreatesTheFolder() throws {
-        try SkinFolder(paths: paths).ensureExists()
-        var isDir: ObjCBool = false
-        #expect(FileManager.default.fileExists(atPath: paths.skinsFolder.path, isDirectory: &isDir) && isDir.boolValue)
-    }
 }

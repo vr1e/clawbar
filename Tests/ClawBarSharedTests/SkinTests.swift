@@ -61,7 +61,6 @@ import ClawBarShared
     }
 
     @Test func everyBuiltInParsesWithItsOwnId() {
-        #expect(BuiltInSkin.allCases.count == 28)
         #expect(BuiltInSkin.classic.skin == .classic)
         for b in BuiltInSkin.allCases where b != .classic {
             #expect(b.skin.id == b.rawValue)

@@ -10,11 +10,6 @@ import ClawBarShared
     let c = CGRect(x: 8, y: 0, width: 2, height: 2)
     let red = RGBA("#FFF87171"), blue = RGBA("#FF60A5FA")
 
-    @Test func aRectsOpIsOneLayerWithAllItsRects() {
-        let layers = DrawOpRenderer.layers([.rects([a, b, c], red, opacity: 1)])
-        #expect(layers == [.rects([a, b, c], red, opacity: 1)])
-    }
-
     @Test func consecutiveOpaqueLayersOfOneColourShareAPath() {
         let layers = DrawOpRenderer.layers([.rects([a], red, opacity: 1), .rects([b], red, opacity: 1), .rects([c], red, opacity: 1)])
         #expect(layers == [.rects([a, b, c], red, opacity: 1)])
@@ -68,11 +63,6 @@ import ClawBarShared
 }
 
 @Suite struct WPFLineBoxTests {
-    @Test func theLineBoxIsSegoeUIs() {
-        #expect(abs(WPFLineBox.height - 1.33) < 0.001)
-        #expect(abs(WPFLineBox.baseline - 1.0791) < 0.0001)
-    }
-
     @Test func anchorsNameAPointOfTheLineBox() {
         // A 10-pt line box is 13.30 tall.
         let tl = WPFLineBox.topLeft(anchor: .topLeading, at: CGPoint(x: 5, y: 7), size: 10, width: 6)

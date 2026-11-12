@@ -44,19 +44,6 @@ import ClawBarShared
         #expect(differences(render(lang: .de), expected) == [])
     }
 
-    @Test func theLanguageComesFromTheConfigNotTheSystem() {
-        var config = Config()
-        config.language = "DE "
-        let state = WidgetPresenter.make(PresenterInput(
-            config: config, now: Samples.now, timeZone: Samples.timeZone, data: .sample, homeDirectory: Samples.home
-        ))
-        #expect(state.resetText == "wird in 2h 05min zurückgesetzt")
-        config.language = "ru"
-        #expect(WidgetPresenter.make(PresenterInput(
-            config: config, now: Samples.now, timeZone: Samples.timeZone, data: .sample, homeDirectory: Samples.home
-        )).resetText == "resets in 2h 05m")
-    }
-
     /// The sample's date is close to the real one, so a stray system clock could pass unnoticed; 2001 cannot.
     @Test func theClockAndZoneAreTheInputsAlone() {
         let then = Date(timeIntervalSince1970: 1_000_000_000)

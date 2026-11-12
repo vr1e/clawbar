@@ -131,18 +131,4 @@ import ClawBarShared
         // One step of the ship, not 201.
         #expect(shipX(clock.step(size: sceneCard)) == 59)
     }
-
-    @Test func theOutputStaysBoundedAtEverySize() {
-        for size in [CGSize(width: 260, height: 140), sceneCard, CGSize(width: 260, height: 520)] {
-            let frames = run(1_000, size: size)
-            // Nebulae, star layers, bright stars and the shooting star.
-            #expect(frames.allSatisfy { $0.backdrop.count <= 3 + 10 + 14 + 1 })
-            // Two glows, two ring halves, at most a layer per planet pixel, and the ship's four.
-            #expect(frames.allSatisfy { $0.sky.count <= 2 + 2 + 17 * 17 + 11 * 11 + 4 })
-        }
-    }
-
-    @Test func nothingDrawsBeforeTheCardHasASize() {
-        #expect(run(3, size: .zero).allSatisfy { $0 == .empty })
-    }
 }

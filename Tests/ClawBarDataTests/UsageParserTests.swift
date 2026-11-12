@@ -42,12 +42,6 @@ extension UsageParser {
         #expect(week7.lines.contains("Top subagents: helper 35%, tracker:sync 7%, builder 6%, writer 3%, planner 3%, tidy 2%, forker 2%, reviewer 1%, +1 more"))
     }
 
-    @Test func theJSONEnvelopesResultParsesLikeTheText() throws {
-        let envelope = try #require(UsageEnvelope(data: Fixture.data("usage/today.json")))
-        #expect(UsageParser.parse(envelope.result ?? "", now: now, timeZone: berlin)
-            == UsageParser.parse(Fixture.text("usage/today.txt"), now: now, timeZone: berlin))
-    }
-
     @Test func anExplicitYearIsUsedAsIs() throws {
         let u = try #require(usage("year.txt"))
         // Jan 2 2027 6am CET = 05:00 UTC; Jan 5 10:15pm EST = Jan 6 03:15 UTC

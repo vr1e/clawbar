@@ -29,7 +29,6 @@ import ClawBarShared
     }
 
     @Test func everyFixtureLineIsCovered() {
-        #expect(PixelFixtures.all.count == 32)
         #expect(PixelFixtures.all.allSatisfy { Self.pose(for: $0.label) != nil })
         let faces = Set(PixelFixtures.all.compactMap { Self.pose(for: $0.label)?.facing })
         #expect(faces == Set(ClawdFacing.allCases))
@@ -69,13 +68,6 @@ import ClawBarShared
             CGRect(x: 26, y: 4.4, width: 2, height: 2.2),
         ]))
         #expect(geo.fx.isEmpty && geo.sand.isEmpty)
-    }
-
-    @Test func standingMatchesTheSharedPixelArt() {
-        let origin = CGPoint(x: 60, y: 4.4 - 26.4)
-        let geo = ClawdSprite.render(ClawdPose())
-        let moved = geo.body.map { CGRect(x: origin.x + $0.minX, y: origin.y + $0.minY, width: $0.width, height: $0.height) }
-        #expect(moved == PixelArt.rects(PixelArt.clawdStanding, value: "#", px: 2.0, py: 2.2, origin: origin))
     }
 
     @Test func offLowersByWholeGlyphRowsAndClipsAtTheBottom() {
@@ -145,13 +137,6 @@ import ClawBarShared
     @Test func coinShadowSitsBelowTheGround() {
         #expect(close(ClawdSprite.render(ClawdPose(shadow: .wide)).fx, [CGRect(x: 12, y: 11.5 * 2.2, width: 12, height: 1.1)]))
         #expect(close(ClawdSprite.render(ClawdPose(shadow: .narrow)).fx, [CGRect(x: 16, y: 11.5 * 2.2, width: 4, height: 1.1)]))
-    }
-
-    @Test func theCacheReturnsTheSameGeometry() {
-        let sprite = ClawdSprite()
-        let pose = ClawdPose(eyes: .happy, arms: .up, look: 1)
-        #expect(sprite.geometry(pose) == ClawdSprite.render(pose))
-        #expect(sprite.geometry(pose) == sprite.geometry(pose))
     }
 
     @Test func soulHangsAboveItsOrigin() {

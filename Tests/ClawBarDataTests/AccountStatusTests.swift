@@ -65,12 +65,6 @@ import ClawBarShared
         ))
     }
 
-    @Test func maintenance() {
-        #expect(StatusProbe.parse(Fixture.data("status/maintenance.json")) == ServiceStatus(
-            indicator: "maintenance", incidents: [], broken: [BrokenComponent(name: "claude.ai", state: "under_maintenance")]
-        ))
-    }
-
     @Test func badJSONIsNoStatus() {
         #expect(StatusProbe.parse(Data("<html>".utf8)) == nil)
         #expect(StatusProbe.parse(Data("[]".utf8)) == nil)

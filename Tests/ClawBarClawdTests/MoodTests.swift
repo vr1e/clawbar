@@ -116,6 +116,7 @@ import ClawBarShared
         let frames = engine.run(15).map(FrameView.init)
         #expect(engine.tickMilliseconds == 90)
         #expect(frames.allSatisfy { $0.bubble == "!" })
+        #expect(frames.allSatisfy { $0.texts.first?.color == Palette.bubbleBang })
         #expect(frames[0].confetti.count == 12)
     }
 

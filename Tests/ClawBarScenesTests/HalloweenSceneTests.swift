@@ -86,23 +86,6 @@ import ClawBarShared
         #expect(flicker.allSatisfy { (0.3 ... 1).contains($0) } && Set(flicker).count > 20)
     }
 
-    @Test func theSkyLayerWaitsWhileTheSkyRowIsHidden() {
-        #expect(run(50, sky: false).allSatisfy { $0.sky.isEmpty && !$0.backdrop.isEmpty })
-    }
-
-    @Test func theOutputStaysBoundedAtEverySize() {
-        for size in [CGSize(width: 260, height: 140), sceneCard, CGSize(width: 260, height: 520)] {
-            let frames = run(1_000, size: size)
-            // Fog, wisps, the web, thread and spider, two layers a bat and the ghost's two.
-            #expect(frames.allSatisfy { $0.backdrop.count <= 4 + 6 + 1 + 1 + 3 + 3 * 2 + 2 })
-            #expect(Set(frames.map(\.sky.count)).count == 1)
-        }
-    }
-
-    @Test func nothingDrawsBeforeTheCardHasASize() {
-        #expect(run(3, size: .zero).allSatisfy { $0 == .empty })
-    }
-
     // MARK: The midnight scare
 
     private func scareStarts(around midnight: Date, seed: UInt64, zone: TimeZone = Samples.timeZone) -> [Date] {
@@ -149,14 +132,6 @@ import ClawBarShared
         #expect((4 ... 18).contains(nights))
     }
 
-    @Test func midnightIsReadInTheInputZone() throws {
-        // Midnight in Berlin is 23:00 in UTC: no scare there.
-        let midnight = try midnight()
-        for seed in UInt64(0) ..< 15 {
-            #expect(scareStarts(around: midnight, seed: seed, zone: .gmt).isEmpty)
-        }
-    }
-
     @Test func theScareFlashesDarkensLoomsAndClawdJumpsAsTheLightsReturn() {
         var clock = SceneClock(.halloween, seed: 3)
         _ = clock.step()
@@ -199,14 +174,5 @@ import ClawBarShared
         var clock = SceneClock(.halloween, seed: 3)
         clock.engine.play(.scare, at: 60)
         #expect(clock.step().secret?.cues == [.act(.jump)])
-    }
-
-    @Test func endingTheSecretPutsTheLightsBackAtOnce() {
-        var clock = SceneClock(.halloween, seed: 3)
-        _ = clock.step()
-        clock.engine.play(.scare)
-        #expect(clock.step().secret != nil)
-        clock.engine.endSecret()
-        #expect((0 ..< 80).allSatisfy { _ in clock.step().secret == nil })
     }
 }

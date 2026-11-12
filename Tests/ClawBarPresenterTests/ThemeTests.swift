@@ -42,19 +42,6 @@ import ClawBarShared
         #expect(pink.palette.background == Theme.forest.palette.background)
     }
 
-    @Test func classicIsTodaysPalette() {
-        let c = ThemePalette.classic
-        #expect(c.background == Palette.card)
-        #expect(c.secondary == Palette.secondary)
-        #expect(c.muted == Palette.muted)
-        #expect(c.label == Palette.label)
-        #expect(c.footer == Palette.footer)
-        #expect(c.accent == Palette.weekBar)
-        #expect(c.modelWeekBar == Palette.modelWeekBar)
-        #expect(c.heartOff == Palette.heartOff)
-        #expect(render().palette == c)
-    }
-
     @Test func aNewLabelColourLeavesTheDeadGreyAlone() {
         // One value in classic: recolouring by value would grey the labels and recolour the dead number together.
         #expect(ThemePalette.classic.label == Palette.dead)

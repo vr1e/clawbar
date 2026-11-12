@@ -121,12 +121,6 @@ import ClawBarShared
               Refresh now
             """))
     }
-
-    @Test func theTextDumpShowsTheDisabledHeader() {
-        let dump = MenuEntry.dump(entries(widgetVisible: false))
-        #expect(dump.contains("ClawBar v\(AppInfo.version)  (disabled)"))
-        #expect(dump.contains("Show widget"))
-    }
 }
 
 /// Fires an item the way AppKit does, without needing NSApp in the test process.

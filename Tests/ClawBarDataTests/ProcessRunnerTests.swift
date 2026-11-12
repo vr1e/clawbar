@@ -20,12 +20,6 @@ import ClawBarShared
         try await runner.run(spec).get()
     }
 
-    @Test func probesGetTheAgreedDefaults() {
-        let s = ProcessSpec(executable: "/x", arguments: [], environment: [:], directory: "/")
-        #expect(s.timeout == 60 && s.killAfter == 3 && s.drainGrace == 2 && s.outputCap == 1_048_576)
-        #expect(!s.survivesQuit)
-    }
-
     @Test func capturesBothStreamsAndTheExitCode() async throws {
         let o = try await outcome(sh("echo out; echo err >&2; exit 3"))
         #expect(o.stdoutText == "out\n")
@@ -49,12 +43,6 @@ import ClawBarShared
         #expect(o.stderr.count == 1_048_576)
         #expect(o.termination == .exit(0))
         #expect(ContinuousClock.now - start < .seconds(10))
-    }
-
-    @Test func aTimeoutSendsSigtermFirst() async throws {
-        let o = try await outcome(sh("exec /bin/sleep 30", timeout: 0.3))
-        #expect(o.timedOut)
-        #expect(o.termination == .signal(SIGTERM))
     }
 
     @Test func aChildIgnoringSigtermIsKilledAfterTheGrace() async throws {

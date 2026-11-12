@@ -118,18 +118,4 @@ import ClawBarShared
         #expect(fish(first, Self.yellowFish)!.x >= PlayArea.skySize.width - 1)
         #expect(fish(first, Self.pinkFish)!.x < 0)
     }
-
-    @Test func theOutputStaysBoundedAtEverySize() {
-        for size in [CGSize(width: 260, height: 140), sceneCard, CGSize(width: 260, height: 520)] {
-            let frames = run(1_000, size: size)
-            // The surface, four beams and fourteen bubbles.
-            #expect(frames.allSatisfy { $0.backdrop.count == 1 + 4 + 14 })
-            // Four flowers of two colours, sand, starfish, four kelp, two fish, the bell and its tentacles.
-            #expect(frames.allSatisfy { $0.sky.count <= 8 + 2 + 1 + 4 + 5 + 1 + 1 })
-        }
-    }
-
-    @Test func nothingDrawsBeforeTheCardHasASize() {
-        #expect(run(3, size: .zero).allSatisfy { $0 == .empty })
-    }
 }

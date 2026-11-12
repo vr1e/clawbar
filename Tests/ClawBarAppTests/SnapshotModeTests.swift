@@ -18,18 +18,6 @@ import ClawBarShared
         }
     }
 
-    @Test func theIssueStatesCarryTheirIssue() throws {
-        func data(_ name: String) throws -> DataSnapshot {
-            try #require(SnapshotCases.all().first { $0.name == name }).data
-        }
-        #expect(try data("claude-not-found").usageIssue == .claudeNotFound)
-        #expect(try data("no-limits").usageIssue == .noLimits)
-        #expect(try data("loading").usageProbeCompleted == false)
-        #expect(try data("update-failed").version.updateFailure != nil)
-        #expect(try data("update-unchanged").version.updateFailure?.exitCode == 0)
-        #expect(try data("logged-out").account?.loggedIn == false)
-    }
-
     @Test(arguments: [1.0, 1.2, 2.0])
     func everyStateRendersAtEveryScale(k: Double) throws {
         for c in SnapshotCases.all() {

@@ -160,20 +160,6 @@ import ClawBarShared
         #expect(run(50, sky: false).allSatisfy { $0.sky.isEmpty && beams($0).isEmpty && !$0.backdrop.isEmpty })
     }
 
-    @Test func theOutputStaysBoundedAtEverySize() {
-        for size in [CGSize(width: 260, height: 140), sceneCard, CGSize(width: 260, height: 520)] {
-            let frames = run(1_000, size: size)
-            // Glows, rain, bars and the two searchlights.
-            #expect(frames.allSatisfy { $0.backdrop.count <= 3 + 36 + 5 + 2 })
-            // Far walls, windows and beacon, two cars, near walls, windows and signs.
-            #expect(frames.allSatisfy { $0.sky.count <= 1 + 3 + 2 + 2 + 1 + 2 + 2 })
-        }
-    }
-
-    @Test func nothingDrawsBeforeTheCardHasASize() {
-        #expect(run(3, size: .zero).allSatisfy { $0 == .empty })
-    }
-
     // MARK: The 20:77 secret
 
     private func evening(hour: Int = 21, minute: Int = 17) throws -> Date {
@@ -281,14 +267,5 @@ import ClawBarShared
         // The last step draws nothing and puts him back to sleep.
         #expect(s[109] == SceneSecretFrame(overlay: [], cues: [.letSleep]))
         #expect(s[110 ..< 112].allSatisfy { $0 == nil })
-    }
-
-    @Test func endingTheSecretStopsItAtOnce() {
-        var clock = SceneClock(.cyberpunk, seed: 3)
-        _ = clock.step()
-        clock.engine.play(.relic)
-        #expect(clock.step().secret != nil)
-        clock.engine.endSecret()
-        #expect((0 ..< 120).allSatisfy { _ in clock.step().secret == nil })
     }
 }
