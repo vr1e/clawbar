@@ -11,8 +11,8 @@ import ClawBarShared
     static let carBody = RGBA("#FF3B3656"), roofSign = RGBA("#FF00F0FF"), sideSign = RGBA("#FFFF2A6D")
     static let bars = ["#66FF003C", "#5500F0FF", "#4DFF003C", "#4400F0FF", "#33FCEE0A"].map(RGBA.init)
 
-    private func run(_ steps: Int, size: CGSize = sceneCard, sky: Bool = true, seed: UInt64 = 3) -> [SceneFrame] {
-        runScene(.cyberpunk, steps, size: size, sky: sky, seed: seed)
+    private func run(_ steps: Int, sky: Bool = true) -> [SceneFrame] {
+        runScene(.cyberpunk, steps, sky: sky)
     }
 
     /// The rain's streaks in their order, after the glows.

@@ -4,6 +4,20 @@ import Testing
 import ClawBarShared
 
 @Suite struct ScenarioRunTests {
+    @Test func aRecordingHasOneFramePerTickBeforeTheEnd() {
+        // record-gif.ps1 captures while frame × 0.09 is short of the last step's time.
+        #expect(Scenarios.frameCount(Scenarios.script(.sleep)) == 100)
+        #expect(Scenarios.frameCount(Scenarios.script(.tour)) == 162)
+        #expect(Scenarios.frameCount(Scenarios.script(.limit)) == 106)
+    }
+
+    /// ScenarioRun walks the steps in order, so one out of order would never fire.
+    @Test(arguments: RecordScenario.allCases)
+    func everyScriptStartsAtZeroInOrder(scenario: RecordScenario) {
+        let times = Scenarios.script(scenario).steps.map(\.at)
+        #expect(times.first == 0 && times == times.sorted())
+    }
+
     @Test func theFakeDataIsSetUsagesShape() throws {
         let start = Samples.now
         let run = ScenarioRun(.reset, seed: 1)

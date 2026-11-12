@@ -11,8 +11,8 @@ import ClawBarShared
     static let kelp = RGBA("#FF15803D"), bell = RGBA("#D9F0ABFC"), tentacle = RGBA("#B3F0ABFC")
     static let flowerCentre = RGBA("#FFFEF9C3")
 
-    private func run(_ steps: Int, size: CGSize = sceneCard, sky: Bool = true) -> [SceneFrame] {
-        runScene(.ocean, steps, size: size, sky: sky)
+    private func run(_ steps: Int) -> [SceneFrame] {
+        runScene(.ocean, steps)
     }
 
     private func bubbles(_ f: SceneFrame) -> [CGRect] {

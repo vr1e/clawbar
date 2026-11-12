@@ -10,8 +10,8 @@ import ClawBarShared
     static let web = RGBA("#59E9D5FF"), bat = RGBA("#FF7353A0"), ghost = RGBA("#FFF5F3FF"), moon = RGBA("#FFFDE68A")
     static let pumpkinFace = RGBA("#FFFDE047"), ground = RGBA("#FF2E1F3D")
 
-    private func run(_ steps: Int, size: CGSize = sceneCard, sky: Bool = true, seed: UInt64 = 3) -> [SceneFrame] {
-        runScene(.halloween, steps, size: size, sky: sky, seed: seed)
+    private func run(_ steps: Int) -> [SceneFrame] {
+        runScene(.halloween, steps)
     }
 
     private func thread(_ f: SceneFrame) -> CGRect? {
@@ -88,8 +88,8 @@ import ClawBarShared
 
     // MARK: The midnight scare
 
-    private func scareStarts(around midnight: Date, seed: UInt64, zone: TimeZone = Samples.timeZone) -> [Date] {
-        secretStarts(.halloween, around: midnight, seed: seed, zone: zone)
+    private func scareStarts(around midnight: Date, seed: UInt64) -> [Date] {
+        secretStarts(.halloween, around: midnight, seed: seed)
     }
 
     private func midnight() throws -> Date {

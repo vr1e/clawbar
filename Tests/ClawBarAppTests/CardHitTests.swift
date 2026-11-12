@@ -12,11 +12,9 @@ final class LaidOutCard {
     let layout = LayoutModel()
     let host: NSHostingView<AnyView>
 
-    init(_ view: WidgetViewState = .sample, scale k: Double = 1.2, clawd: ClawdFrame = .sample, mascot: Bool = true, sky: Bool = true) {
+    init(_ view: WidgetViewState = .sample, scale k: Double = 1.2, clawd: ClawdFrame = .sample) {
         app.view = view
         app.scale = k
-        app.mascotVisible = mascot
-        app.skyVisible = sky
         animation.publish(clawd)
         animation.publish(SkyFrame.sample)
         host = NSHostingView(rootView: AnyView(EmptyView()))

@@ -70,6 +70,13 @@ import ClawBarShared
         #expect(geo.fx.isEmpty && geo.sand.isEmpty)
     }
 
+    @Test func standingMatchesTheSharedPixelArt() {
+        let origin = CGPoint(x: 60, y: 4.4 - 26.4)
+        let geo = ClawdSprite.render(ClawdPose())
+        let moved = geo.body.map { CGRect(x: origin.x + $0.minX, y: origin.y + $0.minY, width: $0.width, height: $0.height) }
+        #expect(moved == PixelArt.rects(PixelArt.clawdStanding, value: "#", px: 2.0, py: 2.2, origin: origin))
+    }
+
     @Test func offLowersByWholeGlyphRowsAndClipsAtTheBottom() {
         let standing = grid(ClawdSprite.render(ClawdPose()))
         let crouched = grid(ClawdSprite.render(ClawdPose(off: 1)))
