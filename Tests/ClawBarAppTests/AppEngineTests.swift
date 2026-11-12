@@ -55,24 +55,43 @@ import ClawBarShared
         #expect(effect(.remote(.show), visible: true) == .showWidget)
     }
 
-    @Test func aRemoteCommandDoesWhatItsMenuOrSettingsTwinDoes() {
-        #expect(effect(.remote(.larger)) == effect(.settings(.step(.size, up: true))))
-        #expect(effect(.remote(.smaller)) == effect(.settings(.step(.size, up: false))))
-        #expect(effect(.remote(.lang(.en))) == effect(.settings(.language(.en))))
-        #expect(effect(.remote(.refresh)) == effect(.menu(.refresh)))
-        #expect(effect(.remote(.settings)) == effect(.menu(.settings)))
-        #expect(effect(.remote(.quit)) == effect(.menu(.quit)))
+    @Test func menuItems() {
+        #expect(effect(.menu(.refresh)) == .refresh)
+        #expect(effect(.menu(.settings)) == .showSettings)
+        #expect(effect(.menu(.play)) == .showGame)
+        #expect(effect(.menu(.recent("abc"))) == .resumeSession("abc"))
+        #expect(effect(.menu(.quit)) == .quit)
+    }
+
+    @Test func remoteCommands() {
+        #expect(effect(.remote(.larger)) == .edit(.step(.size, up: true)))
+        #expect(effect(.remote(.smaller)) == .edit(.step(.size, up: false)))
+        #expect(effect(.remote(.lang(.en))) == .edit(.language(.en)))
+        #expect(effect(.remote(.refresh)) == .refresh)
+        #expect(effect(.remote(.settings)) == .showSettings)
+        #expect(effect(.remote(.quit)) == .quit)
     }
 
     @Test func cardClicks() {
         #expect(edited(.card(.toggleDetails))?.expanded == !Config().expanded)
         #expect(effect(.card(.hide)) == .hideWidget)
-        #expect(effect(.card(.play)) == effect(.menu(.play)))
-        #expect(effect(.card(.quit)) == effect(.menu(.quit)))
+        #expect(effect(.card(.play)) == .showGame)
+        #expect(effect(.card(.quit)) == .quit)
         #expect(effect(.card(.open(AppInfo.statusPage))) == .open(AppInfo.statusPage))
         #expect(effect(.card(.runUpdate)) == .startClaudeUpdate)
         // The version line while an update runs: a control that does nothing.
         #expect(effect(.card(.nothing)) == nil)
+    }
+
+    @Test func theLaunchLoadTakesTheSavedPositionAndReschedulesNothing() {
+        var c = Config()
+        c.left = 5
+        c.top = 6
+        c.scale = 99
+        let r = AppEngine.load(c)
+        #expect(r.config.left == 5 && r.config.top == 6)
+        #expect(r.config.scale == ConfigKey.scale.setting.range!.upperBound)
+        #expect(!r.rescheduleDataTimer && !r.reconcileLoginItem)
     }
 
     @Test func aReloadKeepsTheWindowsPositionAndClampsTheRest() {

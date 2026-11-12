@@ -228,9 +228,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
 
     /// Sync-Config: a reloaded or edited config takes effect at once.
     private func apply(config fresh: Config, initial: Bool = false) {
-        let reload = initial
-            ? ConfigReload(config: fresh.clamped(), rescheduleDataTimer: false, reconcileLoginItem: false)
-            : AppEngine.reload(fresh, over: config)
+        let reload = initial ? AppEngine.load(fresh) : AppEngine.reload(fresh, over: config)
         let c = reload.config
         config = c
         if !initial { data.apply(config: c) }
@@ -244,7 +242,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         recompute()
     }
 
-    /// Writes only what `edit` changes; a failed write still applies in memory and is logged.
+    /// Writes `edit` onto config.json as it is now, so a hand edit survives; a failed write still applies in memory.
     private func change(_ edit: ConfigEdit) {
         do {
             apply(config: try configStore.update { edit.apply(to: &$0) })
@@ -270,7 +268,6 @@ final class AppController: NSObject, WidgetPanelDelegate {
         saveTimer = Timer.onMain(after: 0.5) { [unowned self] in savePosition() }
     }
 
-    /// The top-left, WPF-style.
     private func savePosition() {
         guard let (left, top) = AppEngine.position(of: panel.topLeft, saved: config) else { return }
         config.left = left

@@ -34,13 +34,13 @@ to `main` by PR; it leaves the version alone. Releases are cut from `main` by th
   pattern, scene, part, region and role, and the ones to avoid.
 - `AnimationEngine`, `AppEngine`, `CardEngine`, `ClawdEngine`, `DataEngine`, `RunnerEngine`, `SceneEngine`, `SkyEngine`,
   `SkyInfo` and `WidgetPresenter` are pure: time, time zone and randomness arrive as inputs (`SeededRandomSource` in
-  tests), and statics are `let`. `CommandRecipes` carries out the `DataEngine` commands that reach processes, the network and
-  disk, one recipe each, and returns their answer events; `DataController` (Tasks, the error log, `onChange`) and
-  `--diagnose` (one pass at one instant, until a tick asks for nothing) are its two adapters. `CardEngine` composes
-  `WidgetPresenter` and `AnimationEngine` for every caller: the live app drives it with the wall clock,
-  `SystemRandomSource` and the pointer, while `--snapshot` and `ScenarioRun` (behind `--record` and the tests) use a
-  virtual clock and a seeded generator, with no pointer. `AppEngine` says what every action does, what a reloaded
-  config changes and when the position is written; `AppController` only carries out its effects.
+  tests), and statics are `let`. `CommandRecipes` carries out the `DataEngine` commands that reach processes, the
+  network and disk, one recipe each, and returns their answer events; `DataController` (Tasks, the error log,
+  `onChange`) and `--diagnose` (one pass at one instant, until a tick asks for nothing) are its two adapters.
+  `CardEngine` composes `WidgetPresenter` and `AnimationEngine` for every caller: the live app drives it with the wall
+  clock, `SystemRandomSource` and the pointer, while `--snapshot` and `ScenarioRun` (behind `--record` and the tests)
+  use a virtual clock and a seeded generator, with no pointer. `AppEngine` says what every action does, what a loaded or
+  reloaded config changes and when the position is written; `AppController` only carries out its effects.
 - The `ClawBar` target is MainActor by default: Timer and notification blocks run inside `MainActor.assumeIsolated`.
 - Regular expressions are statics built with `Rx.make` (`Sources/ClawBarShared/Rx.swift`).
 - Calendars come from `Calendar.gregorian(in:)` (`Sources/ClawBarShared/CalendarZone.swift`), so none falls back to

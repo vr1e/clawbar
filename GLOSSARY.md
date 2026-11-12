@@ -53,11 +53,11 @@ The decisions of what the card shows: the presenter's view state and the animati
 _Avoid_: composer, widget engine (the widget includes the menu bar item), controller
 
 **Action**:
-A request from the user or another process: a click on a card control, a status menu item, a Settings change or a `--command`. The app engine turns each one into one effect.
+A request from the user or another process: a click on a card control, a status menu item, a Settings change or a `--command`. The app engine turns each one into at most one effect.
 _Avoid_: command (the data engine's word, though `--command` sends an action), event, intent
 
 **App engine**:
-The decisions of the app around the card: what an action does, what a reloaded or edited config changes beyond the card, and when the widget's position is written. It takes the action and what the app knows now, and returns the effect; the app controller carries it out.
+The decisions of the app around the card: what an action does, what a loaded, reloaded or edited config changes beyond the card, and when the widget's position is written. It takes the action and what the app knows now, and returns the effect; the app controller carries it out.
 _Avoid_: router, dispatcher, controller (the AppKit glue that carries out its effects)
 
 **Theme palette**:

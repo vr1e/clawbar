@@ -10,7 +10,7 @@ enum AppAction: Equatable {
     case remote(RemoteCommand)
 }
 
-/// A change to the settings, applied to config.json as it is on disk when written, so a hand edit is not lost.
+/// A settings change as a value, so a test can see which setting an action touches.
 enum ConfigEdit: Equatable {
     case toggle(WritableKeyPath<Config, Bool>)
     case step(SteppedSetting, up: Bool)
@@ -40,7 +40,7 @@ enum AppEffect: Equatable {
     case showGame
     case open(URL)
     case startClaudeUpdate
-    /// A recent session's item, by its id; what it does is asked when it runs, since the session may have ended.
+    /// A recent session, by its id.
     case resumeSession(String)
     case openConfig, openSkinsFolder
     case quit
@@ -103,6 +103,11 @@ enum AppEngine {
             case .lang(let l): .edit(.language(l))
             }
         }
+    }
+
+    /// The config as read at launch: the saved left/top place the window, and nothing is running yet to reschedule.
+    static func load(_ config: Config) -> ConfigReload {
+        ConfigReload(config: config.clamped(), rescheduleDataTimer: false, reconcileLoginItem: false)
     }
 
     /// Sync-Config: the window owns its position, so the current left/top survive a reload.
