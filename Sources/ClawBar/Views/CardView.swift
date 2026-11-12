@@ -11,7 +11,7 @@ struct CardView: View {
     static let width = 262.0
     static let content = PlayArea.content
     /// The rim's width: the background, the pattern and a scene's backdrop all sit inside it.
-    static let border = 1.0
+    static let border = CardMeasure.border
 
     var body: some View {
         let v = app.view
@@ -59,7 +59,7 @@ struct CardView: View {
         }
         .frame(width: Self.content * k, alignment: .leading)
         // Padding 12/10/12/11 inside a 1-wide border.
-        .padding(EdgeInsets(top: 11 * k, leading: 13 * k, bottom: 12 * k, trailing: 13 * k))
+        .padding(EdgeInsets(top: 11 * k, leading: CardMeasure.inset * k, bottom: 12 * k, trailing: 13 * k))
         .background {
             // WPF fills only inside the border, so the rim shows #33FFFFFF over whatever is behind the window.
             let outer = RoundedRectangle(cornerRadius: 10 * k)
@@ -178,7 +178,7 @@ private struct PercentRow: View {
                 // so nothing of Clawd's is clipped; the session bar after this row draws over its lowest band.
                 MascotView(animation: animation, layout: layout, captionColor: v.palette.label)
                     .frame(width: CardView.width * k, height: MascotView.height * k)
-                    .offset(x: -13 * k, y: -MascotView.top * k)
+                    .offset(x: -CardMeasure.inset * k, y: -MascotView.top * k)
                     .allowsHitTesting(false)
             }
         }

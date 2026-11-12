@@ -21,7 +21,7 @@ struct MascotView: View {
         let above = DrawOpRenderer.layers(split.above)
         let caption = frame.devCaption
         // The play area's left edge: the card's 13 of padding and border, the number, then MascotArea's margin 10.
-        let origin = CGPoint(x: 13 + layout.numberWidth + PlayArea.margin, y: Self.top + PlayArea.height)
+        let origin = CGPoint(x: CardMeasure.inset + layout.numberWidth + PlayArea.margin, y: Self.top + PlayArea.height)
         let scale = k
         Canvas { ctx, _ in
             ctx.scaleBy(x: scale, y: scale)
