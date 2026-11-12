@@ -5,9 +5,9 @@ import ClawBarShared
 /// record-gif.ps1's config.json, a frame per tick. The steps set the fake data; the clock advances by the cadence.
 public final class ScenarioRun {
     /// record-gif.ps1's config.json.
-    public let config = Scenarios.config
+    let config = Scenarios.config
     /// The fake data as of the last frame.
-    public private(set) var data = DataSnapshot.empty
+    private(set) var data = DataSnapshot.empty
     /// The card as of the last frame, so the recorder draws what the app would.
     public let card: CardEngine
     let script: ScenarioScript
@@ -35,7 +35,8 @@ public final class ScenarioRun {
     /// last step is due, which ends the recording.
     public func next(_ measure: CardMeasure) -> ScenarioFrame? {
         let at = now
-        let animation = card.step(now: at, timeZone: Samples.timeZone, measure: measure)
+        card.step(now: at, timeZone: Samples.timeZone, measure: measure)
+        let animation = card.frame
         var applied = 0
         while due < script.steps.count, script.steps[due].at <= Scenarios.time(frame: n) {
             for action in script.steps[due].actions { apply(action, now: at) }

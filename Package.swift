@@ -37,7 +37,7 @@ let package = Package(
         .executableTarget(
             name: "ClawBar",
             dependencies: [
-                "ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarAnimation", "ClawBarCard", "ClawBarGame",
+                "ClawBarShared", "ClawBarData", "ClawBarPresenter", "ClawBarClawd", "ClawBarCard", "ClawBarGame",
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)],
             linkerSettings: sdkLinkerSettings

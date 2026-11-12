@@ -128,7 +128,7 @@ private func pinCard() {
     let _: CGSize = measure.backdropSize
     let _: CGPoint = measure.skyOrigin
     let _: Double = measure.mouseX(cardX: 100)
-    let _: AnimationFrame = card.step(now: Date(), timeZone: .gmt, measure: measure, pointerX: 100)
+    card.step(now: Date(), timeZone: .gmt, measure: measure, pointerX: 100)
     card.hover(chartX: 40)
     card.click(now: Date())
     card.perform(.skyPhase(.night))
@@ -145,8 +145,6 @@ private func pinCard() {
     let _: String = card.skyTooltip(now: Date(), timeZone: .gmt)
     let run = ScenarioRun(.tour, seed: 42)
     let _: ScenarioFrame? = run.next(CardMeasure(numberWidth: 32))
-    let _: Config = run.config
-    let _: DataSnapshot = run.data
     let _: CardEngine = run.card
     let _: Bool = run.crop
 }

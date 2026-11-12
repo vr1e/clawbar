@@ -40,14 +40,12 @@ public final class CardEngine {
     }
 
     /// One animation tick; `pointerX` is the pointer's x in card space while it is over the widget window.
-    @discardableResult
-    public func step(now: Date, timeZone: TimeZone, measure: CardMeasure, pointerX: Double? = nil) -> AnimationFrame {
+    public func step(now: Date, timeZone: TimeZone, measure: CardMeasure, pointerX: Double? = nil) {
         animation.step(AnimationInputs(
             now: now, timeZone: timeZone, numberWidth: measure.numberWidth, mouseOverWindow: pointerX != nil,
             mouseX: pointerX.map(measure.mouseX), backdropSize: measure.backdropSize, skyOrigin: measure.skyOrigin
         ))
         show()
-        return frame
     }
 
     /// The pointer `chartX` base units into the 7-day chart, or nil off it.

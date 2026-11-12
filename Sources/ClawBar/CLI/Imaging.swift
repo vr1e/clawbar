@@ -10,9 +10,9 @@ enum CardRenderer {
     /// One render: the view state, what shows, and the animation's frame.
     struct Input {
         var view: WidgetViewState
-        var mascotVisible = true
-        var skyVisible = true
-        var animation = AnimationFrame.empty
+        var mascotVisible: Bool
+        var skyVisible: Bool
+        var animation: AnimationFrame
         var historyHover: HistoryHover?
     }
 

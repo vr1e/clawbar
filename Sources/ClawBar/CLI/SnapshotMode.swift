@@ -2,7 +2,6 @@ import AppKit
 import CoreGraphics
 import Foundation
 import SwiftUI
-import ClawBarAnimation
 import ClawBarCard
 import ClawBarClawd
 import ClawBarGame

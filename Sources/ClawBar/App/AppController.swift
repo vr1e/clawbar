@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import ClawBarAnimation
 import ClawBarCard
 import ClawBarData
 import ClawBarPresenter
