@@ -64,7 +64,7 @@ public final class AnimationEngine {
     public func click(now: Date) { clawd.click(now: now) }
 
     /// record-gif.ps1's drain, which does not stop a demo.
-    func startDrain() { clawd.startDrain() }
+    public func startDrain() { clawd.startDrain() }
 
     /// A developer-menu click. An override shows on the next tick, since the sky's key includes the phase and the code.
     public func perform(_ action: DevAction) {

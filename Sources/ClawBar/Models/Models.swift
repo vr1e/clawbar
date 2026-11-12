@@ -77,17 +77,9 @@ final class LayoutModel {
         if w != numberWidth { numberWidth = w }
     }
 
-    /// What a scene's backdrop covers, in base units: the card inside its rim; zero before the first layout.
-    func backdropSize(scale k: Double) -> CGSize {
-        guard cardSize.width > 0, cardSize.height > 0 else { return .zero }
-        let inset = 2 * CardView.border
-        return CGSize(width: cardSize.width / k - inset, height: cardSize.height / k - inset)
-    }
-
-    /// The sky row's top-left in the backdrop, in base units: the percent row's, inside the rim.
-    func skyOrigin(scale k: Double) -> CGPoint {
-        guard let row = rects[.percentRow] else { return .zero }
-        return CGPoint(x: row.minX / k - CardView.border, y: row.minY / k - CardView.border)
+    /// What the card engine reads of the layout.
+    func measure(scale k: Double) -> CardMeasure {
+        CardMeasure(numberWidth: numberWidth, cardSize: cardSize, percentRow: rects[.percentRow], scale: k)
     }
 
     func setCardSize(_ size: CGSize) {

@@ -37,7 +37,7 @@ final class LaidOutCard {
 
     var k: Double { app.scale }
 
-    var regions: CardRegions { .make(app: app, animation: animation, layout: layout) }
+    var regions: CardRegions { .make(view: app.view, app: app, animation: animation, layout: layout) }
 
     func rect(_ id: CardRectID) throws -> CGRect { try #require(layout.rects[id], "\(id) was not published") }
     func rect(_ part: CardPart.ID) throws -> CGRect { try rect(.part(part)) }
@@ -61,7 +61,7 @@ final class LaidOutCard {
         #expect(abs(try card.rect(.percentRow).minX - 13 * k) <= 0.5)
         #expect(card.layout.numberWidth > 20)
         // A scene's sky row sits where the percent row does, inside the rim.
-        let origin = card.layout.skyOrigin(scale: k), row = try card.rect(.percentRow)
+        let origin = card.layout.measure(scale: k).skyOrigin, row = try card.rect(.percentRow)
         #expect(abs(origin.x - 12) <= 0.5 / k && abs(origin.y - (row.minY / k - 1)) < 1e-9)
     }
 

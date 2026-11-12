@@ -48,6 +48,10 @@ _Avoid_: animator, stepper, ticker
 Everything one animation tick drew: Clawd with his hearts, the sky, and the theme's scene. Not the scene alone.
 _Avoid_: picture
 
+**Card engine**:
+The decisions of what the card shows: the presenter's view state and the animation frame, with the haywire and the chart's readout laid over them. It takes the data snapshot, the settings, what the card measured and the pointer; only the card's drawing reads its haywire view state, every other reader the presented one.
+_Avoid_: composer, widget engine (the widget includes the menu bar item), controller
+
 **Theme palette**:
 The colours a theme changes, one per role: the background, the text tiers (secondary, muted, label, footer), the accent, the model-week bar and the empty heart. The presenter resolves it into the view state; the levels, Clawd, the sky, the card's border and tracks, and the chart's fill, cursor and session line stay fixed.
 _Avoid_: theme (the config's choice of look), colour scheme, skin

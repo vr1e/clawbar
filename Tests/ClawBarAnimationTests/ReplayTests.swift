@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import ClawBarAnimation
+@testable import ClawBarCard
 @testable import ClawBarClawd
 import ClawBarShared
 
@@ -95,29 +96,29 @@ import ClawBarShared
     @Test func aRunHandsBackTheDataOnTheFramesAStepRan() throws {
         let run = ScenarioRun(.sleep, seed: 7)
         #expect(run.data.sessions.isEmpty && run.data.usage == nil)
-        let first = try #require(run.next(numberWidth: 32))
+        let first = try #require(run.next(CardMeasure(numberWidth: 32)))
         #expect(first.at == Samples.now && first.data?.sessions.map(\.name) == ["api"])
         #expect(run.data.usage?.sessionPercent == 12)
         // The clock follows the cadence: the entrance act is a 60 ms sequence, then 90 ms ticks.
         var previous = first
         for n in 1 ..< 17 {
-            let ms = try #require(run.engine.tickMilliseconds)
-            let f = try #require(run.next(numberWidth: 32))
+            let ms = try #require(run.card.tickMilliseconds)
+            let f = try #require(run.next(CardMeasure(numberWidth: 32)))
             #expect(f.data == nil && f.at == previous.at.addingTimeInterval(Double(ms) / 1000), "frame \(n)")
             if n == 1 { #expect(f.at == first.at.addingTimeInterval(0.06)) }
             previous = f
         }
         // 1.5 s is frame 16.67: the sessions empty out on frame 17, the last frame is 99.
-        #expect(try #require(run.next(numberWidth: 32)).data?.sessions.isEmpty == true)
+        #expect(try #require(run.next(CardMeasure(numberWidth: 32))).data?.sessions.isEmpty == true)
         var count = 18
-        while run.next(numberWidth: 32) != nil { count += 1 }
+        while run.next(CardMeasure(numberWidth: 32)) != nil { count += 1 }
         #expect(count == 100)
 
         // A click changes no data, and Update-Widget still ran: the data comes back on those frames too.
         let clicks = ScenarioRun(.clicks, seed: 7)
         var withData: [Int] = []
         var n = 0
-        while let f = clicks.next(numberWidth: 32) {
+        while let f = clicks.next(CardMeasure(numberWidth: 32)) {
             if f.data != nil { withData.append(n) }
             n += 1
         }

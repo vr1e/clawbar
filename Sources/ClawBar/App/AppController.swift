@@ -1,6 +1,6 @@
 import AppKit
 import SwiftUI
-import ClawBarAnimation
+import ClawBarCard
 import ClawBarData
 import ClawBarPresenter
 import ClawBarShared
@@ -15,7 +15,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     /// The built-in skins and the user's own, as the skins folder last read.
     private var skins: SkinCatalog
     private let data: DataController
-    private let engine: AnimationEngine
+    private let card: CardEngine
     /// The Mac's zone, for the presenter, the animation tick and the sky's tooltip alike.
     private let zone = TimeZone.autoupdatingCurrent
 
@@ -42,10 +42,6 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private var regionRefreshPending = false
     /// Card space, while the pointer is over the widget.
     private var pointer: CGPoint?
-    /// The presenter's view state, which the card shows unless the 20:77 secret goes haywire.
-    private var presented = WidgetViewState.placeholder
-    /// The haywire the card shows now.
-    private var shownHaywire: SceneHaywire?
 
     init(paths: AppPaths) {
         self.paths = paths
@@ -55,7 +51,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         skinFolder = SkinFolder(paths: paths)
         skins = skinFolder.reloadIfChanged() ?? .builtIn
         data = DataController(config: config, paths: paths)
-        engine = AnimationEngine(random: SystemRandomSource(), config: config, skins: skins, now: Date())
+        card = CardEngine(random: SystemRandomSource(), config: config, skins: skins, now: Date())
         host = CardHostView(root: WidgetRootView(app: app, animation: animation, layout: layout))
         panel = WidgetPanel(content: host)
         tooltips = TooltipRegistrar(view: host)
@@ -70,7 +66,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         apply(config: config, initial: true)
         panel.widgetDelegate = self
         tooltips.text = { [unowned self] id in
-            CardRegions.text(id, view: self.presented, hearts: animation.hearts) { self.engine.skyTooltip(now: Date(), timeZone: self.zone) }
+            CardRegions.text(id, view: card.presented, hearts: animation.hearts) { self.card.skyTooltip(now: Date(), timeZone: self.zone) }
         }
         layout.onCardSize = { [unowned self] _ in
             // After SwiftUI's layout pass: resizing the window inside its geometry callback would re-enter it.
@@ -161,18 +157,13 @@ final class AppController: NSObject, WidgetPanelDelegate {
         recompute(now: now)
     }
 
-    /// The presenter's view of the latest data snapshot, into the card and the menu bar item; the same data into the
-    /// animation.
+    /// The latest data snapshot through the card engine, into the card and the menu bar item.
     private func recompute(now: Date = Date()) {
-        let input = presenterInput(now: now)
-        let view = WidgetPresenter.make(input)
-        presented = view
+        card.present(presenterInput(now: now), skins: skins)
+        let view = card.presented
         statusItem.update(text: view.trayText, color: view.trayColor, mascot: view.trayMascot, tooltip: view.trayTooltip)
         game.update(caption: view.gameCaption, lang: config.lang, palette: view.palette)
-        engine.apply(input.data, config: config, skins: skins, now: now, timeZone: zone)
-        syncVisibility()
-        animation.publish(engine.frame)
-        showView(changed: true)
+        publish()
         syncAnimation()
         scheduleRegionRefresh()
     }
@@ -185,33 +176,24 @@ final class AppController: NSObject, WidgetPanelDelegate {
         )
     }
 
-    /// The presented view state, haywire while the 20:77 secret says so; `changed` for a new one.
-    private func showView(changed: Bool = false) {
-        let haywire = engine.frame.scene?.secret?.haywire
-        guard changed || haywire != shownHaywire else { return }
-        shownHaywire = haywire
-        let view = Haywire.scramble(presented, haywire)
-        if view != app.view { app.view = view }
-    }
-
-    /// The engine decides what shows: the play area with Clawd and the hearts, and the sky behind the row.
-    private func syncVisibility() {
-        if app.mascotVisible != engine.mascotVisible { app.mascotVisible = engine.mascotVisible }
-        if app.skyVisible != engine.skyVisible { app.skyVisible = engine.skyVisible }
+    /// What the card engine has now, into the models the views observe; each is touched only when it changed.
+    private func publish() {
+        if app.mascotVisible != card.mascotVisible { app.mascotVisible = card.mascotVisible }
+        if app.skyVisible != card.skyVisible { app.skyVisible = card.skyVisible }
+        animation.publish(card.frame)
+        if app.view != card.shown { app.view = card.shown }
+        if app.historyHover != card.historyHover { app.historyHover = card.historyHover }
     }
 
     /// The chart's readout under the pointer, or the legend again once it is off the chart.
     private func updateHistoryHover(_ regions: CardRegions? = nil) {
-        var hover: HistoryHover?
-        if let p = pointer, let chart = app.view.history, let x = (regions ?? self.regions()).chartX(at: p) {
-            hover = HistoryReadout.hover(x: x, chart: chart, input: presenterInput(now: Date()))
-        }
-        if hover != app.historyHover { app.historyHover = hover }
+        card.hover(chartX: pointer.flatMap { (regions ?? self.regions()).chartX(at: $0) })
+        publish()
     }
 
     /// Sync-Mascot: the animation runs only while the widget shows, is not covered and has something to move.
     private func syncAnimation() {
-        guard widgetVisible, !occluded, let ms = engine.tickMilliseconds else {
+        guard widgetVisible, !occluded, let ms = card.tickMilliseconds else {
             animationTimer?.invalidate()
             animationTimer = nil
             return
@@ -223,25 +205,18 @@ final class AppController: NSObject, WidgetPanelDelegate {
     }
 
     private func animationTick() {
-        let k = config.scale
         let mouse = NSEvent.mouseLocation
         // Topmost at the pointer, so covering windows count; the frame test first spares a WindowServer round trip.
         let over = panel.frame.contains(mouse)
             && NSWindow.windowNumber(at: mouse, belowWindowWithWindowNumber: 0) == panel.windowNumber
-        var mouseX: Double?
-        if over {
-            // The engine needs x whenever the pointer is over the window; before the first layout the row sits at 13.
-            let row = layout.rects[.percentRow] ?? CGRect(x: 13 * k, y: 0, width: CardView.content * k, height: 40 * k)
-            mouseX = PlayArea.mouseX(cardX: mouse.x - panel.frame.minX, row: row, numberWidth: layout.numberWidth, scale: k)
-        }
         let heartsVisibleBefore = animation.hearts.visible
-        animation.publish(engine.step(AnimationInputs(
-            now: Date(), timeZone: zone, numberWidth: layout.numberWidth, mouseOverWindow: over, mouseX: mouseX,
-            backdropSize: layout.backdropSize(scale: k), skyOrigin: layout.skyOrigin(scale: k)
-        )))
-        showView()
+        card.step(
+            now: Date(), timeZone: zone, measure: layout.measure(scale: config.scale),
+            pointerX: over ? mouse.x - panel.frame.minX : nil
+        )
+        publish()
         if animation.hearts.visible != heartsVisibleBefore { scheduleRegionRefresh() }
-        if engine.tickMilliseconds != animationInterval { syncAnimation() }
+        if card.tickMilliseconds != animationInterval { syncAnimation() }
     }
 
     // MARK: Config
@@ -331,9 +306,8 @@ final class AppController: NSObject, WidgetPanelDelegate {
     private func hideWidget() {
         panel.orderOut(nil)
         widgetVisible = false
-        engine.endSecret()
-        animation.publish(engine.frame)
-        showView()
+        card.hide()
+        publish()
         syncAnimation()
     }
 
@@ -359,11 +333,11 @@ final class AppController: NSObject, WidgetPanelDelegate {
     // MARK: WidgetPanelDelegate
 
     func regions() -> CardRegions {
-        .make(app: app, animation: animation, layout: layout)
+        .make(view: card.presented, app: app, animation: animation, layout: layout)
     }
 
     func clawdClicked() {
-        engine.click(now: Date())
+        card.click(now: Date())
     }
 
     func clicked(_ click: CardClick) {
@@ -381,7 +355,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     }
 
     func developerMenu() -> NSMenu? {
-        DevMenuBuilder.menu(engine.developerMenu()) { [unowned self] in performDev($0) }
+        DevMenuBuilder.menu(card.developerMenu()) { [unowned self] in performDev($0) }
     }
 
     func pointerMoved(to p: CGPoint, over regions: CardRegions) {
@@ -395,7 +369,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     }
 
     private func performDev(_ action: DevAction) {
-        engine.perform(action)
+        card.perform(action)
         syncAnimation()
     }
 
@@ -405,7 +379,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
         let recent = config.showRecentSessions
             ? RecentSessionsMenu.items(presenterInput(now: Date()), terminal: SessionTerminal.ghosttyInstalled) : nil
         let entries = StatusMenu.entries(
-            config: config, widgetVisible: widgetVisible, limitReached: app.view.limitReached, recent: recent
+            config: config, widgetVisible: widgetVisible, limitReached: card.presented.limitReached, recent: recent
         )
         return MenuBuilder.menu(entries) { [unowned self] in perform($0) }
     }
@@ -504,7 +478,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
             screenFrames: NSScreen.screens.map(\.frame), topLeft: panel.topLeft,
             animating: animationTimer != nil, tickMilliseconds: animationInterval, config: config,
             loginItemStatus: loginItem.status.rawValue, installedApp: loginItem.installed,
-            snapshot: data.snapshot, view: presented, skins: skins
+            snapshot: data.snapshot, view: card.presented, skins: skins
         )
         do {
             try dump.render().write(to: IPC.dumpFile(paths), atomically: true, encoding: .utf8)
