@@ -28,6 +28,20 @@ import ClawBarShared
         }
     }
 
+    @Test func everySettingHasALineAndTheWeatherPlaceOnlySaysItIsSet() {
+        var d = dump()
+        d.config.weatherLat = 48.2
+        d.config.language = "fr"
+        let text = d.render()
+        for k in ConfigKey.allCases {
+            #expect(text.contains("\nconfig.\(k.rawValue): "), "\(k)")
+        }
+        #expect(text.contains("\nconfig.weatherLat: set\n") && text.contains("\nconfig.weatherLon: none\n"))
+        #expect(!text.contains("48.2"))
+        #expect(text.contains("\nconfig.language: fr\n") && text.contains("\nlang: en\n"))
+        #expect(text.contains("\nconfig.accent: none\n") && text.contains("\nconfig.refreshSeconds: 10\n"))
+    }
+
     @Test func theHistoryIsReportedByItsSpan() {
         #expect(dump().render().contains("\nusage.history: none\n"))
         var d = dump()

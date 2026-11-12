@@ -39,7 +39,7 @@ extension RawRepresentable where RawValue == String {
     }
 }
 
-/// The JSON key of every setting in config.json.
+/// The JSON key of every setting in config.json; `setting` says how each is read, written, kept in range and dumped.
 public enum ConfigKey: String, CaseIterable, Sendable {
     case language, theme, accent, skin, scale, opacity, topmost, mainLimit, warnPercent, critPercent, expanded
     case showStats, showStatus, showSessions, showAccount, showMascot, showSky, showHistory
@@ -164,57 +164,11 @@ public struct Config: Sendable, Hashable {
 
     public var lang: Lang { Lang(configValue: language) }
 
-    /// Every number pulled into its range (`ConfigLimits.ranges`), non-finite values back to the default,
-    /// out-of-range coordinates unset, and warn never above crit.
+    /// Every setting kept as its `ConfigKey.setting` says, and warn never above crit.
     public func clamped() -> Config {
-        let d = Config()
         var c = self
-        func int(_ v: Int, _ key: ConfigKey) -> Int {
-            let r = ConfigLimits.ranges[key]!
-            return min(Int(r.upperBound), max(Int(r.lowerBound), v))
-        }
-        func double(_ v: Double, _ key: ConfigKey, _ fallback: Double) -> Double {
-            guard v.isFinite else { return fallback }
-            let r = ConfigLimits.ranges[key]!
-            return min(r.upperBound, max(r.lowerBound, v))
-        }
-        func coordinate(_ v: Double?, _ key: ConfigKey) -> Double? {
-            guard let v, v.isFinite, ConfigLimits.ranges[key]!.contains(v) else { return nil }
-            return v
-        }
-        c.scale = double(scale, .scale, d.scale)
-        c.opacity = double(opacity, .opacity, d.opacity)
-        c.refreshSeconds = int(refreshSeconds, .refreshSeconds)
-        c.usageIntervalSeconds = int(usageIntervalSeconds, .usageIntervalSeconds)
-        c.versionIntervalSeconds = int(versionIntervalSeconds, .versionIntervalSeconds)
-        c.statusIntervalSeconds = int(statusIntervalSeconds, .statusIntervalSeconds)
-        c.accountIntervalSeconds = int(accountIntervalSeconds, .accountIntervalSeconds)
-        c.weatherIntervalSeconds = int(weatherIntervalSeconds, .weatherIntervalSeconds)
-        c.critPercent = int(critPercent, .critPercent)
-        c.warnPercent = min(int(warnPercent, .warnPercent), c.critPercent)
-        c.weatherLat = coordinate(weatherLat, .weatherLat)
-        c.weatherLon = coordinate(weatherLon, .weatherLon)
-        c.left = left.flatMap { $0.isFinite ? $0 : nil }
-        c.top = top.flatMap { $0.isFinite ? $0 : nil }
-        let path = claudePath?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        c.claudePath = path.isEmpty ? nil : path
+        for k in ConfigKey.allCases { k.setting.clamp(&c) }
+        c.warnPercent = min(c.warnPercent, c.critPercent)
         return c
     }
-}
-
-public enum ConfigLimits {
-    public static let ranges: [ConfigKey: ClosedRange<Double>] = [
-        .refreshSeconds: 2 ... 300,
-        .usageIntervalSeconds: 30 ... 3600,
-        .statusIntervalSeconds: 30 ... 3600,
-        .accountIntervalSeconds: 60 ... 86400,
-        .versionIntervalSeconds: 600 ... 86400,
-        .weatherIntervalSeconds: 300 ... 86400,
-        .scale: 0.6 ... 4.0,
-        .opacity: 0.2 ... 1.0,
-        .warnPercent: 1 ... 100,
-        .critPercent: 1 ... 100,
-        .weatherLat: -90 ... 90,
-        .weatherLon: -180 ... 180,
-    ]
 }

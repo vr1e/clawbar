@@ -179,20 +179,3 @@ public enum Diagnostics {
         }
     }
 }
-
-extension Config {
-    /// Every block shown and the details open, whatever config.json says: `--diagnose` looks at hidden rows too.
-    func everyBlockOn() -> Config {
-        var c = self
-        c.showStats = true
-        c.showStatus = true
-        c.showSessions = true
-        c.showAccount = true
-        c.showMascot = true
-        c.showSky = true
-        c.showHistory = true
-        c.showRecentSessions = true
-        c.expanded = true
-        return c
-    }
-}

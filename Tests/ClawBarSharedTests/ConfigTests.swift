@@ -152,6 +152,18 @@ import ClawBarShared
         }
     }
 
+    @Test func everyBlockOnShowsEveryPartButLeavesTheWindowAndLoginAlone() {
+        let hidden = Config(
+            topmost: false, expanded: false, showStats: false, showStatus: false, showSessions: false, showAccount: false,
+            showMascot: false, showSky: false, showHistory: false, launchAtLogin: false, menuBarMascot: false,
+            showRecentSessions: false
+        )
+        let c = hidden.everyBlockOn()
+        #expect(c.expanded && c.showStats && c.showStatus && c.showSessions && c.showAccount)
+        #expect(c.showMascot && c.showSky && c.showHistory && c.showRecentSessions)
+        #expect(!c.topmost && !c.launchAtLogin && !c.menuBarMascot)
+    }
+
     @Test func everyConfigKeyHasAStableJSONName() {
         #expect(ConfigKey.theme.rawValue == "theme" && ConfigKey.accent.rawValue == "accent")
         #expect(ConfigKey.skin.rawValue == "skin")

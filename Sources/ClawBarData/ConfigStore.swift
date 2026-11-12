@@ -30,7 +30,7 @@ public final class ConfigStore {
             current = Config()
             return current
         }
-        current = Self.decode(j)
+        current = Config(json: j)
         return current
     }
 
@@ -46,7 +46,7 @@ public final class ConfigStore {
         var next = current
         change(&next)
         next = next.clamped()
-        let changed = ConfigKey.allCases.filter { Self.value(current, $0) != Self.value(next, $0) }
+        let changed = ConfigKey.allCases.filter { $0.setting.value(current) != $0.setting.value(next) }
         guard !changed.isEmpty else { return current }
         let j: [String: Any]
         if FileManager.default.fileExists(atPath: url.path) {
@@ -62,7 +62,7 @@ public final class ConfigStore {
         }
         try JSONFile.write(j, to: url.resolvingSymlinksInPath())
         stamp = Self.stamp(url)
-        current = Self.decode(j)
+        current = Config(json: j)
         return current
     }
 
@@ -73,48 +73,6 @@ public final class ConfigStore {
         stamp = Self.stamp(url)
     }
 
-    // MARK: - Decoding
-
-    /// Each key on its own: one bad value falls back to that key's default.
-    static func decode(_ j: [String: Any]) -> Config {
-        let d = Config()
-        var c = d
-        c.language = j["language"] as? String ?? d.language
-        c.theme = ThemeChoice(configValue: j["theme"] as? String)
-        // Upstream keeps the previous theme's accent on a bad value; here the theme's own shows.
-        c.accent = (j["accent"] as? String).flatMap { RGBA.parse($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
-        c.skin = j["skin"] as? String ?? d.skin
-        c.scale = Lenient.double(j["scale"]) ?? d.scale
-        c.opacity = Lenient.double(j["opacity"]) ?? d.opacity
-        c.topmost = Lenient.bool(j["topmost"]) ?? d.topmost
-        c.mainLimit = MainLimit(configValue: j["mainLimit"] as? String)
-        c.warnPercent = Lenient.int(j["warnPercent"]) ?? d.warnPercent
-        c.critPercent = Lenient.int(j["critPercent"]) ?? d.critPercent
-        c.expanded = Lenient.bool(j["expanded"]) ?? d.expanded
-        c.showStats = Lenient.bool(j["showStats"]) ?? d.showStats
-        c.showStatus = Lenient.bool(j["showStatus"]) ?? d.showStatus
-        c.showSessions = Lenient.bool(j["showSessions"]) ?? d.showSessions
-        c.showAccount = Lenient.bool(j["showAccount"]) ?? d.showAccount
-        c.showMascot = Lenient.bool(j["showMascot"]) ?? d.showMascot
-        c.showSky = Lenient.bool(j["showSky"]) ?? d.showSky
-        c.showHistory = Lenient.bool(j["showHistory"]) ?? d.showHistory
-        c.weatherLat = Lenient.double(j["weatherLat"])
-        c.weatherLon = Lenient.double(j["weatherLon"])
-        c.refreshSeconds = Lenient.int(j["refreshSeconds"]) ?? d.refreshSeconds
-        c.usageIntervalSeconds = Lenient.int(j["usageIntervalSeconds"]) ?? d.usageIntervalSeconds
-        c.versionIntervalSeconds = Lenient.int(j["versionIntervalSeconds"]) ?? d.versionIntervalSeconds
-        c.statusIntervalSeconds = Lenient.int(j["statusIntervalSeconds"]) ?? d.statusIntervalSeconds
-        c.accountIntervalSeconds = Lenient.int(j["accountIntervalSeconds"]) ?? d.accountIntervalSeconds
-        c.weatherIntervalSeconds = Lenient.int(j["weatherIntervalSeconds"]) ?? d.weatherIntervalSeconds
-        c.left = Lenient.double(j["left"])
-        c.top = Lenient.double(j["top"])
-        c.claudePath = j["claudePath"] as? String
-        c.launchAtLogin = Lenient.bool(j["launchAtLogin"]) ?? d.launchAtLogin
-        c.menuBarMascot = Lenient.bool(j["menuBarMascot"]) ?? d.menuBarMascot
-        c.showRecentSessions = Lenient.bool(j["showRecentSessions"]) ?? d.showRecentSessions
-        return c.clamped()
-    }
-
     // MARK: - Encoding
 
     static func allKeys(_ c: Config) -> [String: Any] {
@@ -122,44 +80,7 @@ public final class ConfigStore {
     }
 
     /// The JSON value of one key; null for an unset optional.
-    static func json(_ c: Config, _ k: ConfigKey) -> Any { value(c, k)?.base ?? NSNull() }
-
-    static func value(_ c: Config, _ k: ConfigKey) -> AnyHashable? {
-        switch k {
-        case .language: c.language
-        case .theme: c.theme.rawValue
-        case .accent: c.accent?.hex
-        case .skin: c.skin
-        case .scale: c.scale
-        case .opacity: c.opacity
-        case .topmost: c.topmost
-        case .mainLimit: c.mainLimit.rawValue
-        case .warnPercent: c.warnPercent
-        case .critPercent: c.critPercent
-        case .expanded: c.expanded
-        case .showStats: c.showStats
-        case .showStatus: c.showStatus
-        case .showSessions: c.showSessions
-        case .showAccount: c.showAccount
-        case .showMascot: c.showMascot
-        case .showSky: c.showSky
-        case .showHistory: c.showHistory
-        case .weatherLat: c.weatherLat.map(AnyHashable.init)
-        case .weatherLon: c.weatherLon.map(AnyHashable.init)
-        case .refreshSeconds: c.refreshSeconds
-        case .usageIntervalSeconds: c.usageIntervalSeconds
-        case .versionIntervalSeconds: c.versionIntervalSeconds
-        case .statusIntervalSeconds: c.statusIntervalSeconds
-        case .accountIntervalSeconds: c.accountIntervalSeconds
-        case .weatherIntervalSeconds: c.weatherIntervalSeconds
-        case .left: c.left.map(AnyHashable.init)
-        case .top: c.top.map(AnyHashable.init)
-        case .claudePath: c.claudePath.map(AnyHashable.init)
-        case .launchAtLogin: c.launchAtLogin
-        case .menuBarMascot: c.menuBarMascot
-        case .showRecentSessions: c.showRecentSessions
-        }
-    }
+    static func json(_ c: Config, _ k: ConfigKey) -> Any { k.setting.value(c)?.base ?? NSNull() }
 
     // MARK: - Change detection
 
