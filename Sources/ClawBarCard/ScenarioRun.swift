@@ -8,7 +8,8 @@ public final class ScenarioRun {
     public let config = Scenarios.config
     /// The fake data as of the last frame.
     public private(set) var data = DataSnapshot.empty
-    let card: CardEngine
+    /// The card as of the last frame, so the recorder draws what the app would.
+    public let card: CardEngine
     let script: ScenarioScript
     private var now = Samples.now
     private var n = 0
@@ -29,11 +30,6 @@ public final class ScenarioRun {
 
     /// Crop below the reset line, as every scenario but the tour does.
     public var crop: Bool { script.crop }
-    /// What the card draws as of the last frame, and the engine's visibility rule, so the recorder draws what the
-    /// app would.
-    public var view: WidgetViewState { card.shown }
-    public var mascotVisible: Bool { card.mascotVisible }
-    public var skyVisible: Bool { card.skyVisible }
 
     /// The mascot timer's own handler first, then record-gif.ps1's: the due steps, then Update-Widget. Nil once the
     /// last step is due, which ends the recording.

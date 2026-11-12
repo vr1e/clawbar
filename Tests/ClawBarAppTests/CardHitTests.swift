@@ -37,7 +37,7 @@ final class LaidOutCard {
 
     var k: Double { app.scale }
 
-    var regions: CardRegions { .make(app: app, animation: animation, layout: layout) }
+    var regions: CardRegions { .make(view: app.view, app: app, animation: animation, layout: layout) }
 
     func rect(_ id: CardRectID) throws -> CGRect { try #require(layout.rects[id], "\(id) was not published") }
     func rect(_ part: CardPart.ID) throws -> CGRect { try rect(.part(part)) }

@@ -147,7 +147,7 @@ private func pinCard() {
     let _: ScenarioFrame? = run.next(CardMeasure(numberWidth: 32))
     let _: Config = run.config
     let _: DataSnapshot = run.data
-    let _: WidgetViewState = run.view
+    let _: CardEngine = run.card
     let _: Bool = run.crop
 }
 

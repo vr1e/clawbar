@@ -28,7 +28,7 @@ import ClawBarShared
         clawd.hearts = HeartsFrame(visible: hearts, shownHalves: 6)
         animation.publish(clawd)
         for (id, rect) in rects { layout.set(id, rect) }
-        return .make(app: app, animation: animation, layout: layout)
+        return .make(view: app.view, app: app, animation: animation, layout: layout)
     }
 
     /// One rect per part, each in a row of its own.

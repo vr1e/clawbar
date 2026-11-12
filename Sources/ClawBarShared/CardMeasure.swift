@@ -1,8 +1,7 @@
 import CoreGraphics
 import Foundation
 
-/// What the card measured of itself, for the card engine: points in card space at scale `k`, zero before the first
-/// layout.
+/// What the card measured of itself, for the card engine: points in card space at `scale`, zero before the first layout.
 public struct CardMeasure: Sendable, Hashable {
     /// The card's rim; a scene's backdrop lies inside it.
     public static let border = 1.0

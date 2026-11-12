@@ -25,20 +25,15 @@ enum Recorder {
         let run = ScenarioRun(s, seed: seed)
         let layout = LayoutModel()
         // A first pass measures the number, which sets the play area Clawd walks in.
-        _ = CardRenderer.render(
-            CardRenderer.Input(view: run.view, mascotVisible: run.mascotVisible, skyVisible: run.skyVisible),
-            scale: 1, layout: layout
-        )
+        _ = CardRenderer.render(CardRenderer.input(run.card), scale: 1, layout: layout)
 
         var cards: [CGImage] = []
         var cropHeight: Int?
         while cards.count < maxFrames, let f = run.next(layout.measure(scale: 1)) {
-            var animation = f.animation
-            // The recorder collapses the developer caption.
-            animation.clawd.devCaption = ""
-            let card = CardRenderer.Input(
-                view: run.view, mascotVisible: run.mascotVisible, skyVisible: run.skyVisible, animation: animation
-            )
+            var card = CardRenderer.input(run.card)
+            // The tick's frame, before the steps it made due; the recorder collapses the developer caption.
+            card.animation = f.animation
+            card.animation.clawd.devCaption = ""
             guard let image = CardRenderer.render(card, scale: 1, layout: layout) else { break }
             if run.crop, cropHeight == nil, let reset = layout.rects[.part(.reset)] {
                 cropHeight = Int(((reset.maxY + 9) * 2).rounded(.up))

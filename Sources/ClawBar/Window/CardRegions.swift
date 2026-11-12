@@ -53,9 +53,9 @@ struct CardRegion: Equatable {
 struct CardRegions {
     var all: [CardRegion] = []
 
-    /// `view` is the presented view state where the card may show a haywire one.
-    static func make(view: WidgetViewState? = nil, app: AppModel, animation: AnimationModel, layout: LayoutModel) -> CardRegions {
-        let view = view ?? app.view, rects = layout.rects, k = app.scale
+    /// `view` is the presented view state: the card may show a haywire one.
+    static func make(view: WidgetViewState, app: AppModel, animation: AnimationModel, layout: LayoutModel) -> CardRegions {
+        let rects = layout.rects, k = app.scale
         var regions = CardRegions()
         func add(_ rect: CGRect?, _ role: CardRegion.Role) {
             if let rect { regions.all.append(CardRegion(rect: rect, role: role)) }

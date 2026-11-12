@@ -189,7 +189,7 @@ final class AppController: NSObject, WidgetPanelDelegate {
     /// The chart's readout under the pointer, or the legend again once it is off the chart.
     private func updateHistoryHover(_ regions: CardRegions? = nil) {
         card.hover(chartX: pointer.flatMap { (regions ?? self.regions()).chartX(at: $0) })
-        if app.historyHover != card.historyHover { app.historyHover = card.historyHover }
+        publish()
     }
 
     /// Sync-Mascot: the animation runs only while the widget shows, is not covered and has something to move.
