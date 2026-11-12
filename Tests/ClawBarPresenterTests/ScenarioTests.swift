@@ -122,6 +122,18 @@ private let sessionsLineDE = "\n2 Sitzungen · 1 aktiv · 1 wartend"
         #expect(render(weekOver).trayTooltip.contains("\nweek 59%\nFable 8%"))
     }
 
+    @Test func theTooltipIsNotCutAt63Characters() {
+        let d = sample {
+            $0.modelWeeks = [
+                ModelWeek(name: "Sonnet", percent: 23), ModelWeek(name: "Fable", percent: 8),
+                ModelWeek(name: "Opus", percent: 41), ModelWeek(name: "Haiku", percent: 2),
+            ]
+        }
+        let tip = render(d).trayTooltip
+        #expect(tip.count > 63)
+        #expect(tip.contains("\nHaiku 2%\n"))
+    }
+
     @Test func staleNumbersGreyThePillAndSayWhenTheyAreFrom() {
         // The sample's usage is 25 s old; stale past 3 × 60 s + 30 s, as the widget's stamp.
         let fresh = render(now: Samples.now.plus(seconds: 210 - 25))
