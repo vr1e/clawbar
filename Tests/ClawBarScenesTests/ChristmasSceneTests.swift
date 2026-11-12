@@ -8,8 +8,8 @@ import ClawBarShared
 @Suite struct ChristmasSceneTests {
     static let sleighRed = RGBA("#FFEF4444")
 
-    private func run(_ steps: Int, size: CGSize = sceneCard, sky: Bool = true) -> [SceneFrame] {
-        runScene(.christmas, steps, size: size, sky: sky)
+    private func run(_ steps: Int, size: CGSize = sceneCard) -> [SceneFrame] {
+        runScene(.christmas, steps, size: size)
     }
 
     /// The layers drawn in `color`, with their opacity.
@@ -64,12 +64,9 @@ import ClawBarShared
         #expect(shown.allSatisfy { $0 < 120 + 413 } || shown.last! >= 120 + 413 + 400)
     }
 
-    @Test func theSkyLayerWaitsWhileTheSkyRowIsHidden() {
+    @Test func theSleighsWaitCountsOnlyWhileTheSkyRowShows() {
         var clock = SceneClock(.christmas, seed: 3)
-        for _ in 0 ..< 200 {
-            #expect(clock.step(size: sceneCard, sky: false).sky.isEmpty)
-        }
-        // The sleigh's wait only counts down while the row shows.
+        for _ in 0 ..< 200 { _ = clock.step(size: sceneCard, sky: false) }
         let visible = (0 ..< 121).map { _ in clock.step(size: sceneCard, sky: true) }
         #expect(visible.prefix(120).allSatisfy { sleighX($0) == nil })
         #expect(sleighX(visible[120]) != nil)

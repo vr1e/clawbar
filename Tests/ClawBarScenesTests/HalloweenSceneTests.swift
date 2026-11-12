@@ -88,10 +88,6 @@ import ClawBarShared
 
     // MARK: The midnight scare
 
-    private func scareStarts(around midnight: Date, seed: UInt64) -> [Date] {
-        secretStarts(.halloween, around: midnight, seed: seed)
-    }
-
     private func midnight() throws -> Date {
         try #require(Calendar.gregorian(in: Samples.timeZone).date(from: DateComponents(year: 2026, month: 11, day: 2)))
     }
@@ -101,7 +97,7 @@ import ClawBarShared
         let calendar = Calendar.gregorian(in: Samples.timeZone)
         var scared = 0
         for seed in UInt64(0) ..< 30 {
-            let starts = scareStarts(around: midnight, seed: seed)
+            let starts = secretStarts(.halloween, around: midnight, seed: seed)
             #expect(starts.count <= 1, "seed \(seed)")
             #expect(starts.allSatisfy { calendar.dateComponents([.hour, .minute], from: $0) == DateComponents(hour: 0, minute: 0) })
             scared += starts.count
@@ -110,26 +106,11 @@ import ClawBarShared
     }
 
     @Test func theNextNightGetsAFreshChance() throws {
-        let first = try midnight()
-        var clock = SceneClock(.halloween, seed: 0, from: first.addingTimeInterval(-10))
-        func scares(for steps: Int) -> Int {
-            var count = 0, on = false
-            for _ in 0 ..< steps {
-                let now = clock.step().secret != nil
-                if now, !on { count += 1 }
-                on = now
-            }
-            return count
-        }
         // Many nights on one scene: about one in three is scary, never more than one scare a night.
-        var nights = 0
-        for night in 0 ..< 30 {
-            clock.now = first.addingTimeInterval(Double(night) * 86_400 - 10)
-            let n = scares(for: 900)
-            #expect(n <= 1)
-            nights += n
-        }
-        #expect((4 ... 18).contains(nights))
+        let starts = secretStarts(.halloween, around: try midnight(), seed: 0, nights: 30)
+        let calendar = Calendar.gregorian(in: Samples.timeZone)
+        #expect(Set(starts.map { calendar.startOfDay(for: $0) }).count == starts.count)
+        #expect((4 ... 18).contains(starts.count))
     }
 
     @Test func theScareFlashesDarkensLoomsAndClawdJumpsAsTheLightsReturn() {

@@ -8,8 +8,8 @@ import ClawBarShared
 @Suite struct SpaceSceneTests {
     static let shipGrey = RGBA("#FF94A3B8")
 
-    private func run(_ steps: Int, size: CGSize = sceneCard, sky: Bool = true) -> [SceneFrame] {
-        runScene(.space, steps, size: size, sky: sky)
+    private func run(_ steps: Int, size: CGSize = sceneCard) -> [SceneFrame] {
+        runScene(.space, steps, size: size)
     }
 
     /// The faint stars' layers: the backdrop's only plain rects.
@@ -122,12 +122,9 @@ import ClawBarShared
         #expect(try discs(frames[0]).colours != discs(frames[100]).colours)
     }
 
-    @Test func theSkyLayerWaitsWhileTheSkyRowIsHidden() {
+    @Test func theShipStandsStillWhileTheSkyRowIsHidden() {
         var clock = SceneClock(.space, seed: 3)
-        for _ in 0 ..< 200 {
-            let f = clock.step(size: sceneCard, sky: false)
-            #expect(f.sky.isEmpty && !f.backdrop.isEmpty)
-        }
+        for _ in 0 ..< 200 { _ = clock.step(size: sceneCard, sky: false) }
         // One step of the ship, not 201.
         #expect(shipX(clock.step(size: sceneCard)) == 59)
     }

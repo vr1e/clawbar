@@ -10,6 +10,11 @@ import ClawBarShared
         #expect(runScene(scene, 3, size: .zero).allSatisfy { $0 == .empty })
     }
 
+    @Test(arguments: SceneID.allCases)
+    func theSkyLayerWaitsWhileTheSkyRowIsHidden(scene: SceneID) {
+        #expect(runScene(scene, 50, sky: false).allSatisfy { $0.sky.isEmpty && !$0.backdrop.isEmpty })
+    }
+
     /// Upstream's scenes leaked WPF children; here a long run draws no more than a short one.
     @Test(arguments: SceneID.allCases)
     func nothingPilesUpOverAThousandSteps(scene: SceneID) {

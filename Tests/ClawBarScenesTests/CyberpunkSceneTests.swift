@@ -156,8 +156,8 @@ import ClawBarShared
         }
     }
 
-    @Test func theSkyLayerAndSearchlightsWaitWhileTheSkyRowIsHidden() {
-        #expect(run(50, sky: false).allSatisfy { $0.sky.isEmpty && beams($0).isEmpty && !$0.backdrop.isEmpty })
+    @Test func theSearchlightsWaitWhileTheSkyRowIsHidden() {
+        #expect(run(50, sky: false).allSatisfy { beams($0).isEmpty })
     }
 
     // MARK: The 20:77 secret
@@ -166,8 +166,8 @@ import ClawBarShared
         try #require(Calendar.gregorian(in: Samples.timeZone).date(from: DateComponents(year: 2026, month: 11, day: 2, hour: hour, minute: minute)))
     }
 
-    private func relicStarts(at minute: Date, asleep: Bool = true, zone: TimeZone = Samples.timeZone) -> [Date] {
-        secretStarts(.cyberpunk, around: minute, seed: 3, zone: zone, asleep: asleep)
+    private func relicStarts(at minute: Date, asleep: Bool = true, zone: TimeZone = Samples.timeZone, nights: Int = 1) -> [Date] {
+        secretStarts(.cyberpunk, around: minute, seed: 3, zone: zone, asleep: asleep, nights: nights)
     }
 
     /// The secret from its first step, `steps` long; a step that draws nothing is nil.
@@ -189,18 +189,7 @@ import ClawBarShared
     }
 
     @Test func theNextEveningStrikesAgain() throws {
-        var clock = SceneClock(.cyberpunk, seed: 3, from: try evening().addingTimeInterval(-10))
-        var starts = 0
-        for night in 0 ..< 3 {
-            clock.now = try evening().addingTimeInterval(Double(night) * 86_400 - 10)
-            var on = false
-            for _ in 0 ..< 900 {
-                let playing = clock.step(asleep: true).secret != nil
-                if playing, !on { starts += 1 }
-                on = playing
-            }
-        }
-        #expect(starts == 3)
+        #expect(relicStarts(at: try evening(), nights: 3).count == 3)
     }
 
     @Test func theCardFlushesRedWithBarsTornThickestInTheStorms() {

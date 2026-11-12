@@ -107,12 +107,9 @@ import ClawBarShared
         #expect(!wrapped.isEmpty && wrapped.allSatisfy { $0.maxX < 0 && $0.minX > -21 })
     }
 
-    @Test func theSkyLayerWaitsWhileTheSkyRowIsHidden() {
+    @Test func theFishArePlacedWhenTheSkyRowFirstShows() {
         var clock = SceneClock(.ocean, seed: 3)
-        for _ in 0 ..< 200 {
-            let f = clock.step(size: sceneCard, sky: false)
-            #expect(f.sky.isEmpty && !f.backdrop.isEmpty)
-        }
+        for _ in 0 ..< 200 { _ = clock.step(size: sceneCard, sky: false) }
         // Fish are placed on the row's first step, off its edges, and have moved one step since.
         let first = clock.step(size: sceneCard)
         #expect(fish(first, Self.yellowFish)!.x >= PlayArea.skySize.width - 1)

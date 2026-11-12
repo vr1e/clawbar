@@ -2,7 +2,7 @@ import Foundation
 import ClawBarShared
 
 /// record-gif.ps1's `S name state for`.
-struct FakeSession: Equatable {
+struct FakeSession {
     var name: String
     var state: SessionState
     var waitingFor: String?
@@ -14,7 +14,7 @@ struct FakeSession: Equatable {
     }
 }
 
-enum ScenarioAction: Equatable {
+enum ScenarioAction {
     /// Set-Sky: a forced phase and weather code.
     case sky(SkyPhase, Int)
     /// Set-Usage: the session %, its reset that many minutes away, week 41 and Fable 18.
@@ -25,7 +25,7 @@ enum ScenarioAction: Equatable {
     case drain
 }
 
-struct ScenarioStep: Equatable {
+struct ScenarioStep {
     var at: Double
     var actions: [ScenarioAction]
 }
