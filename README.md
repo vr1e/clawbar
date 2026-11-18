@@ -215,7 +215,7 @@ ClawBar ports clawd-usage-winwidget 1.3.0 and has been checked against every rel
 | Feature | In ClawBar | Notes |
 |---|---|---|
 | Usage limits | ✅ Ported differently | A stricter token-free check, more reset-time formats and a row for every model's week. |
-| Sessions | ✅ Ported differently | Refreshed every 2 s, and stricter about what counts as a session. Not yet: Sessions from other machines. |
+| Sessions | ✅ Ported differently | Refreshed every 2 s, and stricter about what counts as a session. Not ported: Sessions from other machines. |
 | Clawd and his hearts | ✅ Ported | |
 | Sky and weather | ✅ Ported differently | The sky keeps the weather location's time zone, and its moon is closer to the real one. |
 | Service status | ✅ Ported | |
